@@ -1,0 +1,73 @@
+body, html, #root {
+  margin: 0;
+  padding: 0;
+  width: 100%;
+  height: 100%;
+  font-family: Arial, sans-serif;
+  background-color: #000000;
+  color: #e0e0e0;
+}
+
+.main {
+  width: 100%;
+  height: 100vh;
+  display: flex;
+  flex-direction: column;
+}
+
+/* Common Section Styling */
+.content-section {
+  background-color: #191919;
+  padding: 10px;
+  border-radius: 5px;
+  border: 1px solid #555;
+  height: 100%;
+  overflow-y: auto;
+}
+
+/* Input Section Styling */
+.input-content {
+  display: flex;
+  padding: 5px;
+  height: 100%;
+  box-sizing: border-box;
+}
+
+.input-textarea {
+  flex-grow: 1;
+  padding: 10px;
+  background-color: #302f2f;
+  color: #e0e0e0;
+  border: 1px solid #555;
+  border-radius: 4px;
+  resize: none;
+}
+
+/* Process Button */
+.process-button {
+  padding: 10px 15px;
+  margin-left: 10px;
+  background-color: #4CAF50;
+  color: white;
+  border: none;
+  border-radius: 4px;
+  cursor: pointer;
+  transition: background-color 0.1s;
+}
+
+.process-button:hover {
+  background-color: #45a049;
+}
+
+/* Resize Handles */
+.resize-handle {
+  width: 4px;
+  background-color: #444;
+  cursor: col-resize;
+}
+
+.resize-handle-horizontal {
+  height: 4px;
+  background-color: #444;
+  cursor: row-resize;
+}
