@@ -16,16 +16,39 @@ function App() {
 
     //User Input
     setIsProcessing(true);
-    setSolution(prev => prev +`\nYou: ${input}`);
+    setSolution(prev => prev +`\nYou: ${input}\nAI: `);
+    if (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1') {
+      try {
+        console.log('Sending request to Ollama...');
+        const response = await fetch('http://localhost:11434/api/generate', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            model: 'gemma3', // Adjust to gemma3:4b if needed
+            prompt: input,
+            stream: false, // Ensure non-streaming response
+          }),
+        });
 
-    // Simulate API call delay
-    await new Promise((resolve) => setTimeout(resolve, 2000));
-    
-    //Ai Output
-    setSolution(prev => prev +'\nAI: '+'I don\'t understand your question. Can you clarify?')
+        if (!response.ok) {
+          throw new Error(`HTTP error! Status: ${response.status} - ${response.statusText}`);
+        }
 
-    setIsProcessing(false);
+        const data = await response.json();
+        console.log('Raw API Response:', data);
+        const aiResponse = data.response || "I couldn’t process that.";
+        setSolution(prev => prev + '\nAI: ' + aiResponse);
+      } catch (error) {
+        setSolution(prev => prev + `\nAI: Error with Ollama. Details: ${error.message}`);
+        console.error('Fetch error:', error);
+      }
+    } else {
+      // await new Promise(resolve => setTimeout(resolve, 2000));
+      setSolution(prev => prev + 'Error');
+    }
+
     setInput("");
+    setIsProcessing(false);
 
   };
 
