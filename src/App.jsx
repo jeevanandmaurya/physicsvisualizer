@@ -18,35 +18,45 @@ function App() {
     setIsProcessing(true);
     setSolution(prev => prev +`\nYou: ${input}\nAI: `);
     if (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1') {
-      try {
-        console.log('Sending request to Ollama...');
-        const response = await fetch('http://localhost:11434/api/generate', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            model: 'gemma3:1b', // Adjust to gemma3:4b if needed
-            prompt: input,
-            stream: false, // Ensure non-streaming response
-          }),
-        });
-
-        if (!response.ok) {
-          throw new Error(`HTTP error! Status: ${response.status} - ${response.statusText}`);
+      const models = ['gemma3','gemma3:1b'];//PC(4b) Phone(1b)
+      for(const model of models){
+        try {
+          console.log('Sending request to Ollama...');
+          const response = await fetch('http://localhost:11434/api/generate', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              model: model, // Adjust to gemma3:4b if needed
+              prompt: input,
+              stream: false, // Ensure non-streaming response
+            }),
+          });
+          
+          if (!response.ok) {
+            throw new Error(`HTTP error! Status: ${response.status} - ${response.statusText}`);
+          }
+          
+          const data = await response.json();
+          console.log('Raw API Response:', data);
+          const aiResponse = data.response || "I couldn’t process that.";
+          setSolution(prev => prev + '\nAI: ' + aiResponse);
+          break; //Exit if any model success
+        } catch (error) {
+          console.warn('Failed with ${model}: ${error.message}');
+          // Continue to next model
+          // setSolution(prev => prev + `\nAI: Error with Ollama. Details: ${error.message}`);
+          // console.error('Fetch error:', error);
         }
-
-        const data = await response.json();
-        console.log('Raw API Response:', data);
-        const aiResponse = data.response || "I couldn’t process that.";
-        setSolution(prev => prev + '\nAI: ' + aiResponse);
-      } catch (error) {
-        setSolution(prev => prev + `\nAI: Error with Ollama. Details: ${error.message}`);
-        console.error('Fetch error:', error);
       }
+      if (!aiResponse) {
+        setSolution(prev => prev + `Error: No available models. Ensure Ollama is running with a model loaded.`);
+      }
+
     } else {
       // await new Promise(resolve => setTimeout(resolve, 2000));
       setSolution(prev => prev + 'Error');
     }
-
+    
     setInput("");
     setIsProcessing(false);
 
