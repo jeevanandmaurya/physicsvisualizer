@@ -24,7 +24,7 @@ function App() {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
-            model: 'gemma3', // Adjust to gemma3:4b if needed
+            model: 'gemma3:1b', // Adjust to gemma3:4b if needed
             prompt: input,
             stream: false, // Ensure non-streaming response
           }),
