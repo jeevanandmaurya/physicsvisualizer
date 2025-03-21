@@ -4,8 +4,13 @@ import './App.css';
 
 function App() {
   const [input, setInput] = useState("");
-  const [solution, setSolution] = useState("AI: Hello! How can I help you with physics today?");
+  // const [solution, setSolution] = useState("AI: Hello! How can I help you with physics today?");
+  const [conversation, setConversation] = useState([
+    { role: 'ai', content: "Hello! How can I help you with physics today?" }
+  ]);
   const [isProcessing, setIsProcessing] = useState(false);
+  const [metadata, setMetadata] = useState(null);
+  
 
   const handleProcess = async (e) => {
     e.preventDefault();
@@ -15,7 +20,8 @@ function App() {
     }
 
     setIsProcessing(true);
-    setSolution(prev => prev + `\nYou: ${input}\nAI: `);
+    // setSolution(prev => prev + `\nYou: ${input}\nAI: `);
+    setConversation(prev => [...prev, { role: 'user', content: input }]);
 
     if (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1') {
       const models = ['gemma3', 'gemma3:1b']; // PC (4b), Phone (1b)
@@ -41,7 +47,9 @@ function App() {
           const data = await response.json();
           console.log(`Raw API Response from ${model}:`, data);
           aiResponse = data.response || "I couldn’t process that.";
-          setSolution(prev => prev + aiResponse); // Update solution directly
+
+          // setSolution(prev => prev + aiResponse); // Update solution directly
+          setConversation(prev => [...prev, { role: 'ai', content: aiResponse }]);
           break; // Exit on success
         } catch (error) {
           console.warn(`Failed with ${model}: ${error.message}`);
@@ -50,16 +58,38 @@ function App() {
       }
 
       if (!aiResponse) {
-        setSolution(prev => prev + `Error: No available models. Ensure Ollama is running with a model loaded.`);
+        // setSolution(prev => prev + `Error: No available models. Ensure Ollama is running with a model loaded.`);
+        setConversation(prev => [...prev, { role: 'ai', content: "Error: No available models. Ensure Ollama is running with a model loaded." }]);
       }
     } else {
-      setSolution(prev => prev + 'Error: Ollama only works locally.');
+      // setSolution(prev => prev + 'Error: Ollama only works locally.');
+      setConversation(prev => [...prev, { role: 'ai', content: "Error: Ollama only works locally." }]);
     }
+
+    // Extracting metadata
+    const metadataObj = {
+      title: "Physics Question", // Extract this from AI response if needed
+      topic: "Mechanics", // Assume mechanics for now, later we'll extract dynamically
+      objects: [
+        { name: "Block", mass: "10kg", speed: "5m/s" },
+        { name: "Inclined Plane", angle: "30 degrees" }
+      ],
+      time: new Date().toISOString()
+    };
+    
+    setMetadata(metadataObj); // Save metadata of the last conversation
+
 
     setInput(""); // Clear textarea
     setIsProcessing(false); // Reset processing state
   };
-
+  // Display Conversation
+  const maxContextLength = 10;
+  const displayConversation = conversation.slice(-maxContextLength).map((msg, index) => (
+    <div key={index} className={msg.role === 'ai' ? 'ai-message' : 'user-message'}>
+      <strong>{msg.role === 'ai' ? 'AI:' : 'You:'} </strong>{msg.content}
+    </div>
+  ));
 
   return (
     <div className="main">
@@ -69,14 +99,16 @@ function App() {
             {/* Component Section */}
             <Panel className="component-section" defaultSize={15}>
               <div className="content-section">
-                <h2>Component List</h2>
+                <h2>Objects</h2>
+                Title-Energy in Sphere due to Motion
+                Topic(Mechanics)
+                Ball(Sphere)
                 <ul>
-                  <li>Block</li>
-                  <li>Inclined Plane</li>
-                  <li>Pulley</li>
-                  <li>Spring</li>
-                  <li>Ball</li>
+                  <li>Radius-</li>
+                  <li>Mass-</li>
+                  <li>Speed-</li>
                 </ul>
+                
               </div>
             </Panel>
             <PanelResizeHandle className="resize-handle" />
@@ -104,7 +136,8 @@ function App() {
               <div className="content-section">
           
                 <h2>AI Solution</h2>
-                <pre>{solution}</pre>
+                {/* <p>{solution}</p> */}
+                <div className="conversation-box">{displayConversation}</div>
               </div>
             </Panel>
           </PanelGroup>
@@ -120,7 +153,9 @@ function App() {
               onChange={(e) => setInput(e.target.value)}
               placeholder="Enter your physics question..."
             />
-            <button className="process-button" onClick={handleProcess}>
+            <button className="process-button" 
+            onClick={handleProcess}
+            disabled={isProcessing}>
             {isProcessing?"Processing...":"Process"}
             </button>
           </div>
