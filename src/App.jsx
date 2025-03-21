@@ -23,7 +23,8 @@ function App() {
     // setSolution(prev => prev + `\nYou: ${input}\nAI: `);
     setConversation(prev => [...prev, { role: 'user', content: input }]);
 
-    if (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1') {
+    // if (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1') {
+    if(1){
       const models = ['gemma3', 'gemma3:1b']; // PC (4b), Phone (1b)
       let aiResponse = null; // Declare outside loop for scope
 
