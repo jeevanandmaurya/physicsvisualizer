@@ -1,3 +1,9 @@
+
+header{
+  text-align: center;
+  padding: 10px;
+}
+
 body, html, #root {
   margin: 0;
   padding: 0;
