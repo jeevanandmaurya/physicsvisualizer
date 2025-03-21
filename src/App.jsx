@@ -1,16 +1,17 @@
 import React, { useState } from 'react';
 import { PanelGroup, Panel, PanelResizeHandle } from 'react-resizable-panels';
+import Visualizer from './Visualizer';
+import Graph from './Graph';
 import './App.css';
 
 function App() {
   const [input, setInput] = useState("");
-  // const [solution, setSolution] = useState("AI: Hello! How can I help you with physics today?");
+  //const [solution, setSolution] = useState("AI: Hello! How can I help you with physics today?");
   const [conversation, setConversation] = useState([
     { role: 'ai', content: "Hello! How can I help you with physics today?" }
   ]);
   const [isProcessing, setIsProcessing] = useState(false);
-  const [metadata, setMetadata] = useState(null);
-  
+  // const [metadata, setMetadata] = useState(null);
 
   const handleProcess = async (e) => {
     e.preventDefault();
@@ -24,7 +25,7 @@ function App() {
     setConversation(prev => [...prev, { role: 'user', content: input }]);
 
     // if (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1') {
-    if(1){
+    if (1) {
       const models = ['gemma3', 'gemma3:1b']; // PC (4b), Phone (1b)
       let aiResponse = null; // Declare outside loop for scope
 
@@ -77,7 +78,7 @@ function App() {
       ],
       time: new Date().toISOString()
     };
-    
+
     setMetadata(metadataObj); // Save metadata of the last conversation
 
 
@@ -109,7 +110,7 @@ function App() {
                   <li>Mass-</li>
                   <li>Speed</li>
                 </ul>
-                
+
               </div>
             </Panel>
             <PanelResizeHandle className="resize-handle" />
@@ -117,8 +118,9 @@ function App() {
             <Panel className="visualization-section" defaultSize={30}>
               <div className="content-section">
                 <h2>3D/2D Visualization</h2>
-                <p>Scene/Visualization of the given Problem...</p>
-     
+                <div style={{ height: 'calc(100% - 40px)' }}>
+                  <Visualizer />
+                </div>
               </div>
             </Panel>
             <PanelResizeHandle className="resize-handle" />
@@ -126,16 +128,18 @@ function App() {
             {/* Graphing Section */}
             <Panel className="graph-section" defaultSize={30}>
               <div className="content-section">
-         
+
                 <h2>Graph</h2>
-                <div id="jsxgraph-board"></div>
+                <div style={{ height: 'calc(100% - 40px)' }}>
+                  <Graph />
+                </div>
               </div>
             </Panel>
             <PanelResizeHandle className="resize-handle" />
             {/* Soultion Section */}
             <Panel className="solution-section" defaultSize={25}>
               <div className="content-section">
-          
+
                 <h2>AI Solution</h2>
                 {/* <p>{solution}</p> */}
                 <div className="conversation-box">{displayConversation}</div>
@@ -154,10 +158,10 @@ function App() {
               onChange={(e) => setInput(e.target.value)}
               placeholder="Enter your physics question..."
             />
-            <button className="process-button" 
-            onClick={handleProcess}
-            disabled={isProcessing}>
-            {isProcessing?"Processing...":"Process"}
+            <button className="process-button"
+              onClick={handleProcess}
+              disabled={isProcessing}>
+              {isProcessing ? "Processing..." : "Process"}
             </button>
           </div>
         </Panel>

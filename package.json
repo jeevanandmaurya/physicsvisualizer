@@ -11,8 +11,12 @@
     "deploy": "gh-pages -d dist"
   },
   "dependencies": {
+    "@react-three/cannon": "^6.6.0",
+    "@react-three/drei": "^10.0.4",
+    "@react-three/fiber": "^9.1.0",
     "cannon": "^0.6.2",
     "chart.js": "^4.4.8",
+    "jsxgraph": "^1.10.1",
     "react": "^19.0.0",
     "react-chartjs-2": "^5.3.0",
     "react-dom": "^19.0.0",
