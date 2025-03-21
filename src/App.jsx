@@ -87,7 +87,7 @@ function App() {
   const maxContextLength = 10;
   const displayConversation = conversation.slice(-maxContextLength).map((msg, index) => (
     <div key={index} className={msg.role === 'ai' ? 'ai-message' : 'user-message'}>
-      <strong>{msg.role === 'ai' ? 'AI:' : 'You:'} </strong>{msg.content}
+      <p>{msg.role === 'ai' ? 'AI:' : 'You:'}{msg.content}</p>
     </div>
   ));
 
@@ -106,7 +106,7 @@ function App() {
                 <ul>
                   <li>Radius-</li>
                   <li>Mass-</li>
-                  <li>Speed-</li>
+                  <li>Speed</li>
                 </ul>
                 
               </div>
