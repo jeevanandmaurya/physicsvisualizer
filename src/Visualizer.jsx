@@ -1,69 +1,59 @@
-// src/Visualizer.jsx
-import React,{ useState,useRef} from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import { Canvas, useFrame } from '@react-three/fiber';
-import { Physics, useBox, usePlane } from '@react-three/cannon';
-import { OrbitControls , Stats} from '@react-three/drei'; // Add controls for debugging
-import './Visualizer.css'
+import { Physics, useSphere, usePlane } from '@react-three/cannon';
+import { OrbitControls, Stats } from '@react-three/drei';
+import './Visualizer.css';
 
-
-// Custom hook to sync physics data
-function PhysicsSync({ boxRef, onPhysicsUpdate }) {
-  console.log('PhysicsSync rendered');
-  const [positionData, setPositionData] = useState([]);
-
-  useFrame(() => {
-    console.log('useFrame running, boxRef.current:', boxRef.current);
-    if (boxRef.current) {
-      const { x, y, z } = boxRef.current.position;
-      const time = performance.now() / 1000;
-      console.log('Position:', { time, x, y, z }); / // Time in seconds
-      setPositionData((prev) => {
-        const newData = [...prev, { time, x, y, z }];
-        const cappedData = newData.length > 100 ? newData.slice(-100) : newData;
-        console.log('Sending data:', cappedData);
-        // Pass data to parent every frame
-        if (onPhysicsUpdate) {
-          onPhysicsUpdate(cappedData);
-        }
-        return cappedData;
-      });
-    }
-  });
-
-}
-function Box({ boxRef }) {
-  const [ref, api] = useBox(() => ({
-    mass: 1,
-    position: [0, 5, 0],
+function Ball({ config, onPositionUpdate }) {
+  const { mass, radius, position, velocity, color = "red", restitution = 0.7 } = config;
+  
+  const [ref, api] = useSphere(() => ({
+    mass: mass,
+    position: position,
+    velocity: velocity,
+    args: [radius],
+    material: { restitution: restitution, friction: 1.0 }, // Add friction to ball
   }));
+
+  const startTime = useRef(performance.now() / 1000);
+
   useFrame(() => {
-    console.log('Box useFrame, ref.current:', ref.current);
-    if (ref.current && boxRef) {
-      boxRef.current = ref.current; // Assign the physics body
-      console.log('boxRef assigned:', boxRef.current.position);
-    }
+    api.position.subscribe((pos) => {
+      const [x, y, z] = pos;
+      const t = (performance.now() / 1000) - startTime.current;
+      console.log('Ball position:', { x, y, z, t });
+      onPositionUpdate({ x, y, z, t });
+    });
+
+    api.velocity.subscribe((vel) => {
+      const [vx, vy, vz] = vel;
+      console.log('Ball velocity:', { vx, vy, vz }); // Debug velocity
+    });
   });
+
   return (
     <mesh ref={ref}>
-      <boxGeometry args={[1, 1, 1]} />
-      <meshStandardMaterial color="orange" />
+      <sphereGeometry args={[radius, 32, 32]} />
+      <meshStandardMaterial color={color} />
     </mesh>
   );
 }
 
 function Plane(props) {
   const [ref] = usePlane(() => ({
-    rotation: [-Math.PI / 2, 0, 0], // Flat, facing up
-    position: [0, 0, 0], // At origin
+    rotation: [-Math.PI / 2, 0, 0],
+    position: [0, 0, 0],
+    material: { friction: 1.0, restitution: 0.7 }, // Add friction to plane
     ...props,
   }));
   return (
-    <mesh ref={ref}>
-      <planeGeometry args={[10, 10]} />
+    <mesh ref={ref} receiveShadow>
+      <planeGeometry args={[100, 100]} />
       <meshStandardMaterial color="gray" />
     </mesh>
   );
 }
+
 function FpsCounter({ setFps }) {
   const lastTimeRef = useRef(performance.now());
   const frameCountRef = useRef(0);
@@ -83,38 +73,56 @@ function FpsCounter({ setFps }) {
   return null;
 }
 
-
-
-
-function Visualizer({ onPhysicsUpdate }) {
+function Visualizer({ scene, onPositionUpdate }) {
   const [fps, setFps] = useState(0);
-  const boxRef = useRef();
+  const { gravity = [0, -9.81, 0] } = scene || {};
+
+  useEffect(() => {
+    console.log('Visualizer scene loaded:', scene);
+  }, [scene]);
 
   return (
-
     <div style={{ position: 'relative', width: '100%', height: '100%' }}>
       <Canvas
         style={{ height: '100%', width: '100%' }}
-        camera={{ position: [0, 5, 10], fov: 50 }}
+        shadows
+        camera={{ position: [10, 10, 10], fov: 50 }}
       >
         <ambientLight intensity={0.5} />
-        <pointLight position={[10, 10, 10]} />
-        <Physics>
-          <Box />
+        <pointLight position={[10, 10, 10]} castShadow />
+        <Physics 
+          gravity={gravity} 
+          defaultContactMaterial={{ friction: 1.0, restitution: 0.0 }} // No bounce, max friction
+          step={1 / 60} // Fixed timestep for consistency
+        >
+          {scene && scene.objects.map((obj, index) => {
+            if (obj.type === "sphere") {
+              return (
+                <Ball 
+                  key={index} 
+                  config={obj} 
+                  onPositionUpdate={onPositionUpdate}
+                />
+              );
+            }
+            return null;
+          })}
           <Plane />
         </Physics>
         <OrbitControls />
         <axesHelper args={[5]} />
         <Stats />
-        <PhysicsSync boxRef={boxRef} onPhysicsUpdate={onPhysicsUpdate} />
         <FpsCounter setFps={setFps} />
+        <gridHelper args={[20, 20]} />
       </Canvas>
       <div
         style={{
           position: 'absolute',
           top: '10px',
           left: '10px',
-          color: 'black',
+          backgroundColor: 'rgba(0, 0, 0, 0.5)',
+          color: 'white',
+          padding: '5px',
           borderRadius: '4px',
           zIndex: 10,
         }}
