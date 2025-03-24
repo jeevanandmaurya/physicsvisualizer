@@ -1,3 +1,4 @@
+// Visualizer.jsx
 import React, { useState, useRef, useEffect } from 'react';
 import { Canvas, useFrame } from '@react-three/fiber';
 import { Physics, useSphere, usePlane } from '@react-three/cannon';
@@ -12,22 +13,25 @@ function Ball({ config, onPositionUpdate }) {
     position: position,
     velocity: velocity,
     args: [radius],
-    material: { restitution: restitution, friction: 1.0 }, // Add friction to ball
+    material: { restitution: restitution },
   }));
 
   const startTime = useRef(performance.now() / 1000);
-
+  const lastPosition = useRef({ x: position[0], y: position[1], z: position[2] });
+  
   useFrame(() => {
     api.position.subscribe((pos) => {
       const [x, y, z] = pos;
       const t = (performance.now() / 1000) - startTime.current;
-      console.log('Ball position:', { x, y, z, t });
-      onPositionUpdate({ x, y, z, t });
-    });
-
-    api.velocity.subscribe((vel) => {
-      const [vx, vy, vz] = vel;
-      console.log('Ball velocity:', { vx, vy, vz }); // Debug velocity
+      
+      if (
+        Math.abs(x - lastPosition.current.x) > 0.01 ||
+        Math.abs(y - lastPosition.current.y) > 0.01 ||
+        Math.abs(z - lastPosition.current.z) > 0.01
+      ) {
+        lastPosition.current = { x, y, z };
+        onPositionUpdate({ x, y, z, t });
+      }
     });
   });
 
@@ -43,7 +47,6 @@ function Plane(props) {
   const [ref] = usePlane(() => ({
     rotation: [-Math.PI / 2, 0, 0],
     position: [0, 0, 0],
-    material: { friction: 1.0, restitution: 0.7 }, // Add friction to plane
     ...props,
   }));
   return (
@@ -75,11 +78,13 @@ function FpsCounter({ setFps }) {
 
 function Visualizer({ scene, onPositionUpdate }) {
   const [fps, setFps] = useState(0);
+  const [position, setPosition] = useState({ x: 0, y: 0, z: 0, t: 0 });
   const { gravity = [0, -9.81, 0] } = scene || {};
 
-  useEffect(() => {
-    console.log('Visualizer scene loaded:', scene);
-  }, [scene]);
+  const handlePosition = (pos) => {
+    setPosition(pos);
+    onPositionUpdate(pos);
+  };
 
   return (
     <div style={{ position: 'relative', width: '100%', height: '100%' }}>
@@ -92,8 +97,10 @@ function Visualizer({ scene, onPositionUpdate }) {
         <pointLight position={[10, 10, 10]} castShadow />
         <Physics 
           gravity={gravity} 
-          defaultContactMaterial={{ friction: 1.0, restitution: 0.0 }} // No bounce, max friction
-          step={1 / 60} // Fixed timestep for consistency
+          defaultContactMaterial={{
+            friction: 0.5,
+            restitution: 0.7,
+          }}
         >
           {scene && scene.objects.map((obj, index) => {
             if (obj.type === "sphere") {
@@ -101,7 +108,7 @@ function Visualizer({ scene, onPositionUpdate }) {
                 <Ball 
                   key={index} 
                   config={obj} 
-                  onPositionUpdate={onPositionUpdate}
+                  onPositionUpdate={handlePosition}
                 />
               );
             }
@@ -111,11 +118,30 @@ function Visualizer({ scene, onPositionUpdate }) {
         </Physics>
         <OrbitControls />
         <axesHelper args={[5]} />
-        <Stats />
+        {/* <Stats /> */}
         <FpsCounter setFps={setFps} />
         <gridHelper args={[20, 20]} />
       </Canvas>
       <div
+        className="position-display"
+        style={{
+          position: 'absolute',
+          top: '50px',
+          left: '10px',
+          backgroundColor: 'rgba(0, 0, 0, 0.5)',
+          color: 'white',
+          padding: '5px',
+          borderRadius: '4px',
+          zIndex: 10,
+        }}
+      >
+        <div>Position:</div>
+        <div>X: {position.x.toFixed(2)} m</div>
+        <div>Y: {position.y.toFixed(2)} m</div>
+        <div>T: {position.t.toFixed(2)} s</div>
+      </div>
+      <div
+        className="fps-counter"
         style={{
           position: 'absolute',
           top: '10px',

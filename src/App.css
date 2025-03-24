@@ -2,6 +2,16 @@
 header{
   text-align: center;
   padding: 10px;
+  height: 20px;
+}
+h2{
+  background: #ffffff;
+  color: #000000;
+  font-size: small;
+  border-radius: 5px;
+  padding: 10px 10px;
+  overflow:hidden;
+  margin-top:1px;
 }
 
 body, html, #root {
