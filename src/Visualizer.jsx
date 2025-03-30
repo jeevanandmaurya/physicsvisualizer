@@ -25,9 +25,9 @@ function Ball({ config, onPositionUpdate }) {
       const t = (performance.now() / 1000) - startTime.current;
       
       if (
-        Math.abs(x - lastPosition.current.x) > 0.01 ||
-        Math.abs(y - lastPosition.current.y) > 0.01 ||
-        Math.abs(z - lastPosition.current.z) > 0.01
+        Math.abs(x - lastPosition.current.x) > 0.1 ||
+        Math.abs(y - lastPosition.current.y) > 0.1 ||
+        Math.abs(z - lastPosition.current.z) > 0.1
       ) {
         lastPosition.current = { x, y, z };
         onPositionUpdate({ x, y, z, t });

@@ -37,15 +37,15 @@ function App() {
 
   return (
     <div className="main">
-      <header>
+      {/* <header>
         <div>Physics Visualizer</div>
-      </header>
+      </header> */}
       <PanelGroup direction="vertical">
         <Panel className="main-panel" defaultSize={90}>
           <PanelGroup direction="horizontal">
             <Panel className="component-section" defaultSize={15}>
               <div className="content-section">
-                <h2>Objects</h2>
+                {/* <h2>Objects</h2> */}
                 <div className="physics-parameters">
                   <h3>{currentScene.name}</h3>
                   <div className="physics-object">
@@ -69,8 +69,8 @@ function App() {
             
             <Panel className="visualization-section" defaultSize={30}>
               <div className="content-section">
-                <h2>3D/2D Visualization</h2>
-                <div style={{ height: 'calc(100% - 40px)' }}>
+                {/* <h2>3D/2D Visualization</h2> */}
+                <div style={{ height: '100%'  }}>
                   <Visualizer 
                     scene={currentScene} 
                     onPositionUpdate={handlePositionUpdate}
@@ -82,7 +82,7 @@ function App() {
 
             <Panel className="graph-section" defaultSize={30}>
               <div className="content-section">
-                <h2>Graph</h2>
+                {/* <h2>Graph</h2> */}
                 <div style={{ height: 'calc(100% - 40px)' }}>
                   <Graph data={motionData} />
                 </div>
@@ -92,7 +92,7 @@ function App() {
             
             <Panel className="solution-section" defaultSize={25}>
               <div className="content-section">
-                <h2>AI Solution</h2>
+                {/* <h2>AI Solution</h2> */}
                 <Conversation />
               </div>
             </Panel>

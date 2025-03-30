@@ -1,9 +1,4 @@
 
-header{
-  text-align: center;
-  padding: 10px;
-  height: 20px;
-}
 h2{
   background: #ffffff;
   color: #000000;
@@ -35,11 +30,12 @@ body, html, #root {
 /* Common Section Styling */
 .content-section {
   display: flex;
+  box-sizing: border-box;
   flex-direction: column;
   background-color: #191919;
-  padding: 10px;
-  border-radius: 5px;
-  border: 1px solid #555;
+  padding: 1px;
+  /* border-radius: 5px; */
+  /* border: 1px solid #555; */
   height: 100%;
   overflow-y: auto;
 }
@@ -101,13 +97,13 @@ p{
 
 /* Resize Handles */
 .resize-handle {
-  width: 4px;
-  background-color: #444;
+  width: 0.5px;
+  background-color: #353535;
   cursor: col-resize;
 }
 
 .resize-handle-horizontal {
-  height: 4px;
+  height: 0px;
   background-color: #444;
   cursor: row-resize;
 }
