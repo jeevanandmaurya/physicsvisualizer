@@ -86,7 +86,7 @@ function Graph({ data }) {
           width: '100%', 
           height: '100%', 
           minHeight: '200px', // Ensure minimum height
-          backgroundColor: '#fff' // Add background to make it visible
+          backgroundColor: 'white' // Add background to make it visible
         }}
         id="jsxgraph-board"
       />

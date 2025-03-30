@@ -103,7 +103,7 @@ function Visualizer({ scene, onPositionUpdate }) {
           }}
         >
           {scene && scene.objects.map((obj, index) => {
-            if (obj.type === "sphere") {
+            if (obj.type === "Sphere") {
               return (
                 <Ball 
                   key={index} 
@@ -126,11 +126,12 @@ function Visualizer({ scene, onPositionUpdate }) {
         className="position-display"
         style={{
           position: 'absolute',
-          top: '50px',
+          fontSize: '10px',
+          top: '40px',
           left: '10px',
           backgroundColor: 'rgba(0, 0, 0, 0.5)',
           color: 'white',
-          padding: '5px',
+          padding: '4px',
           borderRadius: '4px',
           zIndex: 10,
         }}
@@ -138,17 +139,18 @@ function Visualizer({ scene, onPositionUpdate }) {
         <div>Position:</div>
         <div>X: {position.x.toFixed(2)} m</div>
         <div>Y: {position.y.toFixed(2)} m</div>
-        <div>T: {position.t.toFixed(2)} s</div>
+        <div>t: {position.t.toFixed(2)} s</div>
       </div>
       <div
         className="fps-counter"
         style={{
           position: 'absolute',
+          fontSize: '12px',
           top: '10px',
           left: '10px',
           backgroundColor: 'rgba(0, 0, 0, 0.5)',
           color: 'white',
-          padding: '5px',
+          padding: '4px',
           borderRadius: '4px',
           zIndex: 10,
         }}
