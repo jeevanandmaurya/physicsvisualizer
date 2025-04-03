@@ -1,0 +1,127 @@
+/* SceneSelector.css (Dark Theme) */
+
+
+/* Container for the entire scene selector panel */
+.component-section.examples-panel {
+    height: 100%; /* Fill the panel height */
+    background-color: #1e1e1e; /* Dark gray background */
+    border-right: 1px solid #333; /* Subtle dark border */
+    overflow: hidden; /* Prevent overflow outside the panel */
+  }
+  
+  /* Inner content section */
+  .content-section {
+    height: 100%;
+    display: flex;
+    flex-direction: column;
+    padding: 0; /* Remove default padding, controlled by children */
+  }
+  
+  h3{
+    padding: 5px;
+    border: 1px solid #444; /* Dark border */
+    border-radius: 5px;
+  }
+  
+  /* Examples list container */
+  .examples-list {
+    flex-grow: 1; /* Take up remaining space */
+    overflow-y: auto; /* Scroll if content exceeds height */
+    padding: 5px 0; /* Add some vertical padding */
+  }
+  
+  /* Individual example item */
+  .example-item {
+    padding: 10px;
+    margin: 0 5px 8px 5px; /* Consistent with your inline style */
+    border: 1px solid #444; /* Dark border */
+    border-radius: 5px;
+    cursor: pointer;
+    background-color: #2a2a2a; /* Slightly lighter dark background */
+    transition: background-color 0.2s ease; /* Smooth transition */
+  }
+  
+  /* Hover effect for interactivity */
+  .example-item:hover {
+    background-color: #3a3a3a; /* Lighter gray on hover */
+  }
+  
+  /* Selected state */
+  .example-item.selected {
+    background-color: #4a4a8a; /* Muted purple for selected item */
+    border-color: #666; /* Slightly lighter border for emphasis */
+  }
+  
+  /* Example item title */
+  .example-item div:first-child {
+    font-weight: bold;
+    font-size: 1.05em;
+    margin-bottom: 3px;
+    color: #d0d0d0; /* Light gray for readability */
+  }
+  
+  /* Example item description */
+  .example-item div:last-child {
+    font-size: 0.9em;
+    color: #a0a0a0; /* Muted gray for secondary text */
+  }
+  
+  /* Physics parameters display section */
+  .physics-parameters-display {
+    padding: 10px;
+    border-top: 1px solid #444; /* Dark separator */
+    background-color: #252525; /* Slightly lighter dark background */
+    font-size: 0.9em;
+    color: #b0b0b0; /* Light gray text */
+  }
+  
+  /* Headings in parameters display */
+  .physics-parameters-display h3 {
+    margin: 0 0 5px 0;
+    font-size: 1em;
+    color: #e0e0e0; /* Bright text for emphasis */
+  }
+  
+  .physics-parameters-display h4 {
+    margin: 0 0 5px 0;
+    font-size: 0.95em;
+    color: #d0d0d0; /* Slightly muted light gray */
+  }
+  
+  /* Object details */
+  .physics-object-details {
+    margin-bottom: 4px;
+  }
+  
+  .physics-object-details span {
+    font-family: monospace; /* For readability of object IDs */
+    color: #a0a0a0; /* Muted gray for details */
+  }
+  
+  /* Environment details (e.g., Gravity) */
+  .physics-environment-details {
+    margin-top: 5px;
+  }
+  
+  .physics-environment-details span {
+    font-family: monospace;
+    color: #a0a0a0; /* Muted gray */
+  }
+  
+  /* Scrollbar styling for consistency (dark theme) */
+  .examples-list::-webkit-scrollbar {
+    width: 8px;
+  }
+  
+  .examples-list::-webkit-scrollbar-track {
+    background: #2a2a2a; /* Dark track */
+  }
+  
+  .examples-list::-webkit-scrollbar-thumb {
+    background: #555; /* Dark thumb */
+    border-radius: 4px;
+  }
+  
+  .examples-list::-webkit-scrollbar-thumb:hover {
+    background: #777; /* Lighter on hover */
+  }
