@@ -12,7 +12,7 @@ export const mechanicsExamples = [
           type: "Sphere",
           mass: 2.0,
           radius: 0.5,
-          position: [0, 1, 0], // Start near ground
+          position: [0, 0.3, 0], // Start near ground
           velocity: [5, 7, 0], // Give it upward and forward velocity
           color: "#ff6347", // Tomato color
           restitution: 0.6,

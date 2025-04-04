@@ -6,24 +6,25 @@ import Graph from './Graph';
 import Conversation from './Conversation';
 import SceneSelector from './SceneSelector'; // Import the new component
 import './App.css';
-import { mechanicsExamples } from './scenes.js';
+import { mechanicsExamples } from './scenes.js'; // Correct path assuming scenes.js is in the same directory
 
 function App() {
   const [currentScene, setCurrentScene] = useState(mechanicsExamples[0]);
   const [motionData, setMotionData] = useState({});
 
   const handlePositionUpdate = (posDataWithId) => {
-    const { id, x, y, t } = posDataWithId;
+    const { id, x, y, z, t } = posDataWithId; // Include z if needed, Graph uses x, y, t
     setMotionData((prevData) => {
       const objectHistory = prevData[id] || [];
-      const updatedHistory = [...objectHistory, { x, y, t }].slice(-100);
+      // *** REMOVED .slice(-100) to keep all data ***
+      const updatedHistory = [...objectHistory, { x, y, t }]; // Only store x, y, t needed by Graph
       return { ...prevData, [id]: updatedHistory };
     });
   };
 
   const handleSceneChange = (example) => {
     setCurrentScene(example);
-    setMotionData({}); // Reset motion data when scene changes
+    setMotionData({}); // Reset motion data when scene changes (essential!)
   };
 
   return (
@@ -43,7 +44,7 @@ function App() {
             <Panel className="visualization-section" defaultSize={35} minSize={20}>
               <div className="content-section">
                 <Visualizer
-                  key={currentScene.id}
+                  key={currentScene.id} // Key ensures remount on scene change
                   scene={currentScene}
                   onPositionUpdate={handlePositionUpdate}
                 />
@@ -52,7 +53,8 @@ function App() {
             <PanelResizeHandle className="resize-handle" />
             {/* Right Panel 1: Graph */}
             <Panel className="graph-section" defaultSize={25} minSize={15}>
-              <div className="content-section">
+              {/* Wrap Graph in a container that allows space for controls below */}
+              <div className="content-section" style={{ display: 'flex', flexDirection: 'column', height: '100%' }}>
                 <Graph data={motionData} />
               </div>
             </Panel>

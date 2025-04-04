@@ -1,205 +1,205 @@
-import React, { useEffect, useRef } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import JXG from 'jsxgraph';
-import './Graph.css'; // Load CSS
-
-// Define colors (can be adjusted for light/dark theme)
-const plotColors = ['#1f77b4', '#ff7f0e', '#2ca02c', '#d62728', '#9467bd', '#8c564b'];
-const axisColor = '#888888'; // Color for axes and grid
-const textColor = '#333333'; // Color for text labels
-
-// Function to initialize or re-initialize the board
-const initBoard = (boardRef) => {
-  // Ensure container has explicit size for initialization
-  if (!boardRef.current || boardRef.current.offsetWidth === 0) {
-     console.warn("Graph container has no size yet.");
-     return null; // Wait for layout
-  }
-
-  const board = JXG.JSXGraph.initBoard(boardRef.current, {
-    boundingbox: [-10, 10, 10, -10],
-    axis: false, // Disable default axis drawing, we'll create custom ones
-    showCopyright: false,
-    showNavigation: true, // Keep zoom/pan controls
-    pan: { enabled: true, needShift: false },
-    zoom: { enabled: true, wheel: true, needShift: false, min: 0.01, max: 100 },
-    keepaspectratio: false,
-    // Optional: Set default element colors (can be overridden)
-    defaultAxes: {
-        strokeColor: axisColor,
-        ticks: {
-            strokeColor: axisColor,
-            label: { color: textColor } // Label color for ticks
-        }
-    },
-    grid: { // Default grid properties (if we create one later)
-        strokeColor: axisColor,
-        strokeOpacity: 0.5, // Make grid slightly faint
-    },
-     text: { // Default text properties
-         color: textColor
-     }
-  });
-
-  // --- Create Custom Grid and Axes ---
-  // This gives more control over appearance
-  board.create('grid', [], { majorX: 1, majorY: 1 }); // Grid lines every 1 unit
-  board.create('axis', [[0, 0], [1, 0]], { // X Axis
-      name: 'X',
-      withLabel: true,
-      label: { position: 'rt', offset: [-15, 10], anchorX: 'right', color: textColor } // Position label
-  });
-  board.create('axis', [[0, 0], [0, 1]], { // Y Axis
-      name: 'Y',
-      withLabel: true,
-      label: { position: 'rt', offset: [10, -15], anchorY: 'top', color: textColor } // Position label
-  });
-  // --- End Custom Grid and Axes ---
-
-
-  // Add Title (using dynamic positioning based on bounding box)
-  board.create('text',
-    [
-      () => (board.getBoundingBox()[2] + board.getBoundingBox()[0]) / 2, // Center X
-      () => board.getBoundingBox()[1] - (board.getBoundingBox()[1] - board.getBoundingBox()[3]) * 0.05, // Near Top Y
-      'Position Graph (Y vs X)'
-    ],
-    {
-      fontSize: 14,
-      fixed: true,
-      anchorX: 'middle',
-      anchorY: 'top', // Anchor title text to its top
-      cssClass: 'graph-title',
-      layer: 10 // Ensure title is on top
-    }
-  );
-
-  return board;
-};
-
+import './Graph.css';
 
 function Graph({ data }) {
   const boardRef = useRef(null);
   const boardInstance = useRef(null);
+  const [plotType, setPlotType] = useState('yvx');
+  const [autoFit, setAutoFit] = useState(true);
 
-  // Initialize board on component mount & handle resize
+  // Init board on mount
   useEffect(() => {
-    const attemptInit = () => {
-        if (boardRef.current && !boardInstance.current) {
-            boardInstance.current = initBoard(boardRef);
-        }
-    }
+    if (!boardRef.current) return;
+    
+    const id = `jsxg-${Math.random().toString(36).slice(2)}`;
+    boardRef.current.id = id;
 
-    // Attempt initial init
-     attemptInit();
+    const board = JXG.JSXGraph.initBoard(id, {
+      boundingbox: [-10, 10, 10, -10],
+      axis: true,
+      showNavigation: true,
+      showCopyright: false,
+      // Fix trackpad panning - separate mouse wheel zoom from trackpad panning
+      pan: {
+        enabled: true,
+        // needTwoFingers: true, // Enable two-finger trackpad panning
+        needShift: false      // Don't require shift key for panning
+      },
+      zoom: {
+        enabled: true,
+        wheel: true,
+        needShift: false,     // Don't require shift key for zooming
+        // pinchHorizontal: true,// Enable pinch zoom on trackpad
+        // pinchVertical: true   // Enable pinch zoom on trackpad
+      },
+      keepaspectratio: true,
+      grid: {
+        visible: true,
+        gridX: 2,
+        gridY: 2,
+        strokeColor: '#888',
+        strokeWidth: 0.5
+      },
+      backgroundColor: 'white'
+    });
 
-     // Optional: Re-initialize on resize if layout affects board creation
-     // (Can be complex - only use if necessary)
-     // const resizeObserver = new ResizeObserver(attemptInit);
-     // if (boardRef.current) {
-     //   resizeObserver.observe(boardRef.current);
-     // }
+    // Helper to create an axis with consistent dark style
+    const createAxis = (board, direction, color = 'black') => {
+      const point = direction === 'x' ? [[0, 0], [1, 0]] : [[0, 0], [0, 1]];
+      return board.create('axis', point, {
+        strokeColor: color,
+        strokeWidth: 2,
+        ticks: {
+          drawLabels: true,
+          strokeColor: color,
+          strokeWidth: 1,
+          label: { fontSize: 10, color: '#333' },
+          ticksDistance: 2,
+          insertTicks: false
+        },
+      });
+    };
 
-    // Cleanup function on unmount
+    // Create axes
+    board.xAxis = createAxis(board, 'x');
+    board.yAxis = createAxis(board, 'y');
+
+    boardInstance.current = board;
+
     return () => {
-      // if (resizeObserver && boardRef.current) {
-      //    resizeObserver.unobserve(boardRef.current);
-      // }
-      if (boardInstance.current) {
-        JXG.JSXGraph.freeBoard(boardInstance.current);
-        boardInstance.current = null;
+      if (board) {
+        JXG.JSXGraph.freeBoard(board);
       }
     };
   }, []);
 
-
-  // Update graph when 'data' prop changes
+  // Update plot
   useEffect(() => {
-    // Board must exist to update plots
-    if (!boardInstance.current) {
-      // It might not have initialized on first render if container size was 0
-      // Try initializing again now that data is present (layout might be ready)
-      if (boardRef.current) {
-           boardInstance.current = initBoard(boardRef);
-           if (!boardInstance.current) {
-               console.warn("Graph board failed to initialize on update.");
-               return; // Still couldn't initialize
-           }
-      } else {
-          return; // No ref yet
-      }
-    }
-
     const board = boardInstance.current;
-    const hasData = Object.keys(data).length > 0 && Object.values(data).some(history => history.length > 0);
+    if (!board || !data) return;
 
-    // Clear previous plots before drawing new data
-    const elementsToRemove = board.objectsList.filter(el =>
-        el.elType === 'curve' || el.elType === 'point'
-    );
-    board.suspendUpdate(); // Pause updates
-    board.removeObject(elementsToRemove);
+    // Remove previous plot elements
+    board.objectsList.forEach(obj => {
+      if (obj.elType === 'curve' || obj.elType === 'point') {
+        board.removeObject(obj);
+      }
+    });
+
+    board.suspendUpdate();
+
+    const xKey = plotType === 'xvt' ? 't' : 'x';
+    const yKey = plotType === 'yvt' ? 'y' : plotType === 'xvt' ? 'x' : 'y';
 
     let allX = [], allY = [];
 
-    if (hasData) {
-      Object.entries(data).forEach(([objectId, history], index) => {
-        if (history.length > 0) {
-          const xCoords = history.map(p => p.x);
-          const yCoords = history.map(p => p.y);
-          const color = plotColors[index % plotColors.length];
+    Object.values(data || {}).forEach((history, i) => {
+      if (!history || history.length === 0) return;
+      
+      const xData = history.map(p => p[xKey]);
+      const yData = history.map(p => p[yKey]);
 
-          allX.push(...xCoords);
-          allY.push(...yCoords);
+      if (xData.length > 0 && yData.length > 0) {
+        board.create('curve', [xData, yData], {
+          strokeColor: ['#1f77b4', '#ff7f0e'][i % 2],
+          strokeWidth: 2,
+        });
 
-          // Plot curve
-          board.create('curve', [xCoords, yCoords], {
-            strokeColor: color, strokeWidth: 2, highlightStrokeColor: color, layer: 5
-          });
+        board.create('point', [xData[xData.length - 1], yData[yData.length - 1]], {
+          size: 3,
+          color: ['#1f77b4', '#ff7f0e'][i % 2],
+          fixed: true,
+          name: '',
+        });
 
-          // Plot latest point marker
-          const latest = history[history.length - 1];
-          board.create('point', [latest.x, latest.y], {
-            name: '', size: 3, face: 'o', color: color, fixed: true, highlightFillColor: color, layer: 6
-          });
-        }
-      });
-
-      // Dynamic Bounding Box Calculation
-      if (allX.length > 0 && allY.length > 0) {
-            const bufferFactor = 1.15;
-            let minX = Math.min(...allX); let maxX = Math.max(...allX);
-            let minY = Math.min(...allY); let maxY = Math.max(...allY);
-            let paddingX = Math.max((maxX - minX) * (bufferFactor - 1.0), 1.0);
-            let paddingY = Math.max((maxY - minY) * (bufferFactor - 1.0), 1.0);
-            if (minX === maxX) paddingX = 1.0; if (minY === maxY) paddingY = 1.0;
-            board.setBoundingBox([minX - paddingX, maxY + paddingY, maxX + paddingX, minY - paddingY], false);
-      } else {
-           board.setBoundingBox([-10, 10, 10, -10], false);
+        allX.push(...xData);
+        allY.push(...yData);
       }
+    });
 
-    } else {
-      // No data, reset zoom
-      board.setBoundingBox([-10, 10, 10, -10], false);
+    if (autoFit && allX.length && allY.length) {
+      const minX = Math.min(...allX), maxX = Math.max(...allX);
+      const minY = Math.min(...allY), maxY = Math.max(...allY);
+      
+      // Calculate proper padding for both axes
+      const padX = Math.max((maxX - minX) * 0.1, 1);
+      const padY = Math.max((maxY - minY) * 0.1, 1);
+      
+      // Ensure minimum viewing window size to prevent extreme zoom
+      const xRange = Math.max(maxX - minX + 2 * padX, 2);
+      const yRange = Math.max(maxY - minY + 2 * padY, 2);
+      
+      // Calculate center points
+      const centerX = (minX + maxX) / 2;
+      const centerY = (minY + maxY) / 2;
+      
+      // Set bounding box maintaining aspect ratio
+      // Create a square view that contains all data points
+      const maxRange = Math.max(xRange, yRange);
+      board.setBoundingBox([
+        centerX - maxRange/2, 
+        centerY + maxRange/2, 
+        centerX + maxRange/2, 
+        centerY - maxRange/2
+      ], true);
     }
 
-    board.unsuspendUpdate(); // Redraw
+    board.unsuspendUpdate();
+  }, [data, plotType, autoFit]);
 
-  }, [data]); // Re-run effect when 'data' changes
+  // Handle window resize
+  useEffect(() => {
+    const handleResize = () => {
+      if (boardInstance.current) {
+        boardInstance.current.resizeContainer(
+          boardRef.current.clientWidth,
+          boardRef.current.clientHeight
+        );
+      }
+    };
+    
+    window.addEventListener('resize', handleResize);
+    return () => window.removeEventListener('resize', handleResize);
+  }, []);
 
   return (
-    // Ensure the container has the white background style
-    <div className="graph-container" style={{ width: '100%', height: '100%', minHeight: '250px' }}>
-      <div
-        ref={boardRef}
-        style={{
-          width: '100%',
-          height: '100%',
-          backgroundColor: 'white', // Explicitly white background
-          border: '1px solid #ccc' // Add a faint border to see boundaries
-        }}
-        id="jsxgraph-board"
-        className="jxgbox"
-      />
+    <div style={{ height: '100%', display: 'flex', flexDirection: 'column' }}>
+      <div ref={boardRef} style={{ flex: 1, border: '1px solid #ccc', backgroundColor: 'white' }} />
+      <div style={{ padding: '8px', backgroundColor: '#2a2a2a', color: 'white', fontSize: 14 }}>
+        <span style={{ marginRight: 10 }}>Plot:</span>
+        <label style={{ marginRight: 10, color: 'white' }}>
+          <input 
+            type="radio" 
+            value="yvx" 
+            checked={plotType === 'yvx'} 
+            onChange={() => setPlotType('yvx')} 
+          /> Y vs X
+        </label>
+        <label style={{ marginRight: 10, color: 'white' }}>
+          <input 
+            type="radio" 
+            value="xvt" 
+            checked={plotType === 'xvt'} 
+            onChange={() => setPlotType('xvt')} 
+          /> X vs T
+        </label>
+        <label style={{ color: 'white' }}>
+          <input 
+            type="radio" 
+            value="yvt" 
+            checked={plotType === 'yvt'} 
+            onChange={() => setPlotType('yvt')} 
+          /> Y vs T
+        </label>
+        <br/>
+        <label style={{ color: 'white' }}>
+          <input 
+            type="checkbox" 
+            checked={autoFit} 
+            onChange={() => setAutoFit(!autoFit)} 
+          /> Auto-Fit View
+        </label>
+      </div>
     </div>
   );
 }
