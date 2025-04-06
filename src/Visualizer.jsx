@@ -104,7 +104,7 @@ function SimpleGrid() {
   );
 }
 
-// --- Main Visualizer Component ---
+// --- Main Visualizer Component ---a
 function Visualizer({ scene, onPositionUpdate }) {
   const [fps, setFps] = useState(0);
   const { gravity = [0, -9.81, 0] } = scene || {};

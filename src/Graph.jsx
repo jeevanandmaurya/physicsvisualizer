@@ -1,6 +1,6 @@
 import React, { useEffect, useRef, useState } from 'react';
 import JXG from 'jsxgraph';
-import './Graph.css';
+import './Graph.css'; 
 
 function Graph({ data }) {
   const boardRef = useRef(null);
@@ -8,85 +8,63 @@ function Graph({ data }) {
   const [plotType, setPlotType] = useState('yvx');
   const [autoFit, setAutoFit] = useState(true);
 
-  // Init board on mount
   useEffect(() => {
     if (!boardRef.current) return;
-    
+
     const id = `jsxg-${Math.random().toString(36).slice(2)}`;
     boardRef.current.id = id;
 
     const board = JXG.JSXGraph.initBoard(id, {
       boundingbox: [-10, 10, 10, -10],
-      axis: true,
-      showNavigation: true,
+      // axis: false,
+      // defaultAxes: {
+      //     x: { ticks: {majorHeight: 10,ticksDistance: 1} },
+      //     y: { ticks: {majorHeight: 10,ticksDistance: 1} }
+      // },
+       grid: { theme: 1 },
+      // showNavigation: true,
       showCopyright: false,
-      // Fix trackpad panning - separate mouse wheel zoom from trackpad panning
       pan: {
         enabled: true,
-        // needTwoFingers: true, // Enable two-finger trackpad panning
-        needShift: false      // Don't require shift key for panning
+        needShift: false
       },
       zoom: {
         enabled: true,
         wheel: true,
-        needShift: false,     // Don't require shift key for zooming
-        // pinchHorizontal: true,// Enable pinch zoom on trackpad
-        // pinchVertical: true   // Enable pinch zoom on trackpad
+        needShift: false,
       },
-      keepaspectratio: true,
-      grid: {
-        visible: true,
-        gridX: 2,
-        gridY: 2,
-        strokeColor: '#888',
-        strokeWidth: 0.5
-      },
+      keepaspectratio: false,
       backgroundColor: 'white'
     });
-
-    // Helper to create an axis with consistent dark style
-    const createAxis = (board, direction, color = 'black') => {
-      const point = direction === 'x' ? [[0, 0], [1, 0]] : [[0, 0], [0, 1]];
-      return board.create('axis', point, {
-        strokeColor: color,
-        strokeWidth: 2,
-        ticks: {
-          drawLabels: true,
-          strokeColor: color,
-          strokeWidth: 1,
-          label: { fontSize: 10, color: '#333' },
-          ticksDistance: 2,
-          insertTicks: false
-        },
-      });
-    };
-
-    // Create axes
-    board.xAxis = createAxis(board, 'x');
-    board.yAxis = createAxis(board, 'y');
-
     boardInstance.current = board;
 
     return () => {
-      if (board) {
-        JXG.JSXGraph.freeBoard(board);
+      if (boardInstance.current) {
+        JXG.JSXGraph.freeBoard(boardInstance.current);
+        boardInstance.current = null;
       }
     };
-  }, []);
-
-  // Update plot
+  }, []); 
+    // Update plot
   useEffect(() => {
     const board = boardInstance.current;
     if (!board || !data) return;
 
-    // Remove previous plot elements
-    board.objectsList.forEach(obj => {
-      if (obj.elType === 'curve' || obj.elType === 'point') {
+    // Store elements to remove
+    const elementsToRemove = board.objectsList.filter(obj =>
+      obj.elType === 'curve' || obj.elType === 'point'
+    );
+
+    board.suspendUpdate();
+
+    // Remove previous plot elements safely
+    elementsToRemove.forEach(obj => {
+      // Check if object still exists before removing (important for async updates)
+      if (board.objects[obj.id]) {
         board.removeObject(obj);
       }
     });
 
-    board.suspendUpdate();
 
     const xKey = plotType === 'xvt' ? 't' : 'x';
     const yKey = plotType === 'yvt' ? 'y' : plotType === 'xvt' ? 'x' : 'y';
@@ -95,108 +73,151 @@ function Graph({ data }) {
 
     Object.values(data || {}).forEach((history, i) => {
       if (!history || history.length === 0) return;
-      
+
       const xData = history.map(p => p[xKey]);
       const yData = history.map(p => p[yKey]);
 
       if (xData.length > 0 && yData.length > 0) {
         board.create('curve', [xData, yData], {
-          strokeColor: ['#1f77b4', '#ff7f0e'][i % 2],
+          strokeColor: ['#1f77b4', '#ff7f0e'][i % 2], // Cycle through colors
           strokeWidth: 2,
         });
 
-        board.create('point', [xData[xData.length - 1], yData[yData.length - 1]], {
-          size: 3,
-          color: ['#1f77b4', '#ff7f0e'][i % 2],
-          fixed: true,
-          name: '',
-        });
+        // Ensure last point data is valid before creating point
+        const lastX = xData[xData.length - 1];
+        const lastY = yData[yData.length - 1];
+        if (typeof lastX === 'number' && typeof lastY === 'number' && isFinite(lastX) && isFinite(lastY)) {
+          board.create('point', [lastX, lastY], {
+            size: 3,
+            color: ['#1f77b4', '#ff7f0e'][i % 2], // Match curve color
+            fixed: true,
+            name: '',
+          });
+        }
+
 
         allX.push(...xData);
         allY.push(...yData);
       }
     });
 
-    if (autoFit && allX.length && allY.length) {
-      const minX = Math.min(...allX), maxX = Math.max(...allX);
-      const minY = Math.min(...allY), maxY = Math.max(...allY);
-      
-      // Calculate proper padding for both axes
-      const padX = Math.max((maxX - minX) * 0.1, 1);
-      const padY = Math.max((maxY - minY) * 0.1, 1);
-      
+    // Filter out any non-finite values before calculating min/max
+    const finiteX = allX.filter(Number.isFinite);
+    const finiteY = allY.filter(Number.isFinite);
+
+
+    if (autoFit && finiteX.length && finiteY.length) {
+      const minX = Math.min(...finiteX);
+      const maxX = Math.max(...finiteX);
+      const minY = Math.min(...finiteY);
+      const maxY = Math.max(...finiteY);
+
+      const rangeX = maxX - minX;
+      const rangeY = maxY - minY;
+
+      // Add padding, ensure minimum padding
+      const padX = Math.max(rangeX * 0.1, 1);
+      const padY = Math.max(rangeY * 0.1, 1);
+
+      // Calculate new bounds with padding
+      let newMinX = minX - padX;
+      let newMaxX = maxX + padX;
+      let newMinY = minY - padY;
+      let newMaxY = maxY + padY;
+
       // Ensure minimum viewing window size to prevent extreme zoom
-      const xRange = Math.max(maxX - minX + 2 * padX, 2);
-      const yRange = Math.max(maxY - minY + 2 * padY, 2);
-      
-      // Calculate center points
-      const centerX = (minX + maxX) / 2;
-      const centerY = (minY + maxY) / 2;
-      
-      // Set bounding box maintaining aspect ratio
-      // Create a square view that contains all data points
-      const maxRange = Math.max(xRange, yRange);
+      const minRange = 2; // Minimum width and height of the view
+      if (newMaxX - newMinX < minRange) {
+        const midX = (newMinX + newMaxX) / 2;
+        newMinX = midX - minRange / 2;
+        newMaxX = midX + minRange / 2;
+      }
+      if (newMaxY - newMinY < minRange) {
+        const midY = (newMinY + newMaxY) / 2;
+        newMinY = midY - minRange / 2;
+        newMaxY = midY + minRange / 2;
+      }
+
+
+      // Adjust bounding box to maintain aspect ratio (square view)
+      const finalRangeX = newMaxX - newMinX;
+      const finalRangeY = newMaxY - newMinY;
+      const maxRange = Math.max(finalRangeX, finalRangeY);
+      const centerX = (newMinX + newMaxX) / 2;
+      const centerY = (newMinY + newMaxY) / 2;
+
       board.setBoundingBox([
-        centerX - maxRange/2, 
-        centerY + maxRange/2, 
-        centerX + maxRange/2, 
-        centerY - maxRange/2
-      ], true);
+        centerX - maxRange / 2,
+        centerY + maxRange / 2,
+        centerX + maxRange / 2,
+        centerY - maxRange / 2
+      ], false); // 'false' for smoother transition without immediate redraw
     }
 
-    board.unsuspendUpdate();
-  }, [data, plotType, autoFit]);
+    board.unsuspendUpdate(); // Redraw changes
+  }, [data, plotType, autoFit]); // Dependencies for updating plot
+
 
   // Handle window resize
   useEffect(() => {
     const handleResize = () => {
-      if (boardInstance.current) {
+      if (boardInstance.current && boardRef.current) { // Ensure both refs are valid
         boardInstance.current.resizeContainer(
           boardRef.current.clientWidth,
           boardRef.current.clientHeight
         );
+        boardInstance.current.update(); // Force update after resize might be needed
       }
     };
-    
+
+    // Call resize once initially to set the correct size
+    handleResize();
+
     window.addEventListener('resize', handleResize);
     return () => window.removeEventListener('resize', handleResize);
-  }, []);
+  }, []); // Empty dependency, runs once
 
   return (
-    <div style={{ height: '100%', display: 'flex', flexDirection: 'column' }}>
-      <div ref={boardRef} style={{ flex: 1, border: '1px solid #ccc', backgroundColor: 'white' }} />
-      <div style={{ padding: '8px', backgroundColor: '#2a2a2a', color: 'white', fontSize: 14 }}>
-        <span style={{ marginRight: 10 }}>Plot:</span>
-        <label style={{ marginRight: 10, color: 'white' }}>
-          <input 
-            type="radio" 
-            value="yvx" 
-            checked={plotType === 'yvx'} 
-            onChange={() => setPlotType('yvx')} 
+    // Ensure the container allows the board div to flex correctly
+    <div style={{ height: '100%', width: '100%', display: 'flex', flexDirection: 'column' }}>
+      {/* Ensure this div takes up space and allows boardRef to have dimensions */}
+      <div ref={boardRef} style={{ flex: 1, minHeight: '200px', border: '1px solid #ccc', backgroundColor: 'white', width: '100%' }} />
+      <div style={{ padding: '8px', backgroundColor: '#2a2a2a', color: 'white', fontSize: '14px' /* Use string */ }}>
+        <span style={{ marginRight: '10px' /* Use string */ }}>Plot:</span>
+        <label style={{ marginRight: '10px', color: 'white' }}>
+          <input
+            type="radio"
+            value="yvx"
+            checked={plotType === 'yvx'}
+            onChange={(e) => setPlotType(e.target.value)} // Use event target value
+            style={{ marginRight: '4px' }} // Add spacing
           /> Y vs X
         </label>
-        <label style={{ marginRight: 10, color: 'white' }}>
-          <input 
-            type="radio" 
-            value="xvt" 
-            checked={plotType === 'xvt'} 
-            onChange={() => setPlotType('xvt')} 
+        <label style={{ marginRight: '10px', color: 'white' }}>
+          <input
+            type="radio"
+            value="xvt"
+            checked={plotType === 'xvt'}
+            onChange={(e) => setPlotType(e.target.value)}
+            style={{ marginRight: '4px' }}
           /> X vs T
         </label>
         <label style={{ color: 'white' }}>
-          <input 
-            type="radio" 
-            value="yvt" 
-            checked={plotType === 'yvt'} 
-            onChange={() => setPlotType('yvt')} 
+          <input
+            type="radio"
+            value="yvt"
+            checked={plotType === 'yvt'}
+            onChange={(e) => setPlotType(e.target.value)}
+            style={{ marginRight: '4px' }}
           /> Y vs T
         </label>
-        <br/>
-        <label style={{ color: 'white' }}>
-          <input 
-            type="checkbox" 
-            checked={autoFit} 
-            onChange={() => setAutoFit(!autoFit)} 
+        <br />
+        <label style={{ color: 'white', marginTop: '5px', display: 'inline-block' }}>
+          <input
+            type="checkbox"
+            checked={autoFit}
+            onChange={() => setAutoFit(!autoFit)}
+            style={{ marginRight: '4px', verticalAlign: 'middle' }} // Align checkbox
           /> Auto-Fit View
         </label>
       </div>
