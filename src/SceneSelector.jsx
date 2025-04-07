@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import { PanelGroup, Panel, PanelResizeHandle } from 'react-resizable-panels';
 import { mechanicsExamples } from './scenes.js';
 import { extractedScenes } from './extractedscenes.js';
 import './SceneSelector.css';
@@ -6,89 +7,75 @@ import './SceneSelector.css';
 function SceneSelector({ currentScene, onSceneChange, conversationHistory }) {
   const [scenes, setScenes] = useState([...mechanicsExamples, ...extractedScenes]);
   const [isExtracting, setIsExtracting] = useState(false);
+  const [error, setError] = useState(null);
+  const [expandedObjects, setExpandedObjects] = useState({});
 
-  // Load Gemini API key from environment variable
   const GEMINI_API_KEY = import.meta.env.VITE_GEMINI_API_KEY;
 
   const handleExtractScene = async () => {
     if (!GEMINI_API_KEY) {
-      console.error("Gemini API key is missing.");
+      setError("Gemini API key is missing.");
+      return;
+    }
+    if (!conversationHistory.length) {
+      setError("No conversation history to extract from.");
       return;
     }
 
     setIsExtracting(true);
+    setError(null);
     try {
-      console.log("Extracting scene from conversation using Gemini...");
       const conversationText = conversationHistory.map(msg => `${msg.role}: ${msg.content}`).join('\n');
+      const prompt = `Extract a physics scene from this conversation:\n${conversationText}\nConvert it into a plain JSON object matching the format below. Supported object types are "Sphere", "Box", "Cylinder", and "Box" (used for planes or platforms). Required fields for each type are listed; optional fields can be omitted if not specified. Use numeric values for all fields (e.g., 0.78539816339 for 45 degrees, 1.57079632679 for 90 degrees). If the conversation lacks details, use reasonable defaults (e.g., mass 1 for dynamic objects, 0 for static platforms, position [0, 0, 0]).
 
-      const prompt = `Extract a physics scene from this conversation:\n${conversationText}\nConvert it into plain JSON matching the format of mechanicsExamples from scenes.js. Example format:\n{
-        "id": "example",
-        "name": "Example Scene",
-        "description": "A sample scene",
-        "objects": [
-          {
-            "id": "obj-1",
-            "type": "Sphere",
-            "mass": 10,
-            "radius": 0.5,
-            "position": [0, 5, 0],
-            "velocity": [0, 0, 0],
-            "rotation": [0, 0, 0],
-            "color": "#ff6347",
-            "restitution": 0.7
-          },
-          {
-            "id": "plane-1",
-            "type": "Plane",
-            "mass": 0,
-            "position": [0, 0, 0],
-            "rotation": [0.78539816339, 0, 0]
-          }
-        ],
-        "gravity": [0, -9.81, 0],
-        "contactMaterial": {
-          "friction": 0.5,
-          "restitution": 0.7
-        }
-      }\nImportant: Use calculated numeric values for all fields (e.g., use 0.78539816339 for 45 degrees instead of Math.PI / 4). Do not include JavaScript expressions or variables. Return only the plain JSON object, with no additional text or Markdown if possible. If Markdown is unavoidable, wrap the JSON in \`\`\`json markers.`;
+**Important:** Return the JSON object alone, without any additional text, comments, or Markdown (e.g., no json markers, no explanations). The response must be parseable directly as JSON by a program. Do not wrap it in code blocks or add formatting.
+
+Example of expected output:
+{"id":"example","name":"Bouncing Ball and Ramp","description":"A ball bounces on a sloped platform","objects":[{"id":"ball-1","type":"Sphere","mass":2,"radius":0.5,"position":[0,5,0],"velocity":[0,0,0],"rotation":[0,0,0],"color":"#ff6347","restitution":0.7},{"id":"ramp-1","type":"Box","mass":0,"dimensions":[5,0.2,5],"position":[0,0,0],"rotation":[0.52359877559,0,0],"color":"#88aa88","restitution":0.3},{"id":"cyl-1","type":"Cylinder","mass":1,"radius":0.3,"height":1.5,"position":[2,3,0],"velocity":[0,0,0],"rotation":[0,0,0],"color":"#4682b4","restitution":0.5}],"gravity":[0,-9.81,0],"contactMaterial":{"friction":0.5,"restitution":0.7}}
+
+Required fields by type:
+- "Sphere": "id", "type", "mass", "radius", "position"
+- "Box": "id", "type", "mass", "dimensions" (array of 3 numbers: width, height, depth), "position"
+- "Cylinder": "id", "type", "mass", "radius", "height", "position"
+Optional fields for all types: "velocity" (default [0, 0, 0]), "rotation" (default [0, 0, 0]), "color" (default "#ff6347"), "restitution" (default 0.7, range 0 to 1).
+
+Scene-level fields:
+- "id": unique string (default to a timestamp if missing)
+- "name": string (default "Extracted Scene")
+- "description": string (default "Scene from conversation")
+- "objects": array of objects (empty array if none found)
+- "gravity": array of 3 numbers (default [0, -9.81, 0])
+- "contactMaterial": object with "friction" (default 0.5) and "restitution" (default 0.7)
+
+If no physics scene is identifiable, return this exact JSON object:
+{"id":"empty","name":"No Scene Found","description":"No physics scene in conversation","objects":[],"gravity":[0,-9.81,0],"contactMaterial":{"friction":0.5,"restitution":0.7}}
+`;
 
       const response = await fetch(
         `https://generativelanguage.googleapis.com/v1/models/gemini-1.5-flash:generateContent?key=${GEMINI_API_KEY}`,
         {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            contents: [{ parts: [{ text: prompt }] }],
-          }),
+          body: JSON.stringify({ contents: [{ parts: [{ text: prompt }] }] }),
         }
       );
 
-      if (!response.ok) {
-        const errorText = await response.text();
-        throw new Error(`Gemini HTTP error! Status: ${response.status}, Response: ${errorText}`);
-      }
+      if (!response.ok) throw new Error(`HTTP error! Status: ${response.status}`);
 
       const data = await response.json();
-      let rawResponse = data.candidates?.[0]?.content?.parts?.[0]?.text || '';
-      console.log('Raw Gemini response:', rawResponse);
-
-      const jsonMatch = rawResponse.match(/```json\s*([\s\S]*?)\s*```/);
-      let cleanedJson = jsonMatch && jsonMatch[1] ? jsonMatch[1].replace(/^.*?(\{.*\})/s, '$1').trim() : rawResponse.replace(/^.*?(\{.*\})/s, '$1').trim();
-
-      console.log('Cleaned JSON:', cleanedJson);
+      const rawResponse = data.candidates?.[0]?.content?.parts?.[0]?.text || '';
 
       let extractedScene;
       try {
-        extractedScene = JSON.parse(cleanedJson);
+        extractedScene = JSON.parse(rawResponse);
       } catch (e) {
-        console.error('Failed to parse JSON:', cleanedJson, e);
-        throw new Error('Invalid JSON format in Gemini response');
+        const cleanedJson = rawResponse.match(/```json\s*([\s\S]*?)\s*```/)?.[1] || rawResponse.replace(/^.*?(\{.*\})/s, '$1').trim();
+        extractedScene = JSON.parse(cleanedJson);
       }
 
-      // Normalize the scene
       extractedScene.id = extractedScene.id || `extracted-${Date.now()}`;
       extractedScene.name = extractedScene.name || `Extracted Scene ${extractedScenes.length + 1}`;
-      extractedScene.description = extractedScene.description || 'Scene extracted from conversation';
+      extractedScene.description = extractedScene.description || 'Scene from conversation';
       extractedScene.objects = Array.isArray(extractedScene.objects) ? extractedScene.objects : [];
       extractedScene.gravity = Array.isArray(extractedScene.gravity) && extractedScene.gravity.length === 3 ? extractedScene.gravity : [0, -9.81, 0];
       extractedScene.contactMaterial = extractedScene.contactMaterial || { friction: 0.5, restitution: 0.7 };
@@ -97,7 +84,7 @@ function SceneSelector({ currentScene, onSceneChange, conversationHistory }) {
         const normalizedObj = {
           id: obj.id || `obj-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
           type: obj.type || 'Sphere',
-          mass: typeof obj.mass === 'number' ? obj.mass : (obj.type === 'Plane' ? 0 : 1.0),
+          mass: typeof obj.mass === 'number' ? obj.mass : (obj.type === 'Box' && obj.dimensions ? 0 : 1.0),
           position: Array.isArray(obj.position) && obj.position.length === 3 ? obj.position : [0, 0, 0],
           velocity: Array.isArray(obj.velocity) && obj.velocity.length === 3 ? obj.velocity : [0, 0, 0],
           rotation: Array.isArray(obj.rotation) && obj.rotation.length === 3 ? obj.rotation : [0, 0, 0],
@@ -105,7 +92,6 @@ function SceneSelector({ currentScene, onSceneChange, conversationHistory }) {
           restitution: typeof obj.restitution === 'number' && obj.restitution >= 0 && obj.restitution <= 1 ? obj.restitution : 0.7,
         };
 
-        // Type-specific properties
         switch (normalizedObj.type) {
           case 'Sphere':
             normalizedObj.radius = typeof obj.radius === 'number' && obj.radius > 0 ? obj.radius : 0.5;
@@ -117,50 +103,28 @@ function SceneSelector({ currentScene, onSceneChange, conversationHistory }) {
             normalizedObj.radius = typeof obj.radius === 'number' && obj.radius > 0 ? obj.radius : 0.5;
             normalizedObj.height = typeof obj.height === 'number' && obj.height > 0 ? obj.height : 1.0;
             break;
-          case 'ConvexPolyhedron':
-            normalizedObj.vertices = Array.isArray(obj.vertices) ? obj.vertices : [[0, 0, 0], [1, 0, 0], [0, 1, 0], [0, 0, 1]];
-            normalizedObj.faces = Array.isArray(obj.faces) ? obj.faces : [[0, 1, 2], [0, 1, 3], [0, 2, 3], [1, 2, 3]];
-            break;
-          case 'Trimesh':
-            normalizedObj.vertices = Array.isArray(obj.vertices) ? obj.vertices : [[-0.5, 0, -0.5], [0.5, 0, -0.5], [0, 1, 0]];
-            normalizedObj.indices = Array.isArray(obj.indices) ? obj.indices : [0, 1, 2];
-            break;
-          case 'Compound':
-            normalizedObj.shapes = Array.isArray(obj.shapes) ? obj.shapes.map(shape => ({
-              type: shape.type || 'Sphere',
-              args: shape.args || [0.5],
-              offset: Array.isArray(shape.offset) && shape.offset.length === 3 ? shape.offset : [0, 0, 0],
-            })) : [{ type: 'Sphere', args: [0.5], offset: [0, 0, 0] }];
-            break;
-          case 'Plane':
-            // No additional properties needed beyond mass, position, rotation
-            break;
           default:
-            console.warn(`Unknown object type: ${normalizedObj.type}, defaulting to Sphere`);
             normalizedObj.type = 'Sphere';
             normalizedObj.radius = 0.5;
             break;
         }
-
         return normalizedObj;
       });
 
-      // Add new scene to the top of extractedScenes
-      extractedScenes.unshift(extractedScene);
-      setScenes([...extractedScenes, ...mechanicsExamples]);
-      console.log("Extracted Scene:", extractedScene);
+      const newExtractedScenes = [extractedScene, ...extractedScenes];
+      setScenes([...newExtractedScenes, ...mechanicsExamples]);
     } catch (error) {
-      console.error("Scene extraction failed:", error);
+      setError(`Scene extraction failed: ${error.message}`);
       const fallbackScene = {
         id: `extracted-${Date.now()}`,
         name: 'Error Scene',
-        description: 'Failed to extract scene from conversation',
+        description: 'Failed to extract scene',
         objects: [],
         gravity: [0, -9.81, 0],
         contactMaterial: { friction: 0.5, restitution: 0.7 },
       };
-      extractedScenes.unshift(fallbackScene);
-      setScenes([...extractedScenes, ...mechanicsExamples]);
+      const newExtractedScenes = [fallbackScene, ...extractedScenes];
+      setScenes([...newExtractedScenes, ...mechanicsExamples]);
     } finally {
       setIsExtracting(false);
     }
@@ -168,69 +132,98 @@ function SceneSelector({ currentScene, onSceneChange, conversationHistory }) {
 
   const handleExampleClick = (example) => {
     onSceneChange(example);
+    setExpandedObjects({});
+  };
+
+  const toggleObjectDetails = (objectId) => {
+    setExpandedObjects(prev => ({
+      ...prev,
+      [objectId]: !prev[objectId],
+    }));
   };
 
   return (
-    <div className="component-section examples-panel">
-      <div className="content-section">
-        <div>
-          <button
-            style={{
-              padding: '4px 6px',
-              backgroundColor: '#444',
-              color: '#fff',
-              border: '1px solid #666',
-              borderRadius: '4px',
-              cursor: isExtracting ? 'not-allowed' : 'pointer',
-              opacity: isExtracting ? 0.6 : 1,
-            }}
-            onClick={handleExtractScene}
-            disabled={isExtracting}
-          >
-            {isExtracting ? 'Extracting...' : 'Extract Scene from Conversation'}
-          </button>
-        </div>
-        <h3>Examples</h3>
-        <div className="examples-list" style={{ overflowY: 'auto', height: 'calc(100% - 40px)' }}>
-          {scenes.map((example) => (
-            <div
-              key={example.id}
-              onClick={() => handleExampleClick(example)}
-              className={`example-item ${currentScene.id === example.id ? 'selected' : ''}`}
-              style={{
-                padding: '5px',
-                margin: '0 5px 8px 5px',
-                border: '1px solid #ccc',
-                borderRadius: '5px',
-                cursor: 'pointer',
-                color: 'whitesmoke',
-                backgroundColor: currentScene.id === example.id ? 'blue' : 'black',
-                transition: 'background-color 0.2s ease',
-              }}
-              title={example.description}
-            >
-              <div style={{ fontWeight: 'bold', fontSize: '1.05em', marginBottom: '3px', color: 'white' }}>
-                {example.name}
-              </div>
-              <div style={{ fontSize: '0.9em', color: 'whitesmoke' }}>
-                {example.description}
-              </div>
-            </div>
-          ))}
-        </div>
-        <div className="physics-parameters-display" style={{ padding: '10px', borderTop: '1px solid #eee', marginTop: '10px' }}>
-          <h3>Current Scene Details:</h3>
-          <h4>{currentScene.name}</h4>
-          {currentScene.objects.map((obj, index) => (
-            <div key={obj.id || index} className="physics-object-details">
-              <span>Obj {index + 1}: {obj.id} ({obj.type})</span><br />
-            </div>
-          ))}
-          <div className="physics-environment-details">
-            <span>Gravity: [{currentScene.gravity.join(", ")}] m/s²</span>
-          </div>
-        </div>
+    <div className="scene-selector">
+      <div className="scene-selector-header">
+        <button
+          className={`extract-button ${isExtracting ? 'extracting' : ''}`}
+          onClick={handleExtractScene}
+          disabled={isExtracting}
+        >
+          {isExtracting ? (
+            <>
+              <span className="spinner"></span> Extracting...
+            </>
+          ) : (
+            'Extract Scene from Conversation'
+          )}
+        </button>
+        {error && <div className="error-message">{error}</div>}
       </div>
+      <PanelGroup direction="vertical">
+        <Panel defaultSize={60} minSize={20} className="scene-list-panel">
+          <h3 className="scene-list-title">Scene Examples</h3>
+          <div className="scene-list">
+            {scenes.map((example) => (
+              <div
+                key={example.id}
+                onClick={() => handleExampleClick(example)}
+                className={`scene-item ${currentScene.id === example.id ? 'selected' : ''}`}
+                title={example.description}
+              >
+                <div className="scene-name">{example.name}</div>
+                <div className="scene-description">{example.description}</div>
+              </div>
+            ))}
+          </div>
+        </Panel>
+        <PanelResizeHandle className="panel-resize-handle" />
+        <Panel minSize={20} className="scene-details-panel">
+          <div className="scene-details">
+            <h4>Current Scene: {currentScene.name}</h4>
+            <div className="details-content">
+              <p><strong>Description:</strong> {currentScene.description}</p>
+              <p><strong>Objects:</strong></p>
+              {currentScene.objects.length > 0 ? (
+                <ul>
+                  {currentScene.objects.map((obj, index) => (
+                    <li key={obj.id || index}>
+                      <button
+                        className="toggle-details-btn"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          toggleObjectDetails(obj.id || index);
+                        }}
+                        >
+                        {expandedObjects[obj.id || index] ? '▼' : '▶'}
+                      </button>
+                        {obj.type} (ID: {obj.id})
+                      {expandedObjects[obj.id || index] && (
+                        <ul>
+                          <li>Mass: {obj.mass} kg</li>
+                          {obj.type === 'Sphere' && <li>Radius: {obj.radius} m</li>}
+                          {obj.type === 'Box' && <li>Dimensions: [{obj.dimensions.join(', ')}] m</li>}
+                          {obj.type === 'Cylinder' && (
+                            <>
+                              <li>Radius: {obj.radius} m</li>
+                              <li>Height: {obj.height} m</li>
+                            </>
+                          )}
+                          <li>Position: [{obj.position.map(v => v.toFixed(2)).join(', ')}] m</li>
+                          <li>Color: <span style={{ backgroundColor: obj.color, width: '12px', height: '12px', display: 'inline-block', verticalAlign: 'middle', marginLeft: '4px' }}></span> {obj.color}</li>
+                        </ul>
+                      )}
+                    </li>
+                  ))}
+                </ul>
+              ) : (
+                <p>No objects in this scene.</p>
+              )}
+              <p><strong>Gravity:</strong> [{currentScene.gravity.join(', ')}] m/s²</p>
+            </div>
+          </div>
+        </Panel>
+      </PanelGroup>
     </div>
   );
 }

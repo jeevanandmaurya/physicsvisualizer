@@ -1,127 +1,250 @@
-/* SceneSelector.css (Dark Theme) */
+.scene-selector {
+  height: 100%;
+  background-color: #1e1e1e;
+  color: #e0e0e0;
+  font-family: 'Arial', sans-serif;
+  padding: 15px;
+  box-sizing: border-box;
+  border-right: 1px solid #333;
+  display: flex;
+  flex-direction: column;
+}
 
+.scene-selector-header {
+  margin-bottom: 15px;
+}
 
-/* Container for the entire scene selector panel */
-.component-section.examples-panel {
-    height: 100%; /* Fill the panel height */
-    background-color: #1e1e1e; /* Dark gray background */
-    border-right: 1px solid #333; /* Subtle dark border */
-    overflow: hidden; /* Prevent overflow outside the panel */
-  }
-  
-  /* Inner content section */
-  .content-section {
-    height: 100%;
-    display: flex;
-    flex-direction: column;
-    padding: 0; /* Remove default padding, controlled by children */
-  }
-  
-  h3{
-    padding: 5px;
-    border: 1px solid #444; /* Dark border */
-    border-radius: 5px;
-  }
-  
-  /* Examples list container */
-  .examples-list {
-    flex-grow: 1; /* Take up remaining space */
-    overflow-y: auto; /* Scroll if content exceeds height */
-    padding: 5px 0; /* Add some vertical padding */
-  }
-  
-  /* Individual example item */
-  .example-item {
+.extract-button {
+  padding: 8px 12px;
+  background-color: #4a90e2;
+  color: white;
+  border: none;
+  border-radius: 4px;
+  cursor: pointer;
+  font-size: 14px;
+  transition: background-color 0.2s ease, opacity 0.2s ease;
+}
+
+.extract-button:hover:not(.extracting) {
+  background-color: #357abd;
+}
+
+.extract-button.extracting {
+  background-color: #666;
+  cursor: not-allowed;
+  opacity: 0.7;
+}
+
+.spinner {
+  display: inline-block;
+  width: 12px;
+  height: 12px;
+  border: 2px solid #fff;
+  border-top: 2px solid transparent;
+  border-radius: 50%;
+  animation: spin 1s linear infinite;
+  margin-right: 6px;
+  vertical-align: middle;
+}
+
+@keyframes spin {
+  0% { transform: rotate(0deg); }
+  100% { transform: rotate(360deg); }
+}
+
+.error-message {
+  margin-top: 8px;
+  padding: 6px 10px;
+  background-color: #ff4d4d;
+  color: white;
+  border-radius: 4px;
+  font-size: 12px;
+}
+
+.scene-list-title {
+  font-size: 18px;
+  font-weight: 600;
+  margin: 0 0 10px 0;
+  color: #ffffff;
+}
+
+.scene-list-panel {
+  display: flex;
+  flex-direction: column;
+}
+
+.scene-list {
+  flex: 1;
+  overflow-y: auto;
+  padding-right: 5px;
+}
+
+.scene-item {
+  padding: 10px;
+  margin-bottom: 8px;
+  background-color: #2a2a2a;
+  border: 1px solid #404040;
+  border-radius: 4px;
+  cursor: pointer;
+  transition: background-color 0.2s ease, border-color 0.2s ease;
+}
+
+.scene-item:hover {
+  background-color: #333;
+  border-color: #555;
+}
+
+.scene-item.selected {
+  background-color: #4a90e2;
+  border-color: #357abd;
+}
+
+.scene-name {
+  font-size: 16px;
+  font-weight: 500;
+  color: #ffffff;
+  margin-bottom: 4px;
+}
+
+.scene-description {
+  font-size: 12px;
+  color: #b0b0b0;
+  line-height: 1.2;
+}
+
+.panel-resize-handle {
+  height: 2px;
+  background-color: #464646;
+  cursor: ns-resize;
+  transition: background-color 0.2s ease;
+}
+
+.panel-resize-handle:hover {
+  background-color: #555;
+}
+
+.scene-details-panel {
+  display: flex;
+  flex-direction: column;
+}
+
+.scene-details {
+  flex: 1;
+  padding: 10px;
+  background-color: #252525;
+  overflow-y: auto;
+}
+
+.scene-details h4 {
+  margin: 0 0 8px 0;
+  font-size: 16px;
+  color: #ffffff;
+}
+
+.details-content {
+  font-size: 13px;
+}
+
+.details-content p {
+  margin: 6px 0;
+}
+
+.details-content strong {
+  color: #ffffff;
+}
+
+.details-content ul {
+  margin: 0 0 10px 20px;
+  padding: 0;
+  list-style-type: disc;
+}
+
+.details-content ul ul {
+  list-style-type: circle;
+  margin: 2px 0 0 20px;
+}
+
+.details-content li {
+  margin: 2px 0;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.toggle-details-btn {
+  background-color: #4a90e2;
+  color: white;
+  border: none;
+  border-radius: 3px;
+  padding: 2px 6px;
+  font-size: 11px;
+  cursor: pointer;
+  transition: background-color 0.2s ease;
+}
+
+.toggle-details-btn:hover {
+  background-color: #357abd;
+}
+
+/* Scrollbar styling */
+.scene-list::-webkit-scrollbar,
+.scene-details::-webkit-scrollbar {
+  width: 6px;
+}
+
+.scene-list::-webkit-scrollbar-track,
+.scene-details::-webkit-scrollbar-track {
+  background: #2a2a2a;
+}
+
+.scene-list::-webkit-scrollbar-thumb,
+.scene-details::-webkit-scrollbar-thumb {
+  background: #555;
+  border-radius: 3px;
+}
+
+.scene-list::-webkit-scrollbar-thumb:hover,
+.scene-details::-webkit-scrollbar-thumb:hover {
+  background: #777;
+}
+
+/* Responsive design */
+@media (max-width: 768px) {
+  .scene-selector {
     padding: 10px;
-    margin: 0 5px 8px 5px; /* Consistent with your inline style */
-    border: 1px solid #444; /* Dark border */
-    border-radius: 5px;
-    cursor: pointer;
-    background-color: #2a2a2a; /* Slightly lighter dark background */
-    transition: background-color 0.2s ease; /* Smooth transition */
   }
-  
-  /* Hover effect for interactivity */
-  .example-item:hover {
-    background-color: #3a3a3a; /* Lighter gray on hover */
+
+  .extract-button {
+    width: 100%;
+    font-size: 13px;
   }
-  
-  /* Selected state */
-  .example-item.selected {
-    background-color: #4a4a8a; /* Muted purple for selected item */
-    border-color: #666; /* Slightly lighter border for emphasis */
+
+  .scene-list-title {
+    font-size: 16px;
   }
-  
-  /* Example item title */
-  .example-item div:first-child {
-    font-weight: bold;
-    font-size: 1.05em;
-    margin-bottom: 3px;
-    color: #d0d0d0; /* Light gray for readability */
+
+  .scene-item {
+    padding: 8px;
   }
-  
-  /* Example item description */
-  .example-item div:last-child {
-    font-size: 0.9em;
-    color: #a0a0a0; /* Muted gray for secondary text */
+
+  .scene-name {
+    font-size: 14px;
   }
-  
-  /* Physics parameters display section */
-  .physics-parameters-display {
-    padding: 10px;
-    border-top: 1px solid #444; /* Dark separator */
-    background-color: #252525; /* Slightly lighter dark background */
-    font-size: 0.9em;
-    color: #b0b0b0; /* Light gray text */
+
+  .scene-description {
+    font-size: 11px;
   }
-  
-  /* Headings in parameters display */
-  .physics-parameters-display h3 {
-    margin: 0 0 5px 0;
-    font-size: 1em;
-    color: #e0e0e0; /* Bright text for emphasis */
+
+  .scene-details {
+    font-size: 12px;
   }
-  
-  .physics-parameters-display h4 {
-    margin: 0 0 5px 0;
-    font-size: 0.95em;
-    color: #d0d0d0; /* Slightly muted light gray */
+
+  .scene-details h4 {
+    font-size: 14px;
   }
-  
-  /* Object details */
-  .physics-object-details {
-    margin-bottom: 4px;
+
+  .toggle-details-btn {
+    font-size: 10px;
+    padding: 1px 4px;
   }
-  
-  .physics-object-details span {
-    font-family: monospace; /* For readability of object IDs */
-    color: #a0a0a0; /* Muted gray for details */
-  }
-  
-  /* Environment details (e.g., Gravity) */
-  .physics-environment-details {
-    margin-top: 5px;
-  }
-  
-  .physics-environment-details span {
-    font-family: monospace;
-    color: #a0a0a0; /* Muted gray */
-  }
-  
-  /* Scrollbar styling for consistency (dark theme) */
-  .examples-list::-webkit-scrollbar {
-    width: 8px;
-  }
-  
-  .examples-list::-webkit-scrollbar-track {
-    background: #2a2a2a; /* Dark track */
-  }
-  
-  .examples-list::-webkit-scrollbar-thumb {
-    background: #555; /* Dark thumb */
-    border-radius: 4px;
-  }
-  
-  .examples-list::-webkit-scrollbar-thumb:hover {
-    background: #777; /* Lighter on hover */
-  }
+}
