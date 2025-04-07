@@ -1,6 +1,7 @@
 // App.jsx
 import React, { useState, useCallback } from 'react';
 import { PanelGroup, Panel, PanelResizeHandle } from 'react-resizable-panels';
+import TopMenu from './TopMenu';
 import Visualizer from './Visualizer';
 import Graph from './Graph';
 import Conversation from './Conversation';
@@ -35,6 +36,7 @@ function App() {
 
   return (
     <div className="main">
+      <TopMenu/>
       <PanelGroup direction="vertical">
         <Panel className="main-panel" defaultSize={90}>
           <PanelGroup direction="horizontal">

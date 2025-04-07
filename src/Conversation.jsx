@@ -10,8 +10,8 @@ function Conversation({
   const [isProcessing, setIsProcessing] = useState(false);
   const [selectedModel, setSelectedModel] = useState("gemini");
 
-  // Load API key from environment variable
-  const API_KEY = import.meta.env.VITE_GEMINI_API_KEY;
+  // Load Gemini API key from environment variable
+  const GEMINI_API_KEY = import.meta.env.VITE_GEMINI_API_KEY;
 
   const hasInitialized = useRef(false);
 
@@ -37,18 +37,56 @@ function Conversation({
 
     let aiResponse = "I couldn't process that.";
     try {
-      if (selectedModel === "gemini") {
-        if (!API_KEY) {
-          aiResponse = "API key is missing. Please configure it.";
+      if (selectedModel === "chatgpt") {
+        console.log("🔁 Trying ChatGPT via Puppeteer...");
+        const response = await fetch('http://localhost:3000/api/generate', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ prompt: trimmedInput }),
+        });
+        if (!response.ok) {
+          const errorText = await response.text();
+          console.error("ChatGPT Error:", errorText);
+          throw new Error(`HTTP error! Status: ${response.status}`);
+        }
+        const data = await response.json();
+        aiResponse = data.response || aiResponse;
+      } else if (selectedModel === "ollama") {
+        const models = ['gemma3', 'gemma3:1b'];
+        let success = false;
+        for (const model of models) {
+          try {
+            console.log(`🔁 Trying Ollama model: ${model}`);
+            const response = await fetch('http://localhost:11434/api/generate', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({ model, prompt: trimmedInput, stream: false }),
+            });
+            if (!response.ok) {
+              const errorText = await response.text();
+              console.error("Ollama Error:", errorText);
+              throw new Error(`Ollama HTTP error! Status: ${response.status}`);
+            }
+            const data = await response.json();
+            console.log("Ollama Response:", JSON.stringify(data, null, 2));
+            aiResponse = data.response || aiResponse;
+            success = true;
+            break;
+          } catch (error) {
+            console.warn(`❌ Failed with Ollama ${model}: ${error.message}`);
+          }
+        }
+        if (!success) throw new Error("All Ollama models failed.");
+      } else if (selectedModel === "gemini") {
+        if (!GEMINI_API_KEY) {
+          aiResponse = "Gemini API key is missing. Please configure it.";
         } else {
-          console.log("🔁 Trying Gemini API with API Key...");
+          console.log("🔁 Trying Gemini API...");
           const response = await fetch(
-            `https://generativelanguage.googleapis.com/v1/models/gemini-1.5-flash:generateContent?key=${API_KEY}`,
+            `https://generativelanguage.googleapis.com/v1/models/gemini-1.5-flash:generateContent?key=${GEMINI_API_KEY}`,
             {
               method: 'POST',
-              headers: {
-                'Content-Type': 'application/json',
-              },
+              headers: { 'Content-Type': 'application/json' },
               body: JSON.stringify({
                 contents: [{ parts: [{ text: trimmedInput }] }],
               }),
@@ -69,7 +107,7 @@ function Conversation({
       console.error(`❌ Model failed: ${error.message}`);
       updateConversation(prev => [...prev, {
         role: 'ai',
-        content: "Error: No models responded. Ensure API setup is correct.",
+        content: "Error: Model failed. Ensure setup is correct.",
       }]);
     } finally {
       setIsProcessing(false);
