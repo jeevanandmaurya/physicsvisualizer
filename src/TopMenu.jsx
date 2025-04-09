@@ -1,6 +1,9 @@
 import React, { useState } from 'react';
 import './topmenu.css';
 
+import logoFull from './assets/physicsvisualizer.svg';
+import logoMini from './assets/icon-transparent.svg';
+
 const menuItems = {
     File: ['New Scene', 'Extract Scene', 'Open', 'Save', 'Exit'],
     Scenes: ['Create Scene', 'Mechanics', 'Electrodynamics', 'Custom'],
@@ -19,12 +22,11 @@ function TopMenu() {
 
     return (
         <div className="top-menu">
-            <div id='icon'>
-                <img className='full-logo' src={`physicsvisualizer/public/physicsvisualizer.svg`} alt="icon" height={'36px'} />
-                <img className='mini-logo' src={`physicsvisualizer/public/icon-transparent.svg`} alt="icon" height={'36px'} />
+            <div id="icon">
+                <img className="full-logo" src={logoFull} alt="Full logo" height="36px" />
+                <img className="mini-logo" src={logoMini} alt="Mini logo" height="36px" />
             </div>
             {Object.entries(menuItems).map(([title, options]) => (
-
                 <div
                     key={title}
                     className="menu-item"
