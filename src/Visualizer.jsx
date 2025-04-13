@@ -281,7 +281,7 @@ function Visualizer({ scene, onPositionUpdate }) {
         style={{ height: '100%', width: '100%' }}
         shadows
         gl={{ logLevel: 'errors' }}
-        camera={{ position: [10, 5, 25], fov: 80, near: 0.1, far: 20000 }}
+        camera={{ position: [10, 5, 25], fov: 50, near: 0.1, far: 20000 }}
       >
         <ambientLight intensity={0.6} />
         <directionalLight
