@@ -102,18 +102,39 @@ body, html, #root {
  background-color: #7a9ff5;
 }
 
-
-/* ======================================================= */
-/* == DO NOT INCLUDE THE FOLLOWING PROBLEMATIC CSS RULES == */
-/* ======================================================= */
-/*
-graph.css #jsxgraph-board { / * Invalid Selector * / }
-#jsxgraph-board { / * Targets wrong ID and uses !important * /
-    width: 100% !important;
-    height: 100% !important;
+.visualization-section .content-section {
+  position: relative; /* Crucial for positioning overlays */
+  overflow: hidden; /* Prevent overlays from overflowing the panel */
+  /* Ensure it fills the panel if not already */
+  height: 100%;
+  display: flex; /* Keep if Visualizer needs it */
+  flex-direction: column; /* Keep if Visualizer needs it */
 }
-*/
-/* ======================================================= */
 
-/* Include @font-face if needed */
-/* @font-face { ... } */
+/* Basic styling for the overlay close button (add more as needed) */
+.overlay-graph-close-button {
+  position: absolute;
+  top: 2px;
+  right: 2px;
+  padding: 0;
+  background: #00000041;
+  color: white;
+  border: 1px solid rgba(255, 255, 255, 0.314);
+  border-radius: 10%;
+  width: 18px;
+  height: 18px;
+  font-size: 12px;
+  line-height: 16px; /* Center the 'X' */
+  cursor: pointer;
+  z-index: 10; /* Ensure it's above graph controls */
+}
+.overlay-graph-close-button:hover {
+    background: #d43737;
+}
+
+/* Add styles for the Rnd component if needed, e.g., border */
+.overlay-graph-rnd {
+    border: 1px solid #aaa;
+    box-shadow: 0 2px 10px rgba(0,0,0,0.2);
+    /* z-index is set inline below, but could be here too */
+}

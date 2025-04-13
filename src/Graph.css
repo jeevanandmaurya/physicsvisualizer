@@ -1,11 +1,53 @@
-#jsxgraph-board {
-    width: 100%;
-    height: 100%;
-    background-color:darkgray;
-    /* border-radius: 10px; */
-  }
- 
-  #jsxgraph-board {
-    width: 100% !important;
-    height: 100% !important;
-  }
+/* === Add or Verify these CSS rules === */
+
+/* Target the span *inside* the button for the icon */
+.overlay-graph-window-controls button span {
+  display: inline-block; /* Helps with alignment and sizing */
+  vertical-align: middle; /* Align icons better with button text line */
+  pointer-events: none; /* Prevent span from interfering with button click */
+}
+
+/* Define the content for each icon class */
+.icon-minimize::before {
+  content: "_";          /* The underscore character */
+  display: inline-block;
+  position: relative;
+  top: -5px;            /* Adjust vertical position */
+  font-weight: bold;
+}
+
+.icon-maximize::before {
+  content: "□";          /* Unicode square character */
+  display: inline-block;
+  font-size: 17px;       /* Adjust size */
+  line-height: 1;
+  position: relative;
+  top: 0px;             /* Adjust vertical position */
+}
+
+.icon-restore::before {
+  content: "❐";          /* Unicode character for restore (two squares) */
+  display: inline-block;
+  font-size: 17px;       /* Adjust size */
+  line-height: 1;
+  position: relative;
+  top: 0px;             /* Adjust vertical position */
+  font-weight: normal;   /* Might look better non-bold */
+}
+
+.icon-close::before {
+  content: "✕";          /* Unicode multiplication sign (X) */
+  display: inline-block;
+  font-weight: bold;
+  font-size: 15px;       /* Adjust size */
+  line-height: 1;
+  position: relative;
+  top: 0px;             /* Adjust vertical position */
+  color: inherit;       /* Inherit color from button */
+}
+
+/* Optional: Ensure buttons have enough space */
+.overlay-graph-window-controls button {
+  min-width: 24px; /* Give icons a bit more room */
+  text-align: center;
+}
