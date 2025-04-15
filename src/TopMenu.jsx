@@ -7,8 +7,8 @@ import logoMini from './assets/icon-transparent.svg';
 
 // Define base menu items
 const baseMenuItems = {
-    File: ['New Scene', 'Extract Scene', 'Open', 'Save', 'Exit'],
-    Scenes: ['Create Scene', 'Mechanics', 'Electrodynamics', 'Custom'],
+    File: ['Open', 'Save', 'Exit'],
+    Scenes: ['New Scene', '2D Mechanics','3D Mechanics', 'Electrodynamics'],
     Visualizer: ['Start', 'Pause', 'Reset'], // Keep these, handle logic in App/Visualizer
     // Graph menu now adds overlays
     Graph: [

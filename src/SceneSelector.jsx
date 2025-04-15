@@ -52,7 +52,7 @@ If no physics scene is identifiable, return this exact JSON object:
 `;
 
       const response = await fetch(
-        `https://generativelanguage.googleapis.com/v1/models/gemini-1.5-flash:generateContent?key=${GEMINI_API_KEY}`,
+        `https://generativelanguage.googleapis.com/v1/models/gemini-2.0-flash:generateContent?key=${GEMINI_API_KEY}`,
         {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
@@ -141,91 +141,197 @@ If no physics scene is identifiable, return this exact JSON object:
       [objectId]: !prev[objectId],
     }));
   };
-
   return (
-    <div className="scene-selector">
-      <div className="scene-selector-header">
-        <button
-          className={`extract-button ${isExtracting ? 'extracting' : ''}`}
-          onClick={handleExtractScene}
-          disabled={isExtracting}
-        >
-          {isExtracting ? (
-            <>
-              <span className="spinner"></span> Extracting...
-            </>
-          ) : (
-            'Extract Scene from Conversation'
-          )}
-        </button>
-        {error && <div className="error-message">{error}</div>}
-      </div>
-      <PanelGroup direction="vertical">
-        <Panel defaultSize={60} minSize={20} className="scene-list-panel">
-          <h3 className="scene-list-title">Scene Examples</h3>
-          <div className="scene-list">
-            {scenes.map((example) => (
-              <div
-                key={example.id}
-                onClick={() => handleExampleClick(example)}
-                className={`scene-item ${currentScene.id === example.id ? 'selected' : ''}`}
-                title={example.description}
-              >
-                <div className="scene-name">{example.name}</div>
-                <div className="scene-description">{example.description}</div>
-              </div>
-            ))}
-          </div>
-        </Panel>
-        <PanelResizeHandle className="panel-resize-handle" />
-        <Panel minSize={20} className="scene-details-panel">
-          <div className="scene-details">
-            <h4>Current Scene: {currentScene.name}</h4>
-            <div className="details-content">
-              <p><strong>Description:</strong> {currentScene.description}</p>
-              <p><strong>Objects:</strong></p>
-              {currentScene.objects.length > 0 ? (
-                <ul>
-                  {currentScene.objects.map((obj, index) => (
-                    <li key={obj.id || index}>
-                      <button
-                        className="toggle-details-btn"
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          toggleObjectDetails(obj.id || index);
-                        }}
-                        >
-                        {expandedObjects[obj.id || index] ? '▼' : '▶'}
-                      </button>
-                        {obj.type} (ID: {obj.id})
-                      {expandedObjects[obj.id || index] && (
-                        <ul>
-                          <li>Mass: {obj.mass} kg</li>
-                          {obj.type === 'Sphere' && <li>Radius: {obj.radius} m</li>}
-                          {obj.type === 'Box' && <li>Dimensions: [{obj.dimensions.join(', ')}] m</li>}
-                          {obj.type === 'Cylinder' && (
-                            <>
-                              <li>Radius: {obj.radius} m</li>
-                              <li>Height: {obj.height} m</li>
-                            </>
-                          )}
-                          <li>Position: [{obj.position.map(v => v.toFixed(2)).join(', ')}] m</li>
-                          <li>Color: <span style={{ backgroundColor: obj.color, width: '12px', height: '12px', display: 'inline-block', verticalAlign: 'middle', marginLeft: '4px' }}></span> {obj.color}</li>
-                        </ul>
-                      )}
-                    </li>
-                  ))}
-                </ul>
-              ) : (
-                <p>No objects in this scene.</p>
-              )}
-              <p><strong>Gravity:</strong> [{currentScene.gravity.join(', ')}] m/s²</p>
+    <div className="scene-selector-container">
+      <div className="scene-selector">
+        <div className="scene-selector-header">
+          <button
+            className={`extract-button ${isExtracting ? 'extracting' : ''}`}
+            onClick={handleExtractScene}
+            disabled={isExtracting}
+            aria-busy={isExtracting}
+            aria-label="Extract scene from conversation"
+          >
+            {isExtracting ? (
+              <>
+                <span className="spinner" aria-hidden="true"></span> Extracting...
+              </>
+            ) : (
+              'Extract Scene from Conversation'
+            )}
+          </button>
+          {error && (
+            <div className="error-message" role="alert">
+              {error}
             </div>
-          </div>
-        </Panel>
-      </PanelGroup>
+          )}
+        </div>
+        <PanelGroup direction="vertical">
+          <Panel defaultSize={60} minSize={20} className="scene-list-panel">
+            <h3 className="scene-list-title">Scene Examples</h3>
+            <ul className="scene-list">
+              {scenes.map((example) => (
+                <li
+                  key={example.id}
+                  onClick={() => handleExampleClick(example)}
+                  className={`scene-item ${currentScene.id === example.id ? 'selected' : ''}`}
+                  title={example.description}
+                  role="button"
+                  tabIndex={0}
+                  onKeyDown={(e) => e.key === 'Enter' && handleExampleClick(example)}
+                  aria-label={`Select scene: ${example.name}`}
+                >
+                  <div className="scene-name">{example.name}</div>
+                  <div className="scene-description">{example.description}</div>
+                </li>
+              ))}
+            </ul>
+          </Panel>
+          <PanelResizeHandle className="panel-resize-handle" />
+          <Panel minSize={20} className="scene-details-panel">
+            <div className="scene-details">
+              <h4 className="inspector-header">Current Scene: {currentScene.name}</h4>
+              <div className="details-content">
+                <p>
+                  <strong>Description:</strong> {currentScene.description}
+                </p>
+                <div>
+                  <strong className="scene-properties-title">
+                    Objects ({currentScene.objects.length}):
+                  </strong>
+                  {currentScene.objects.length > 0 ? (
+                    <ul className="object-list">
+                      {currentScene.objects.map((obj, index) => (
+                        <li key={obj.id || index} className="object-list-item">
+                          <div
+                            className={`object-header ${
+                              expandedObjects[obj.id || index] ? '' : 'collapsed'
+                            }`}
+                            onClick={() => toggleObjectDetails(obj.id || index)}
+                            role="button"
+                            tabIndex={0}
+                            onKeyDown={(e) =>
+                              e.key === 'Enter' && toggleObjectDetails(obj.id || index)
+                            }
+                            aria-expanded={!!expandedObjects[obj.id || index]}
+                            aria-label={`Toggle details for ${obj.type} (${obj.id})`}
+                          >
+                            <span className="toggle-icon"></span>
+                            <span className="object-title">
+                              <span className="object-type">{obj.type}</span>
+                              <span className="object-id">({obj.id})</span>
+                            </span>
+                          </div>
+                          {expandedObjects[obj.id || index] && (
+                            <div className="object-properties">
+                              <div className="property-row">
+                                <span className="property-name">Mass:</span>
+                                <span className="property-value">{obj.mass} kg</span>
+                              </div>
+                              <div className="property-row">
+                                <span className="property-name">Position:</span>
+                                <span className="property-value">
+                                  [{obj.position.map((v) => v.toFixed(2)).join(', ')}] m
+                                </span>
+                              </div>
+                              {obj.velocity && (
+                                <div className="property-row">
+                                  <span className="property-name">Velocity:</span>
+                                  <span className="property-value">
+                                    [{obj.velocity.map((v) => v.toFixed(2)).join(', ')}] m/s
+                                  </span>
+                                </div>
+                              )}
+                              {obj.rotation && (
+                                <div className="property-row">
+                                  <span className="property-name">Rotation:</span>
+                                  <span className="property-value">
+                                    [
+                                    {obj.rotation
+                                      .map((v) => (v * 180 / Math.PI).toFixed(2))
+                                      .join(', ')}
+                                    ]°
+                                  </span>
+                                </div>
+                              )}
+                              <div className="property-row">
+                                <span className="property-name">Color:</span>
+                                <span className="property-value">
+                                  <span
+                                    className="color-preview"
+                                    style={{ backgroundColor: obj.color }}
+                                  ></span>
+                                  {obj.color}
+                                </span>
+                              </div>
+                              {typeof obj.restitution === 'number' && (
+                                <div className="property-row">
+                                  <span className="property-name">Restitution:</span>
+                                  <span className="property-value">
+                                    {obj.restitution.toFixed(2)}
+                                  </span>
+                                </div>
+                              )}
+                              {obj.type === 'Sphere' && (
+                                <div className="property-row">
+                                  <span className="property-name">Radius:</span>
+                                  <span className="property-value">{obj.radius} m</span>
+                                </div>
+                              )}
+                              {obj.type === 'Box' && (
+                                <div className="property-row">
+                                  <span className="property-name">Dimensions:</span>
+                                  <span className="property-value">
+                                    [{obj.dimensions.join(', ')}] m
+                                  </span>
+                                </div>
+                              )}
+                              {obj.type === 'Cylinder' && (
+                                <>
+                                  <div className="property-row">
+                                    <span className="property-name">Radius:</span>
+                                    <span className="property-value">{obj.radius} m</span>
+                                  </div>
+                                  <div className="property-row">
+                                    <span className="property-name">Height:</span>
+                                    <span className="property-value">{obj.height} m</span>
+                                  </div>
+                                </>
+                              )}
+                              {typeof obj.friction === 'number' && (
+                                <div className="property-row">
+                                  <span className="property-name">Friction:</span>
+                                  <span className="property-value">
+                                    {obj.friction.toFixed(2)}
+                                  </span>
+                                </div>
+                              )}
+                            </div>
+                          )}
+                        </li>
+                      ))}
+                    </ul>
+                  ) : (
+                    <p className="placeholder-text">No objects in this scene.</p>
+                  )}
+                </div>
+                <div className="scene-properties">
+                  <span className="scene-properties-title">Scene Properties</span>
+                  <p>
+                    <strong>Gravity:</strong> [{currentScene.gravity.join(', ')}] m/s²
+                  </p>
+                  <p>
+                    <strong>Contact Material:</strong> Friction:{' '}
+                    {currentScene.contactMaterial?.friction?.toFixed(2) ?? 'N/A'},
+                    Restitution:{' '}
+                    {currentScene.contactMaterial?.restitution?.toFixed(2) ?? 'N/A'}
+                  </p>
+                </div>
+              </div>
+            </div>
+          </Panel>
+        </PanelGroup>
+      </div>
     </div>
-  );
-}
-
-export default SceneSelector;
+  );}
+  export default SceneSelector;

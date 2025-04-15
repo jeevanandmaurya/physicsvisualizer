@@ -1,50 +1,127 @@
-.scene-selector {
-  height: 100%;
-  background-color: #1e1e1e;
-  color: #e0e0e0;
-  font-family: 'Arial', sans-serif;
-  padding: 15px;
+/* --- Styles for the Scene Selector UI --- */
+
+/* --- Base & Variables --- */
+:root {
+  /* Common Dark UI Colors (Inspired by Unity/VS Code Dark Themes) */
+  --bg-main: #1e1e1e;         /* Deepest background */
+  --bg-panel: #252526;        /* Slightly lighter panels */
+  --bg-element: #2d2d2d;      /* Background for list items, properties */
+  --bg-element-hover: #383838; /* Hover state for elements */
+  --bg-element-selected: #3f3f46; /* Selected state */
+  --bg-header: #333333;       /* Header backgrounds */
+  --bg-input: #3c3c3c;        /* Input field backgrounds */
+
+  --border-color-subtle: #3a3a3a; /* Subtle borders */
+  --border-color-medium: #444444; /* Medium borders */
+  --border-color-focus: #007acc;   /* Accent/Focus border (like VS Code blue) */
+
+  --text-primary: #d4d4d4;    /* Primary text */
+  --text-secondary: #a0a0a0;  /* Secondary/muted text */
+  --text-label: #b0b0b0;      /* Labels in properties */
+  --text-header: #cccccc;     /* Header text */
+  --text-on-accent: #ffffff;   /* Text on accent color backgrounds */
+
+  --accent-color: #4a90e2;    /* Original button blue - can be changed */
+  --accent-color-hover: #357abd;
+  --error-color: #f44747;
+
+  --font-family-ui: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+  --font-size-base: 13px;
+  --font-size-small: 11px;
+  --font-size-large: 16px;
+
+  --padding-base: 10px;
+  --padding-compact: 5px;
+  --padding-large: 15px;
+
+  --radius-base: 3px;
+}
+
+/* Apply base font and box-sizing (Apply to relevant container or globally if appropriate) */
+/* Consider scoping this better if integrating into a larger app */
+.scene-selector-container { /* Example wrapper class */
+  font-family: var(--font-family-ui);
+  font-size: var(--font-size-base);
+  color: var(--text-primary);
+  background-color: var(--bg-main);
+  height: 100vh; /* Example: Full viewport height */
+  width: 100%;   /* Example: Full width, maybe constrained by parent */
+}
+
+.scene-selector-container *,
+.scene-selector-container *::before,
+.scene-selector-container *::after {
   box-sizing: border-box;
-  border-right: 1px solid #333;
+}
+
+
+/* --- Main Scene Selector Container --- */
+.scene-selector {
+  height: 100%; /* Takes height from parent */
+  width: 100%;  /* Takes width from parent */
+  background-color: var(--bg-main);
+  color: var(--text-primary);
+  font-family: var(--font-family-ui);
+  font-size: var(--font-size-base);
+  border-right: 1px solid var(--border-color-medium); /* Original border */
   display: flex;
   flex-direction: column;
+  overflow: hidden; /* Prevent content spill */
 }
 
 .scene-selector-header {
-  margin-bottom: 15px;
+  padding: var(--padding-base);
+  border-bottom: 1px solid var(--border-color-medium);
+  flex-shrink: 0; /* Prevent header from shrinking */
 }
 
+/* --- Buttons & Interactive Elements --- */
 .extract-button {
-  padding: 8px 12px;
-  background-color: #4a90e2;
-  color: white;
-  border: none;
-  border-radius: 4px;
+  padding: 6px 12px;
+  background-color: var(--accent-color);
+  color: var(--text-on-accent);
+  border: 1px solid var(--accent-color); /* Subtle border */
+  border-radius: var(--radius-base);
   cursor: pointer;
-  font-size: 14px;
-  transition: background-color 0.2s ease, opacity 0.2s ease;
+  font-size: var(--font-size-base);
+  font-weight: 500;
+  transition: background-color 0.15s ease, border-color 0.15s ease, opacity 0.15s ease;
+  width: 100%; /* Make button full width in header */
+  text-align: center;
 }
 
 .extract-button:hover:not(.extracting) {
-  background-color: #357abd;
+  background-color: var(--accent-color-hover);
+  border-color: var(--accent-color-hover);
+}
+
+.extract-button:active:not(.extracting) {
+  background-color: var(--accent-color); /* Slight feedback on click */
 }
 
 .extract-button.extracting {
-  background-color: #666;
+  background-color: var(--bg-element);
+  border-color: var(--border-color-subtle);
+  color: var(--text-secondary);
   cursor: not-allowed;
   opacity: 0.7;
 }
 
 .spinner {
   display: inline-block;
-  width: 12px;
-  height: 12px;
-  border: 2px solid #fff;
-  border-top: 2px solid transparent;
+  width: 10px; /* Slightly smaller */
+  height: 10px;
+  border: 2px solid var(--text-on-accent);
+  border-top-color: transparent; /* Classic spinner look */
   border-radius: 50%;
-  animation: spin 1s linear infinite;
-  margin-right: 6px;
-  vertical-align: middle;
+  animation: spin 0.8s linear infinite;
+  margin-right: 8px;
+  vertical-align: -1px; /* Align better with text */
+}
+
+.extract-button.extracting .spinner {
+  border-color: var(--text-secondary);
+  border-top-color: transparent;
 }
 
 @keyframes spin {
@@ -53,198 +130,347 @@
 }
 
 .error-message {
-  margin-top: 8px;
-  padding: 6px 10px;
-  background-color: #ff4d4d;
-  color: white;
-  border-radius: 4px;
-  font-size: 12px;
+  margin-top: var(--padding-compact);
+  padding: var(--padding-compact) var(--padding-base);
+  background-color: var(--error-color);
+  color: var(--text-on-accent);
+  border-radius: var(--radius-base);
+  font-size: var(--font-size-small);
 }
 
-.scene-list-title {
-  font-size: 18px;
-  font-weight: 600;
-  margin: 0 0 10px 0;
-  color: #ffffff;
-}
-
+/* --- Scene List Panel --- */
 .scene-list-panel {
   display: flex;
   flex-direction: column;
+  /* Let this panel have a default size, but allow resizing */
+  flex-basis: 250px; /* Example starting height */
+  flex-shrink: 0; /* Don't shrink by default */
+  overflow: hidden; /* Contain the list and title */
+  border-bottom: 1px solid var(--border-color-medium); /* Separator */
+}
+
+.scene-list-title {
+  font-size: var(--font-size-base); /* Standard size, bold */
+  font-weight: 600;
+  padding: var(--padding-base);
+  margin: 0;
+  color: var(--text-header);
+  background-color: var(--bg-header); /* Distinct header background */
+  border-bottom: 1px solid var(--border-color-medium);
+  flex-shrink: 0; /* Prevent shrinking */
 }
 
 .scene-list {
-  flex: 1;
-  overflow-y: auto;
-  padding-right: 5px;
+  flex: 1; /* Take remaining space in panel */
+  overflow-y: auto; /* Only scroll vertically */
+  padding: var(--padding-compact) var(--padding-base); /* Padding around the list */
+  list-style: none; /* Remove default list styling */
+  margin: 0;
+}
+
+/* Ensure ul/li behave as expected */
+ul {
+  display: block; /* Default block behavior for lists */
+  padding: 0;
+  margin: 0;
+}
+li {
+    list-style: none;
 }
 
 .scene-item {
-  padding: 10px;
-  margin-bottom: 8px;
-  background-color: #2a2a2a;
-  border: 1px solid #404040;
-  border-radius: 4px;
+  padding: var(--padding-compact) var(--padding-base);
+  margin-bottom: 4px; /* Space between items */
+  background-color: var(--bg-element);
+  border: 1px solid transparent; /* Placeholder for selection border */
+  border-left: 3px solid transparent; /* Placeholder for selection indicator */
+  border-radius: var(--radius-base);
   cursor: pointer;
-  transition: background-color 0.2s ease, border-color 0.2s ease;
+  transition: background-color 0.15s ease, border-color 0.15s ease;
+  padding-left: calc(var(--padding-base) - 3px); /* Account for border width */
 }
 
 .scene-item:hover {
-  background-color: #333;
-  border-color: #555;
+  background-color: var(--bg-element-hover);
 }
 
 .scene-item.selected {
-  background-color: #4a90e2;
-  border-color: #357abd;
+  background-color: var(--bg-element-selected);
+  border-left-color: var(--accent-color); /* Common selection indicator */
+  color: var(--text-primary); /* Ensure text remains readable */
 }
 
 .scene-name {
-  font-size: 16px;
-  font-weight: 500;
-  color: #ffffff;
-  margin-bottom: 4px;
+  font-size: var(--font-size-base);
+  font-weight: 500; /* Slightly bolder than description */
+  color: var(--text-primary);
+  margin-bottom: 2px;
+  display: block; /* Ensure it takes full width */
 }
 
 .scene-description {
-  font-size: 12px;
-  color: #b0b0b0;
-  line-height: 1.2;
+  font-size: var(--font-size-small);
+  color: var(--text-secondary);
+  line-height: 1.3;
 }
 
+/* --- Resizer --- (Basic visual, needs JS for functionality) */
 .panel-resize-handle {
-  height: 2px;
-  background-color: #464646;
+  height: 5px; /* Make slightly easier to grab */
+  background-color: var(--bg-header); /* Use header background */
   cursor: ns-resize;
-  transition: background-color 0.2s ease;
+  flex-shrink: 0; /* Prevent resizing */
+  border-top: 1px solid var(--border-color-medium);
+  border-bottom: 1px solid var(--border-color-medium);
+  transition: background-color 0.15s ease;
 }
 
 .panel-resize-handle:hover {
-  background-color: #555;
+  background-color: var(--accent-color); /* Highlight on hover */
 }
 
+/* --- Scene Details Panel (Inspector Style) --- */
 .scene-details-panel {
   display: flex;
   flex-direction: column;
+  flex-grow: 1; /* Takes remaining space */
+  overflow: hidden;
+  background-color: var(--bg-panel); /* Use panel background */
+}
+
+/* Inspector Title/Header (Optional) */
+.inspector-header {
+  padding: var(--padding-base);
+  font-size: var(--font-size-base);
+  font-weight: 600;
+  color: var(--text-header);
+  background-color: var(--bg-header);
+  border-bottom: 1px solid var(--border-color-medium);
+  flex-shrink: 0;
 }
 
 .scene-details {
-  flex: 1;
-  padding: 10px;
-  background-color: #252525;
-  overflow-y: auto;
+  padding: 0; /* Remove padding, handle inside components */
+  color: var(--text-primary);
+  flex: 1; /* Take remaining space */
+  overflow-y: auto; /* Scroll content */
 }
 
-.scene-details h4 {
-  margin: 0 0 8px 0;
-  font-size: 16px;
-  color: #ffffff;
-}
-
-.details-content {
-  font-size: 13px;
-}
-
-.details-content p {
-  margin: 6px 0;
-}
-
-.details-content strong {
-  color: #ffffff;
-}
-
-.details-content ul {
-  margin: 0 0 10px 20px;
+/* --- Object List (like Hierarchy/Inspector Components) --- */
+.object-list {
+  list-style: none;
   padding: 0;
-  list-style-type: disc;
+  margin: 0;
 }
 
-.details-content ul ul {
-  list-style-type: circle;
-  margin: 2px 0 0 20px;
+.object-list-item {
+  margin-bottom: 1px; /* Minimal space between components */
+  border-top: 1px solid var(--border-color-subtle);
+}
+.object-list-item:first-child {
+  border-top: none; /* No top border for the first item */
 }
 
-.details-content li {
-  margin: 2px 0;
+.object-header {
+  background-color: var(--bg-header); /* Consistent header bg */
+  padding: var(--padding-compact) var(--padding-base);
+  cursor: pointer;
   display: flex;
   align-items: center;
-  gap: 8px;
+  justify-content: space-between; /* Space out toggle and title */
+  transition: background-color 0.15s ease;
+}
+.object-header:hover {
+  background-color: var(--bg-element-hover); /* Subtle hover */
 }
 
-.toggle-details-btn {
-  background-color: #4a90e2;
-  color: white;
-  border: none;
-  border-radius: 3px;
-  padding: 2px 6px;
-  font-size: 11px;
-  cursor: pointer;
-  transition: background-color 0.2s ease;
+.object-title {
+  display: flex;
+  align-items: center;
+  flex-grow: 1;
+  overflow: hidden; /* Prevent long titles breaking layout */
 }
 
-.toggle-details-btn:hover {
-  background-color: #357abd;
+.toggle-icon {
+  margin-right: 8px;
+  font-size: 0.8em;
+  color: var(--text-secondary);
+  width: 1em; /* Reserve space */
+  text-align: center;
+  transition: transform 0.2s ease-in-out;
+  display: inline-block;
+  flex-shrink: 0;
+}
+.object-header.collapsed .toggle-icon {
+  transform: rotate(-90deg);
 }
 
-/* Scrollbar styling */
-.scene-list::-webkit-scrollbar,
-.scene-details::-webkit-scrollbar {
-  width: 6px;
+/* Using simple text arrows for toggle */
+.toggle-icon::before {
+  content: '▼'; /* Expanded state */
+}
+.object-header.collapsed  {
+  content: '▶'; /* Collapsed state */
 }
 
-.scene-list::-webkit-scrollbar-track,
-.scene-details::-webkit-scrollbar-track {
-  background: #2a2a2a;
+.object-type {
+  font-weight: 600; /* Bold type */
+  color: var(--text-header);
+  margin-right: 8px;
+  white-space: nowrap;
 }
 
-.scene-list::-webkit-scrollbar-thumb,
-.scene-details::-webkit-scrollbar-thumb {
-  background: #555;
-  border-radius: 3px;
+.object-id {
+  color: var(--text-secondary);
+  font-size: var(--font-size-small);
+  font-style: italic;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
-.scene-list::-webkit-scrollbar-thumb:hover,
-.scene-details::-webkit-scrollbar-thumb:hover {
-  background: #777;
+.object-properties {
+  padding: var(--padding-base);
+  background-color: var(--bg-element); /* Content background */
+  /* border-top: 1px solid var(--border-color-subtle); Remove top border, it's on the item */
+  display: block; /* Default */
 }
 
-/* Responsive design */
-@media (max-width: 768px) {
-  .scene-selector {
-    padding: 10px;
-  }
 
-  .extract-button {
+/* --- Property Row Styling (Key for Inspector Look) --- */
+.property-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between; /* Push label and value apart */
+  margin-bottom: var(--padding-compact);
+  padding: 2px 0; /* Minimal vertical padding */
+}
+
+.property-name {
+  font-weight: 400; /* Normal weight label */
+  width: 90px; /* Fixed width for alignment */
+  flex-shrink: 0; /* Prevent shrinking */
+  color: var(--text-label);
+  font-size: var(--font-size-base);
+  margin-right: var(--padding-base);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.property-value {
+  flex-grow: 1; /* Take remaining space */
+  color: var(--text-primary);
+  font-size: var(--font-size-base);
+  text-align: left; /* Align value to the left */
+  /* Simulating an input field look for values */
+  background-color: var(--bg-input);
+  padding: 3px 6px; /* Slightly more padding */
+  border-radius: var(--radius-base);
+  border: 1px solid var(--border-color-subtle);
+  min-height: 1.8em; /* Ensure consistent height */
+  display: flex; /* Use flex for alignment within the value field */
+  align-items: center;
+  overflow: hidden; /* Prevent content overflow */
+  white-space: nowrap;
+  text-overflow: ellipsis;
+}
+
+/* Basic input styling if you were to add actual inputs */
+.property-value input[type="text"],
+.property-value input[type="number"],
+.property-value select {
+    background-color: transparent; /* Inherit from parent */
+    border: none;
+    color: var(--text-primary);
+    padding: 0;
+    margin: 0;
     width: 100%;
-    font-size: 13px;
+    height: 100%;
+    font-family: inherit;
+    font-size: inherit;
+    outline: none;
+}
+.property-value input:focus,
+.property-value select:focus {
+    /* Maybe a subtle focus indicator if needed */
+}
+
+.color-preview {
+  display: inline-block;
+  width: 20px; /* Slightly larger */
+  height: 20px;
+  border: 1px solid var(--border-color-medium);
+  vertical-align: middle;
+  margin-right: 6px;
+  flex-shrink: 0;
+  border-radius: var(--radius-base);
+}
+
+/* --- Scene Properties Section (Global Scene Settings) --- */
+.scene-properties {
+  margin: var(--padding-base); /* Add margin around this section */
+  padding: var(--padding-base);
+  background-color: var(--bg-element);
+  border-radius: var(--radius-base);
+  border: 1px solid var(--border-color-subtle);
+}
+.scene-properties-title { /* Add a title for this section */
+  font-weight: 600;
+  color: var(--text-header);
+  margin-bottom: var(--padding-base);
+  font-size: var(--font-size-base);
+  display: block;
+  border-bottom: 1px solid var(--border-color-subtle); /* Separator line */
+  padding-bottom: var(--padding-compact);
+}
+
+.scene-properties .property-row { /* Reuse property row style */
+  /* Adjust if needed */
+}
+
+/* Placeholder text styling */
+.placeholder-text {
+    padding: var(--padding-large);
+    color: var(--text-secondary);
+    text-align: center;
+    font-style: italic;
+}
+
+
+/* --- Scrollbar Styling --- */
+/* Works in WebKit browsers (Chrome, Safari, Edge) */
+::-webkit-scrollbar {
+  width: 8px; /* Slightly wider */
+  height: 8px;
+}
+
+::-webkit-scrollbar-track {
+  background: var(--bg-main); /* Match darkest background */
+}
+
+::-webkit-scrollbar-thumb {
+  background: var(--bg-element-hover); /* Use hover color */
+  border-radius: 4px;
+  border: 2px solid var(--bg-main); /* Creates padding around thumb */
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: var(--border-color-medium); /* Darker on hover */
+}
+
+/* --- Responsive Design Adjustments --- */
+@media (max-width: 768px) {
+  :root {
+    --font-size-base: 12px;
+    --font-size-small: 10px;
+    --font-size-large: 14px;
+    --padding-base: 8px;
   }
 
-  .scene-list-title {
-    font-size: 16px;
-  }
-
-  .scene-item {
-    padding: 8px;
-  }
-
-  .scene-name {
-    font-size: 14px;
-  }
-
-  .scene-description {
-    font-size: 11px;
-  }
-
-  .scene-details {
-    font-size: 12px;
-  }
-
-  .scene-details h4 {
-    font-size: 14px;
-  }
-
-  .toggle-details-btn {
-    font-size: 10px;
-    padding: 1px 4px;
+  .property-name {
+    width: 75px; /* Reduce label width */
   }
 }
+
+/* --- End Styles --- */
