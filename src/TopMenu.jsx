@@ -1,41 +1,30 @@
-// src/TopMenu.js
 import React, { useState } from 'react';
 import './topmenu.css'; // Assuming styles are fine
 
 import logoFull from './assets/physicsvisualizer.svg';
 import logoMini from './assets/icon-transparent.svg';
 
-// Define base menu items
+// Define base menu items - Removed Graph
 const baseMenuItems = {
     File: ['Open', 'Save', 'Exit'],
     Scenes: ['New Scene', '2D Mechanics','3D Mechanics', 'Electrodynamics'],
-    Visualizer: ['Start', 'Pause', 'Reset'], // Keep these, handle logic in App/Visualizer
-    // Graph menu now adds overlays
-    Graph: [
-        { label: 'Add Y vs X Plot', action: 'addGraph', type: 'yvx' },
-        { label: 'Add X vs T Plot', action: 'addGraph', type: 'xvt' },
-        { label: 'Add Y vs T Plot', action: 'addGraph', type: 'yvt' },
-        // Add 'Close All Graphs' later if needed
-    ],
+    // Visualizer controls moved to the Visualizer component's timeControllbar
     Conversation: ['Clear Chat', 'Export Transcript'],
     Help: ['Tutorials', 'About', 'Documentation']
 };
 
-
-// Pass onAddGraph function as a prop
-function TopMenu({ onAddGraph }) {
+// Removed onAddGraph prop as it's no longer handled here
+function TopMenu() {
     const [openMenu, setOpenMenu] = useState(null);
 
     const toggleMenu = (menu) => {
         setOpenMenu(openMenu === menu ? null : menu);
     };
 
+    // Simplified item click handler as graph actions are elsewhere
     const handleItemClick = (item) => {
-        // Handle graph actions
-        if (item.action === 'addGraph' && typeof onAddGraph === 'function') {
-            onAddGraph(item.type); // Call the passed function with the type
-        }
-        // Add handlers for other menu items here if needed
+         // Add handlers for other menu items here if needed
+        console.log(`Menu item clicked: ${typeof item === 'object' ? item.label : item}`);
         setOpenMenu(null); // Close menu after click
     };
 
@@ -50,8 +39,7 @@ function TopMenu({ onAddGraph }) {
                 <div
                     key={title}
                     className="menu-item"
-                    // Use onMouseEnter/onMouseLeave for hover effect if preferred
-                    onClick={() => toggleMenu(title)} // Click to open/close
+                    onClick={() => toggleMenu(title)}
                     onMouseLeave={() => { /* Optional: keep menu open on hover leave? */ }}
                 >
                     {title}
@@ -61,8 +49,10 @@ function TopMenu({ onAddGraph }) {
                                 <div
                                     key={i}
                                     className="dropdown-item"
-                                    // Check if option is an object (like Graph items) or string
-                                    onClick={() => typeof option === 'object' ? handleItemClick(option) : handleItemClick({ label: option })}
+                                    onClick={(e) => {
+                                        e.stopPropagation(); // Prevent triggering the parent menu-item click again
+                                        handleItemClick(option);
+                                    }}
                                 >
                                     {typeof option === 'object' ? option.label : option}
                                 </div>

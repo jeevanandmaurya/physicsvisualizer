@@ -1,7 +1,66 @@
-canvas{
+.visualizer {
+    position: relative;
     width: 100%;
     height: 100%;
-    background-color: darkgray;
-    /* border-radius: 10px; */
+    background: #222426;
+    justify-items: center;
+}
+.controllbar{
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    background-color: #1e1e1e;;
+    color: white;
+    height: 30px;
+    width: 100%;
+    font-size: 12px;
+    border-bottom: 1px solid #ffffff46;
+    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+}
+.controllbar button{
+    background-color: transparent;
+   
+}
+.fps-counter{
+    position: absolute;
+    font-size: 10px;
+    top: 40px;
+    left: 10px;
+    background-color: rgba(0, 0, 0, 0.6);
+    color: white;
+    padding: 5px 8px;
+    border-radius: 4px;
+    z-index: 10;
+}
+.timeControllbar{
+    background-color: #1e1e1e;
+    position: absolute;
+    bottom: 0px;
+    left: 0;
+    right: 0;
+    margin: 0 auto;
+    width: fit-content;
+    height: 30px;
+    padding: 0px;
+    color: white;
+    font-size: 12px;
+    border-bottom: 1px solid #ffffff46;
+    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    
+}
+.timeControllbar button{
+    background-color: transparent;
+    text-align: center;
+
 }
 
+
+canvas {
+    width: 100%;
+    height: 100%;
+    /* background-color: darkgray; */
+    /* border-radius: 10px; */
+}
