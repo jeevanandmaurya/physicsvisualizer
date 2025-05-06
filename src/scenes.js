@@ -1,4 +1,3 @@
-import { rotate } from "three/tsl";
 
 export const mechanicsExamples = [
   {

@@ -44,9 +44,10 @@
     position: absolute;
     top: 100%;
     left: 0;
+    right:100%;
     background: #2d2d2d;
     border: 1px solid #444;
-    min-width: 160px;
+    width: fit-content;
     z-index: 999;
   }
   

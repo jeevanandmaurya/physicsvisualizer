@@ -35,7 +35,7 @@
 .timeControllbar{
     background-color: #1e1e1e;
     position: absolute;
-    bottom: 0px;
+    bottom: 50px;
     left: 0;
     right: 0;
     margin: 0 auto;
@@ -54,8 +54,61 @@
 .timeControllbar button{
     background-color: transparent;
     text-align: center;
-
 }
+.time-display{
+    margin-right: 10px;
+}
+
+
+.graphs-dropdown-container {
+    position: relative; /* Container needs relative position */
+    display: inline-block; /* Allows button and dropdown to sit side-by-side or below */
+    margin-left: 10px; /* Add some space */
+  }
+  
+  .graphs-button {
+    border: 1px solid #5e5e5e;
+    border-radius: 4px;
+    box-shadow: 0 2px 5px rgba(0, 0, 0, 0.2);
+    padding: 5px 10px;
+    cursor: pointer;
+    border-radius: 4px;
+    display: flex; /* Use flexbox for icon and text alignment */
+    align-items: center;
+  }
+  
+  /* .graphs-button:hover {
+    background-color: #424242;
+  } */
+  
+  .graphs-dropdown-menu {
+    position: absolute;
+    margin-top: 2px;
+    top: 100%; /* Position below the button */
+    left: 0; 
+    z-index: 101; /* Ensure dropdown is above other UI elements but below graphs */
+    background-color: transparent;
+    border: 1px solid #5e5e5e;
+    border-radius: 2px;
+    box-shadow: 0 2px 5px rgba(0, 0, 0, 0.2);
+    display: flex;
+    flex-direction: column;
+    min-width: 120px; /* Minimum width for the dropdown */
+  }
+  
+  .dropdown-item {
+    background: none;
+    border: none;
+    padding: 8px 12px;
+    text-align: left;
+    cursor: pointer;
+    width: 100%; /* Make button fill dropdown width */
+  }
+  
+  .dropdown-item:hover {
+    background-color: #4444448b;
+  }
+  
 
 
 canvas {
