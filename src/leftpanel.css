@@ -1,0 +1,25 @@
+*{
+    padding: 0%;
+    margin: 0%;
+}
+.leftPanelContainer{
+    display: flex;
+    box-sizing: border-box;
+    border:1px solid #f3f3f315;
+    width: 30px;
+    height: 100vh;
+    flex-direction: column;
+    align-items: center;
+}
+.leftPanelContainer div{
+    border-bottom: 1px solid #ffffff16;
+    display:flex;
+    align-items: center;
+    justify-content: center;
+    width: 100%;
+    height: 100%;
+}
+.leftPanelContainer div:hover{
+    background-color: #00000080;
+    border: none;
+}
