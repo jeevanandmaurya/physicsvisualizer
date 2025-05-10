@@ -9,7 +9,7 @@ import {
 } from '@react-three/cannon';
 import { OrbitControls, Grid } from '@react-three/drei';
 import * as THREE from 'three';
-import './Visualizer.css';
+import './Visualizer.css'; // Assuming this file exists
 
 // Import the OverlayGraph component
 import OverlayGraph from './OverlayGraph'; // Assuming OverlayGraph.js is in the same directory
@@ -17,74 +17,70 @@ import OverlayGraph from './OverlayGraph'; // Assuming OverlayGraph.js is in the
 // Import Font Awesome Icons
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { faPlay, faPause, faRedo, faChartLine, faChevronDown, faChevronUp } from '@fortawesome/free-solid-svg-icons';
+// 'time' from three/tsl seems unused, can be removed if not needed elsewhere
+
+// Define a constant for maximum history points to prevent performance issues
+const MAX_HISTORY_POINTS = 2000; // Keep track of up to 2000 points per object
 
 // --- Helper Component for Central Time Update ---
-// This component uses useFrame to update the central time state in the parent (Visualizer)
 function TimeUpdater({ isPlaying, setCurrentTime }) {
   useFrame((state, delta) => {
     if (isPlaying) {
       setCurrentTime(prevTime => prevTime + delta);
     }
   });
-  // This component does not render anything visual
   return null;
 }
 
 // --- Object Components (Sphere, Box, Cylinder, SceneBox) ---
-// These components report their position when it changes significantly or it's the first frame.
-// The parent (Visualizer) handles collecting this data into historyRef.
 
-function Sphere({ config, id, onPositionUpdate, setApi }) {
+// Modify Sphere component to accept the onPhysicsUpdate callback
+function Sphere({ config, id, setApi, onPhysicsUpdate }) { // <-- Accept onPhysicsUpdate prop
   const { mass, radius, position: initialPosition, velocity: initialVelocity, rotation = [0, 0, 0], color = "red", restitution = 0.7 } = config;
-
-  // Ensure initialPosition is an array for consistent comparison later
-  const initialPosArray = initialPosition || [0, 0, 0];
-
   const [ref, api] = useSphere(() => ({
     mass,
-    position: initialPosArray,
+    position: initialPosition,
     velocity: initialVelocity,
     rotation,
     args: [radius],
     material: { restitution },
   }));
 
-  // Provide the physics API ref to the parent component
+  // Ref to store the latest physics position from the subscription
+  const physicsPositionRef = useRef(initialPosition || [0, 0, 0]); // Initialize with initialPosition
+
   useEffect(() => {
     if (api) {
-      setApi(id, api);
+      setApi(id, api); // Call the original setApi
+
+      // Subscribe to the physics body's position
+      const unsubscribe = api.position.subscribe(p => {
+        // p is an array [x, y, z]
+        physicsPositionRef.current = p;
+      });
+
+      // Cleanup subscription on component unmount
+      return () => {
+        unsubscribe();
+      };
     }
-  }, [id, api, setApi]); // setApi is wrapped in useCallback in parent, so it's stable
+  }, [id, api, setApi]); // Dependencies for this effect
 
-  // Ref to track the last reported position, initialized with the initial position
-  const lastReportedPosition = useRef([...initialPosArray]); // Store a copy
+  // Modify useFrame to report the physics position and time
+  useFrame((state) => { // <-- Get state from useFrame
+    // This logs the THREE.Mesh's position. (Optional logging)
+    // console.log(`Sphere ${id} (ref.current.position):`, ref.current.position.toArray().map(v => parseFloat(v.toFixed(3))));
 
-  // Threshold to avoid reporting tiny movements every frame
-  const positionThreshold = 0.01;
+    // This logs the position obtained directly from the physics engine via subscription. (Optional logging)
+    // console.log(`Sphere ${id} (physicsPositionRef via subscription):`, physicsPositionRef.current.map(v => parseFloat(v.toFixed(3))));
 
-  // Use useFrame to get object's current position from the physics engine
-  useFrame(() => {
-    // Check if ref.current exists and has a position property
-    if (ref.current?.position) { // Safe access
-      const currentPosition = ref.current.position.toArray();
-      // const [x, y, z] = currentPosition; // Destructure later if needed
-
-      // Calculate distance moved since last report
-      const dx = currentPosition[0] - lastReportedPosition.current[0];
-      const dy = currentPosition[1] - lastReportedPosition.current[1];
-      const dz = currentPosition[2] - lastReportedPosition.current[2];
-      const distanceSq = dx * dx + dy * dy + dz * dz;
-
-      // Determine if this is the very first report for this object
-      // Check if the current lastReportedPosition still matches the initial position state
-      const isFirstReport = lastReportedPosition.current.every((val, index) => val === initialPosArray[index]);
-
-      // Report position if moved significantly or if it's the first report (to capture initial state)
-      if (distanceSq > positionThreshold * positionThreshold || isFirstReport) {
-        lastReportedPosition.current = [...currentPosition]; // Update the last reported position (store a copy)
-        // Report to parent, including x, y, z
-        onPositionUpdate({ id, x: currentPosition[0], y: currentPosition[1], z: currentPosition[2] });
-      }
+    // Report the real-time physics position and time up to the parent (Visualizer)
+    if (onPhysicsUpdate && physicsPositionRef.current) { // <-- Check if callback exists and position is available
+        onPhysicsUpdate({
+            id: id,
+            time: state.clock.elapsedTime, // Get current simulation time from useFrame state
+            position: physicsPositionRef.current // Use the position from the subscription ref
+        });
     }
   });
 
@@ -96,14 +92,13 @@ function Sphere({ config, id, onPositionUpdate, setApi }) {
   );
 }
 
-function Box({ config, id, onPositionUpdate, setApi }) {
+// Box component (no changes needed for this task as it doesn't report position)
+function Box({ config, id, setApi }) {
   const { mass, dimensions, position: initialPosition, velocity: initialVelocity, rotation = [0, 0, 0], color = "green", restitution = 0.7 } = config;
   const [width, height, depth] = dimensions || [1, 1, 1];
-  const initialPosArray = initialPosition || [0, 0, 0];
-
   const [ref, api] = useBox(() => ({
     mass,
-    position: initialPosArray,
+    position: initialPosition,
     velocity: initialVelocity,
     rotation,
     args: [width, height, depth],
@@ -116,24 +111,8 @@ function Box({ config, id, onPositionUpdate, setApi }) {
     }
   }, [id, api, setApi]);
 
-  const lastReportedPosition = useRef([...initialPosArray]);
-  const positionThreshold = 0.01;
-
   useFrame(() => {
-    if (ref.current?.position) {
-      const currentPosition = ref.current.position.toArray();
-      const dx = currentPosition[0] - lastReportedPosition.current[0];
-      const dy = currentPosition[1] - lastReportedPosition.current[1];
-      const dz = currentPosition[2] - lastReportedPosition.current[2];
-      const distanceSq = dx * dx + dy * dy + dz * dz;
-
-      const isFirstReport = lastReportedPosition.current.every((val, index) => val === initialPosArray[index]);
-
-      if (distanceSq > positionThreshold * positionThreshold || isFirstReport) {
-        lastReportedPosition.current = [...currentPosition];
-        onPositionUpdate({ id, x: currentPosition[0], y: currentPosition[1], z: currentPosition[2] });
-      }
-    }
+    // Intentionally doing nothing with position reporting here for the test
   });
 
   return (
@@ -144,13 +123,12 @@ function Box({ config, id, onPositionUpdate, setApi }) {
   );
 }
 
-function Cylinder({ config, id, onPositionUpdate, setApi }) {
+// Cylinder component (no changes needed for this task)
+function Cylinder({ config, id, setApi }) {
   const { mass, radius, height, position: initialPosition, velocity: initialVelocity, rotation = [0, 0, 0], color = "blue", restitution = 0.7 } = config;
-  const initialPosArray = initialPosition || [0, 0, 0];
-
   const [ref, api] = useCylinder(() => ({
     mass,
-    position: initialPosArray,
+    position: initialPosition,
     velocity: initialVelocity,
     rotation,
     args: [radius, radius, height, 16],
@@ -163,24 +141,8 @@ function Cylinder({ config, id, onPositionUpdate, setApi }) {
     }
   }, [id, api, setApi]);
 
-  const lastReportedPosition = useRef([...initialPosArray]);
-  const positionThreshold = 0.01;
-
   useFrame(() => {
-    if (ref.current?.position) {
-      const currentPosition = ref.current.position.toArray();
-      const dx = currentPosition[0] - lastReportedPosition.current[0];
-      const dy = currentPosition[1] - lastReportedPosition.current[1];
-      const dz = currentPosition[2] - lastReportedPosition.current[2];
-      const distanceSq = dx * dx + dy * dy + dz * dz;
-
-      const isFirstReport = lastReportedPosition.current.every((val, index) => val === initialPosArray[index]);
-
-      if (distanceSq > positionThreshold * positionThreshold || isFirstReport) {
-        lastReportedPosition.current = [...currentPosition];
-        onPositionUpdate({ id, x: currentPosition[0], y: currentPosition[1], z: currentPosition[2] });
-      }
-    }
+    // Intentionally doing nothing with position reporting here for the test
   });
 
   return (
@@ -191,8 +153,8 @@ function Cylinder({ config, id, onPositionUpdate, setApi }) {
   );
 }
 
-// SceneBox can be used for static objects (mass=0) like walls, or dynamic boxes
-function SceneBox({ config, id, onPositionUpdate, setApi }) {
+// SceneBox component (no changes needed for this task)
+function SceneBox({ config, id, setApi }) {
   const {
     mass = 0, // Static by default
     dimensions = [10, 0.2, 10],
@@ -203,11 +165,9 @@ function SceneBox({ config, id, onPositionUpdate, setApi }) {
     restitution = 0.3,
   } = config;
   const [width, height, depth] = dimensions;
-  const initialPosArray = initialPosition || [0, 0, 0];
-
   const [ref, api] = useBox(() => ({
     mass,
-    position: initialPosArray,
+    position: initialPosition,
     velocity: initialVelocity,
     rotation,
     args: [width, height, depth],
@@ -220,27 +180,8 @@ function SceneBox({ config, id, onPositionUpdate, setApi }) {
     }
   }, [id, api, setApi]);
 
-  const lastReportedPosition = useRef([...initialPosArray]);
-  const positionThreshold = 0.01;
-
-  // Only dynamic objects (mass > 0) need position reporting based on movement,
-  // but we report the initial position for all objects (including static ones)
   useFrame(() => {
-    if (ref.current?.position) {
-      const currentPosition = ref.current.position.toArray();
-      const dx = currentPosition[0] - lastReportedPosition.current[0];
-      const dy = currentPosition[1] - lastReportedPosition.current[1];
-      const dz = currentPosition[2] - lastReportedPosition.current[2];
-      const distanceSq = dx * dx + dy * dy + dz * dz;
-
-      const isFirstReport = lastReportedPosition.current.every((val, index) => val === initialPosArray[index]);
-
-      // Report if it's the first report OR if mass > 0 and it moved significantly
-      if (isFirstReport || (mass > 0 && distanceSq > positionThreshold * positionThreshold)) {
-        lastReportedPosition.current = [...currentPosition];
-        onPositionUpdate({ id, x: currentPosition[0], y: currentPosition[1], z: currentPosition[2] });
-      }
-    }
+    // Intentionally doing nothing with position reporting here for the test
   });
 
   return (
@@ -251,9 +192,8 @@ function SceneBox({ config, id, onPositionUpdate, setApi }) {
   );
 }
 
-// --- Default Ground Plane Component ---
+// GroundPlane component (no changes needed)
 function GroundPlane() {
-  // A Plane in cannon is internally a Box with zero height, rotated
   const [ref] = usePlane(() => ({
     mass: 0, // Static
     rotation: [-Math.PI / 2, 0, 0], // Rotate to be horizontal
@@ -269,7 +209,7 @@ function GroundPlane() {
   );
 }
 
-// --- FpsCounter Component ---
+// FpsCounter component (no changes needed)
 function FpsCounter({ setFps }) {
   const lastTimeRef = useRef(performance.now());
   const frameCountRef = useRef(0);
@@ -289,7 +229,7 @@ function FpsCounter({ setFps }) {
   return null;
 }
 
-// --- Simple Grid Component ---
+// SimpleGrid component (no changes needed)
 function SimpleGrid() {
   return (
     <Grid
@@ -306,66 +246,72 @@ function SimpleGrid() {
   );
 }
 
-// --- Main Visualizer Component ---
+
 function Visualizer({ scene, onPositionUpdate: onExternalPositionUpdate, onAddGraph: onExternalAddGraph }) {
-  // --- State and Ref Definitions ---
   const [fps, setFps] = useState(0);
   const [isPlaying, setIsPlaying] = useState(false);
-  // Initialize currentTime as 0. The TimeUpdater will manage its increase.
   const [currentTime, setCurrentTime] = useState(0);
-  const objectApis = useRef({}); // Store physics APIs for objects
-  // Store initial config for reset (make a deep copy if initial configs are complex objects)
+  const objectApis = useRef({});
   const initialSceneObjects = useRef(scene?.objects ? JSON.parse(JSON.stringify(scene.objects)) : []);
-
-  // --- State for managing overlay graphs ---
   const [openGraphs, setOpenGraphs] = useState([]);
-  // Ref to store position history (updated frequently by handlePositionReport)
-  // This prevents frequent Visualizer re-renders
+  // historyRef will store the raw data points as they come in
   const historyRef = useRef({});
-  // State for history (updated periodically from historyRef, triggers graph re-renders)
+  // objectHistory will be a state that updates periodically from historyRef to trigger UI re-renders
   const [objectHistory, setObjectHistory] = useState({});
-  const [showGraphDropdown, setShowGraphDropdown] = useState(false); // State for graph dropdown
+  const [showGraphDropdown, setShowGraphDropdown] = useState(false);
 
-
-  // Destructure scene properties with defaults
   const { gravity = [0, -9.81, 0], contactMaterial = {} } = scene || {};
-  const objectsToRender = scene?.objects || []; // Objects currently being rendered
+  const objectsToRender = scene?.objects || [];
 
   const defaultContactMaterial = {
     friction: contactMaterial.friction || 0.5,
     restitution: contactMaterial.restitution || 0.7,
   };
 
-  // --- Callback Definitions (using useCallback for stability) ---
-
-  // Function to receive API refs from child components
   const setApi = useCallback((id, api) => {
     objectApis.current[id] = api;
-  }, []); // Empty dependency array means setApi is stable
+  }, []);
 
-  // Handle reset
-  // DEFINE handleReset BEFORE the useEffect that calls it
+  // Define the callback to receive physics updates from child components
+  const onPhysicsUpdate = useCallback(({ id, time, position }) => {
+    // Ensure the object ID exists in historyRef
+    if (!historyRef.current[id]) {
+      historyRef.current[id] = [];
+    }
+
+    // Add the new data point {t, x, y, z}
+    historyRef.current[id].push({
+      t: time,
+      x: position[0],
+      y: position[1],
+      z: position[2],
+    });
+
+    // Optional: Limit the history length to prevent excessive memory usage
+    if (historyRef.current[id].length > MAX_HISTORY_POINTS) {
+      historyRef.current[id].shift(); // Remove the oldest point
+    }
+
+    // You could potentially trigger an external update here if needed
+    // if (typeof onExternalPositionUpdate === 'function') {
+    //     onExternalPositionUpdate({ id, time, position });
+    // }
+
+  }, []); // No dependencies, as historyRef.current is a stable ref
+
   const handleReset = useCallback(() => {
-    // setIsPlaying(false); // Pause on reset
-    // setCurrentTime(0); // Reset time display
-
-    // Clear history storage
+    // Clear history when resetting
     historyRef.current = {};
-    // Clearing the state will trigger graph updates with empty data
-    setObjectHistory({});
+    setObjectHistory({}); // Also clear the state used by graphs
 
-    // Reset physics positions and velocities using stored APIs
     initialSceneObjects.current.forEach((initialConfig, index) => {
-      // Ensure we have a reliable ID for lookup
       const objectId = initialConfig.id !== undefined && initialConfig.id !== null && initialConfig.id !== ''
-        ? String(initialConfig.id) // Use provided ID if valid
-        : `${initialConfig.type?.toLowerCase() || 'obj'}-${index}`; // Generate fallback ID
-
-        const api = objectApis.current[objectId];
-        if (api) {
-        // Wake up the object if it might have been sleeping
+        ? String(initialConfig.id)
+        : `${initialConfig.type?.toLowerCase() || 'obj'}-${index}`;
+      const api = objectApis.current[objectId];
+      // console.log(initialConfig.position); // Original console.log from your code
+      if (api) {
         api.wakeUp();
-        // Reset position and velocity from initial config
         const initialPosition = initialConfig.position || [0, 0, 0];
         const initialVelocity = initialConfig.velocity || [0, 0, 0];
         const initialRotation = initialConfig.rotation || [0, 0, 0];
@@ -374,99 +320,64 @@ function Visualizer({ scene, onPositionUpdate: onExternalPositionUpdate, onAddGr
         api.velocity.set(...initialVelocity);
         api.rotation.set(...initialRotation);
         api.angularVelocity.set(...initialAngularVelocity);
-
-
-      } else {
-        // This might happen if the scene changes before all objects render/register their API
-        // console.warn(`API not found for object ID: ${objectId} during reset.`);
       }
     });
-    setIsPlaying(false); // Pause on reset
-    setCurrentTime(0); // Reset time display
-    // No need to explicitly add initial positions to history here.
-    // The 'isFirstReport' logic in the object components' useFrame,
-    // combined with the periodic objectHistory state update, will capture them
-    // on the very first frame(s) after the reset.
+    setIsPlaying(false);
+    setCurrentTime(0);
+  }, [objectApis, initialSceneObjects]);
 
-  }, [objectApis, initialSceneObjects]); // Depend on refs that store mutable data
+  // This callback was for external reporting but is not used internally for history
+  // const handlePositionReport = useCallback(({ id, x, y, z }) => {
+  //   // Intentionally doing nothing with the reported position here for the test
+  // }, []);
 
-  // This handler is called frequently from object components' useFrame
-  // It adds the reported position and the *current* time to the historyRef
-  const handlePositionReport = useCallback(({ id, x, y, z }) => {
-    // Add the current time when storing the position report
-    historyRef.current[id] = historyRef.current[id] || [];
-    // Add {x, y, z, t: currentTime} to the history array for this object ID
-    historyRef.current[id].push({ x, y, z, t: currentTime });
+   const handleAddGraph = useCallback((initialType) => {
+     const newGraphId = `graph-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
+     setOpenGraphs(prevGraphs => [
+       ...prevGraphs,
+       {
+         id: newGraphId,
+         initialType: initialType,
+       }
+     ]);
+     setShowGraphDropdown(false);
+     if (typeof onExternalAddGraph === 'function') {
+       onExternalAddGraph({ id: newGraphId, initialType: initialType });
+     }
+   }, [onExternalAddGraph]);
 
-    // Optional: also send to external listener if needed
-    if (typeof onExternalPositionUpdate === 'function') {
-      onExternalPositionUpdate({ id, x, y, z, t: currentTime });
-    }
-  }, [currentTime, onExternalPositionUpdate]); // Dependency on currentTime is crucial
 
-  // Function to add a new graph overlay
-  const handleAddGraph = useCallback((initialType) => {
-    const newGraphId = `graph-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`; // Unique ID
-    setOpenGraphs(prevGraphs => [
-      ...prevGraphs,
-      {
-        id: newGraphId,
-        initialType: initialType,
-        // Could add objectId filtering here later if needed
-      }
-    ]);
-    setShowGraphDropdown(false); // Close dropdown after selecting
-    // Optional: Notify external listener
-    if (typeof onExternalAddGraph === 'function') {
-      onExternalAddGraph({ id: newGraphId, initialType: initialType });
-    }
-  }, [onExternalAddGraph]); // Depends on the prop
-
-  // Function to close a graph overlay
   const handleCloseGraph = useCallback((graphIdToRemove) => {
     setOpenGraphs(prevGraphs => prevGraphs.filter(graph => graph.id !== graphIdToRemove));
-  }, []); // No dependencies
+  }, []);
 
-
-  // --- Effects (using useEffect) ---
-
-  // Store initial scene objects and trigger reset when the scene prop changes
-  // DEFINE handleReset BEFORE this effect
   useEffect(() => {
-    // Make a fresh deep copy when the scene prop changes
     initialSceneObjects.current = scene?.objects ? JSON.parse(JSON.stringify(scene.objects)) : [];
-    handleReset(); // Now handleReset is defined when this effect runs
-  }, [scene, handleReset]); // Dependencies: scene prop, and the handleReset function (which is stable due to useCallback)
+    handleReset();
+  }, [scene, handleReset]);
 
-
-  // Effect to periodically copy data from historyRef to objectHistory state for graphs
+  // Effect to periodically update the state (objectHistory) from the ref (historyRef)
+  // This is what triggers re-renders of the OverlayGraph components with new data points.
   useEffect(() => {
-    // Update state at a reasonable interval (~10 times per second)
     const updateStateInterval = setInterval(() => {
-      // Create a shallow copy of the historyRef data to trigger state update
-      setObjectHistory({ ...historyRef.current });
-    }, 100); // Interval in milliseconds
+      // Only update if there's data to prevent unnecessary re-renders
+      if (Object.keys(historyRef.current).length > 0) {
+        setObjectHistory({ ...historyRef.current });
+      }
+    }, 100); // Update state ~10 times per second (adjust as needed)
 
-    // Cleanup: Clear the interval when the component unmounts or dependencies change
-    return () => clearInterval(updateStateInterval);
+    return () => clearInterval(updateStateInterval); // Cleanup the interval
   }, []); // Empty dependency array means this runs once on mount and cleans up on unmount
 
-  // --- Event Handlers (can be simple functions if no dependencies or side effects requiring useCallback) ---
 
-  // Handle play/pause (doesn't depend on anything that changes across renders)
   const handlePlayPause = () => {
     setIsPlaying(prev => !prev);
   };
 
-  // --- Render Logic (JSX) ---
   return (
     <div className="visualizer">
-
-      {/* Control Bar at the Top */}
       <div className="controllbar">
         <button onClick={() => alert("2D/3D toggle not implemented yet")}>2D/3D</button>
-
-        {/* Graphs Button with Dropdown */}
         <div className="graphs-dropdown-container">
           <button
             className="graphs-button"
@@ -479,108 +390,66 @@ function Visualizer({ scene, onPositionUpdate: onExternalPositionUpdate, onAddGr
           </button>
           {showGraphDropdown && (
             <div className="graphs-dropdown-menu">
-              {/* Map over available plot types */}
               {[{ label: 'Y vs T', value: 'yvt' }, { label: 'X vs T', value: 'xvt' }, { label: 'Z vs T', value: 'zvt' }, { label: 'Y vs X', value: 'yvx' }].map(plotType => (
                 <button
                   key={plotType.value}
-                  onClick={() => handleAddGraph(plotType.value)}
+                  onClick={() => handleAddGraph(plotType.value)} // Calls handleAddGraph
                   className="dropdown-item"
                 >
                   {plotType.label}
                 </button>
               ))}
-              {/* Add more graph options here if needed */}
             </div>
           )}
         </div>
-        {/* Add other controls here */}
       </div>
 
-      {/* Main 3D Canvas Area */}
       <Canvas
-        style={{ height: '100%', width: '100%' }} // Adjust height for top and bottom bars (40px each)
+        style={{ height: '100%', width: '100%' }}
         shadows
-        gl={{ logLevel: 'errors' }} // Helps debug R3F/Three.js errors
+        gl={{ logLevel: 'errors' }}
         camera={{ position: [10, 5, 25], fov: 50, near: 0.1, far: 20000 }}
       >
-        {/* Components that need to be inside Canvas */}
-        {/* TimeUpdater updates state in the parent, must be inside Canvas to use useFrame */}
+        {/* Pass the global time state down */}
         <TimeUpdater isPlaying={isPlaying} setCurrentTime={setCurrentTime} />
         <ambientLight intensity={0.6} />
         <directionalLight
           position={[8, 10, 5]}
           intensity={1.0}
           castShadow
-          shadow-mapSize-width={1024} // Increase shadow map size for better resolution
+          shadow-mapSize-width={1024}
           shadow-mapSize-height={1024}
-          shadow-camera-far={50} // Set shadow camera far plane
-          shadow-camera-left={-10} // Set shadow camera bounds
+          shadow-camera-far={50}
+          shadow-camera-left={-10}
           shadow-camera-right={10}
           shadow-camera-top={10}
           shadow-camera-bottom={-10}
         />
         <pointLight position={[-10, -10, -10]} intensity={0.3} />
 
-        {/* Physics World */}
         <Physics
           gravity={gravity}
           defaultContactMaterial={defaultContactMaterial}
-          isPaused={!isPlaying} // Pause physics engine when not playing
+          isPaused={!isPlaying} // This prop might not work as expected with @react-three/cannon's default setup
         >
-          <GroundPlane /> {/* Infinite ground plane */}
-
-          {/* Render objects from the scene configuration */}
+          <GroundPlane />
           {objectsToRender.map((obj, index) => {
-            // Ensure object has a unique ID for React keys and API lookup
             const objectId = obj.id !== undefined && obj.id !== null && obj.id !== ''
-              ? String(obj.id) // Use provided ID if valid
-              : `${obj.type?.toLowerCase() || 'obj'}-${index}`; // Generate fallback ID
-
-            // Create a config object to pass to the child component, ensuring it has the computed ID
+              ? String(obj.id)
+              : `${obj.type?.toLowerCase() || 'obj'}-${index}`;
             const configWithId = { ...obj, id: objectId };
-
-            // Render object based on type
             switch (configWithId.type) {
               case "Sphere":
-                return (
-                  <Sphere
-                    key={objectId} // Use the unique id as the key
-                    config={configWithId} // Pass full config including id
-                    id={objectId} // Pass id explicitly
-                    onPositionUpdate={handlePositionReport} // Pass handler for position reports
-                    setApi={setApi} // Pass handler to receive API
-                  />
-                );
+                // Pass the onPhysicsUpdate callback to the Sphere component
+                return <Sphere key={objectId} config={configWithId} id={objectId} setApi={setApi} onPhysicsUpdate={onPhysicsUpdate} />;
               case "Box":
-                return (
-                  <Box
-                    key={objectId}
-                    config={configWithId}
-                    id={objectId}
-                    onPositionUpdate={handlePositionReport}
-                    setApi={setApi}
-                  />
-                );
+                 // If Boxes should also report position, pass onPhysicsUpdate here too
+                return <Box key={objectId} config={configWithId} id={objectId} setApi={setApi} />;
               case "Cylinder":
-                return (
-                  <Cylinder
-                    key={objectId}
-                    config={configWithId}
-                    id={objectId}
-                    onPositionUpdate={handlePositionReport}
-                    setApi={setApi}
-                  />
-                );
-              case "Plane": // Scene 'Plane' config is treated as a thin static Box
-                return (
-                  <SceneBox
-                    key={objectId}
-                    config={{ ...configWithId, mass: configWithId.mass ?? 0 }} // Ensure mass is explicitly set, default to 0 for static
-                    id={objectId}
-                    onPositionUpdate={handlePositionReport} // Reporting handled inside SceneBox
-                    setApi={setApi}
-                  />
-                );
+                 // If Cylinders should also report position, pass onPhysicsUpdate here too
+                return <Cylinder key={objectId} config={configWithId} id={objectId} setApi={setApi} />;
+              case "Plane": // Assuming SceneBox represents a static Plane or Box
+                return <SceneBox key={objectId} config={{ ...configWithId, mass: configWithId.mass ?? 0 }} id={objectId} setApi={setApi} />;
               default:
                 console.warn(`Unsupported object type: ${configWithId.type}`);
                 return null;
@@ -588,41 +457,39 @@ function Visualizer({ scene, onPositionUpdate: onExternalPositionUpdate, onAddGr
           })}
         </Physics>
         <OrbitControls />
-        <axesHelper args={[5]} /> {/* Shows X (red), Y (green), Z (blue) axes */}
+        <axesHelper args={[5]} />
         <SimpleGrid />
-        {/* FpsCounter updates state in the parent, must be inside Canvas to use useFrame */}
         <FpsCounter setFps={setFps} />
       </Canvas>
 
-      {/* Time and Playback Controls Bar at the Bottom */}
       <div className="timeControllbar">
         <button onClick={handlePlayPause} style={{ padding: "5px", marginLeft: "5px" }}>
-          <FontAwesomeIcon icon={isPlaying ? faPause : faPlay} /> {/* Toggle icon */}
+          <FontAwesomeIcon icon={isPlaying ? faPause : faPlay} />
         </button>
         <button onClick={handleReset} style={{ padding: "5px", marginRight: "5px" }}>
-          <FontAwesomeIcon icon={faRedo} /> {/* Reset icon */}
+          <FontAwesomeIcon icon={faRedo} />
         </button>
-        {/* Display Time */}
         <span className="time-display">Time: {currentTime.toFixed(3)}s</span>
       </div>
 
-      {/* FPS Counter */}
       <div className="fps-counter">
         FPS: {fps}
       </div>
 
-      {/* Render Overlay Graphs */}
-      {/* OverlayGraph is a standard React component, rendered outside the Canvas */}
+      {/* Render the OverlayGraph components based on the openGraphs state */}
+      {/* We pass objectHistory as the 'data' prop */}
       {openGraphs.map(graphConfig => (
-        <OverlayGraph
-          key={graphConfig.id} // Unique key for React list rendering
-          id={graphConfig.id} // Pass graph ID to component
-          initialType={graphConfig.initialType} // Pass initial plot type
-          data={objectHistory} // Pass the history state (which updates periodically)
-          onClose={handleCloseGraph} // Pass the close handler
+        <OverlayGraph // Assuming OverlayGraph component exists and handles plotting
+          key={graphConfig.id}
+          id={graphConfig.id}
+          initialType={graphConfig.initialType} // Pass initial graph type
+          data={objectHistory} // <-- Pass the accumulated history data
+          onClose={handleCloseGraph}
+          // OverlayGraph would need props to select which object and which axes to plot
+          // You would likely add dropdowns or controls within the OverlayGraph component itself
+          // or pass additional state from Visualizer to configure the graph.
         />
       ))}
-
     </div>
   );
 }

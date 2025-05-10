@@ -1,53 +1,86 @@
-/* === Add or Verify these CSS rules === */
+/* graph.css */
 
-/* Target the span *inside* the button for the icon */
-.overlay-graph-window-controls button span {
-  display: inline-block; /* Helps with alignment and sizing */
-  vertical-align: middle; /* Align icons better with button text line */
-  pointer-events: none; /* Prevent span from interfering with button click */
+.overlay {
+    background-color: rgba(0, 0, 0, 0.09);
+    border: 1px solid #cccccc5f;
+    border-radius: 5px;
+    box-shadow: 2px 2px 10px rgba(0, 0, 0, 0.2);
+    display: flex;
+    flex-direction: column;
+    overflow: hidden; /* Prevents content from spilling out during resize */
+    z-index: 10; /* Ensure overlays are above the canvas */
 }
 
-/* Define the content for each icon class */
-.icon-minimize::before {
-  content: "_";          /* The underscore character */
-  display: inline-block;
-  position: relative;
-  top: -5px;            /* Adjust vertical position */
-  font-weight: bold;
+.overlay-header {
+    padding: 5px 10px;
+    background-color: #00000000;
+    border-bottom: 1px solid #ffffff4b;
+    cursor: grab; /* Indicate it's draggable */
+    display: flex; /* Use flexbox for title and button */
+    justify-content: space-between; /* Space out title and button */
+    align-items: center; /* Vertically align items */
 }
 
-.icon-maximize::before {
-  content: "□";          /* Unicode square character */
-  display: inline-block;
-  font-size: 17px;       /* Adjust size */
-  line-height: 1;
-  position: relative;
-  top: 0px;             /* Adjust vertical position */
+.overlay-header:active {
+    cursor: grabbing;
 }
 
-.icon-restore::before {
-  content: "❐";          /* Unicode character for restore (two squares) */
-  display: inline-block;
-  font-size: 17px;       /* Adjust size */
-  line-height: 1;
-  position: relative;
-  top: 0px;             /* Adjust vertical position */
-  font-weight: normal;   /* Might look better non-bold */
+.overlay-title {
+    font-size: medium;
 }
 
-.icon-close::before {
-  content: "✕";          /* Unicode multiplication sign (X) */
-  display: inline-block;
-  font-weight: bold;
-  font-size: 15px;       /* Adjust size */
-  line-height: 1;
-  position: relative;
-  top: 0px;             /* Adjust vertical position */
-  color: inherit;       /* Inherit color from button */
+.overlay-close-button {
+    background: rgb(86, 86, 86);
+    border: none;
+    text-align: center;
+    color: #ffffff; /* Color for the close button */
+    cursor: pointer;
+    padding: 0px 5px;
 }
 
-/* Optional: Ensure buttons have enough space */
-.overlay-graph-window-controls button {
-  min-width: 24px; /* Give icons a bit more room */
-  text-align: center;
+.overlay-close-button:hover {
+    background-color: #c00; /* Color change on hover */
+}
+
+.overlay-content {
+    flex-grow: 1; /* Allow content area to take remaining space */
+    padding: 10px;
+    overflow-y: auto; /* Add scroll if content exceeds height */
+    display: flex; /* Use flex for internal layout */
+    flex-direction: column;
+}
+
+/* Specific styles for graph content */
+.overlay-content.graph-content {
+    padding: 10px; /* Add padding */
+}
+
+.graph-controls {
+    margin-bottom: 10px;
+    display: flex; /* Arrange controls horizontally */
+    align-items: center;
+    gap: 00px; /* Space between controls */
+    font-size: small;
+}
+
+.graph-controls label {
+    color: #ffffff; /* Slightly muted label color */
+}
+
+.graph-controls select {
+    padding: 3px;
+    font-size: 1em; /* Adjust size as needed */
+    border: 1px solid #ccc;
+    border-radius: 4px;
+    cursor: pointer;
+}
+
+.graph-plot-area {
+    flex-grow: 1;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    font-size: small;
+    color: #ffffff;
+    /* Add specific styles for your charting library's container */
 }
