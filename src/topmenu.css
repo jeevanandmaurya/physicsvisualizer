@@ -1,63 +1,80 @@
 .top-menu {
-    display: flex;
-    background-color: #1e1e1e;
-    color: white;
-    height: 36px;
-    font-size: 14px;
-    border-bottom: 1px solid #6c6c6c;
-    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-  }
-  #icon{
-    margin: 0;
-  }
+  display: flex;
+  background-color: #1e1e1e;
+  color: white;
+  height: 36px;
+  font-size: 14px;
+  border-bottom: 1px solid #6c6c6c;
+  font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+}
+
+#icon {
+  margin: 0;
+}
+
+.mini-logo {
+  display: block;
+}
+
+.full-logo {
+  display: none;
+}
+
+/* On wider screens, swap */
+@media (min-width: 768px) {
   .mini-logo {
-    display: block;
-  }
-  
-  .full-logo {
     display: none;
   }
-  
-  /* On wider screens, swap */
-  @media (min-width: 768px) {
-    .mini-logo {
-      display: none;
-    }
-  
-    .full-logo {
-      display: block;
-    }
-  }
 
-  .menu-item {
-    position: relative;
-    padding: 6px 8px;
-    cursor: pointer;
+  .full-logo {
+    display: block;
   }
-  
-  .menu-item:hover {
-    background: rgba(255, 255, 255, 0.1);
-    border-radius: 2px;
-  }
-  
-  .dropdown {
-    position: absolute;
-    top: 100%;
-    left: 0;
-    right:100%;
-    background: #2d2d2d;
-    border: 1px solid #444;
-    width: fit-content;
-    z-index: 999;
-  }
-  
-  .dropdown-item {
-    padding: 8px 12px;
-    cursor: pointer;
-    white-space: nowrap;
-  }
-  
-  .dropdown-item:hover {
-    background: #3a3d41;
-  }
-  
+}
+
+.menu-item {
+  position: relative;
+  padding: 6px 8px;
+  cursor: pointer;
+}
+
+.menu-item:hover {
+  background: rgba(255, 255, 255, 0.1);
+  border-radius: 2px;
+}
+
+.dropdown {
+  position: absolute;
+  top: 100%;
+  left: 0;
+  right: 100%;
+  background: #2d2d2d;
+  border: 1px solid #444;
+  width: fit-content;
+  z-index: 999;
+}
+
+.dropdown-item {
+  padding: 8px 12px;
+  cursor: pointer;
+  white-space: nowrap;
+}
+
+.dropdown-item:hover {
+  background: #3a3d41;
+}
+
+#fullscreen {
+  color: white;
+  padding: 6px 8px;
+  margin-left: auto;
+  margin-right: 16px;
+  border: none;
+
+  border-radius: 0%;
+  font-size: small;
+  cursor: pointer;
+}
+
+#fullscreen:hover {
+  background: rgba(255, 255, 255, 0.1);
+}

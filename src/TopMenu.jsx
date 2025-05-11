@@ -16,6 +16,7 @@ const baseMenuItems = {
 // Removed onAddGraph prop as it's no longer handled here
 function TopMenu() {
     const [openMenu, setOpenMenu] = useState(null);
+    const [isFullscreen, setIsFullscreen] = useState(false);
 
     const toggleMenu = (menu) => {
         setOpenMenu(openMenu === menu ? null : menu);
@@ -28,6 +29,38 @@ function TopMenu() {
         setOpenMenu(null); // Close menu after click
     };
 
+    //Fullscreen Mode for small devices
+    const toggleFullscreen = () => {
+    if (!document.fullscreenElement) {
+      if (document.documentElement.requestFullscreen) {
+        document.documentElement.requestFullscreen();
+        setIsFullscreen(true);
+      } else if (document.documentElement.mozRequestFullScreen) { // Firefox
+        document.documentElement.mozRequestFullScreen();
+        setIsFullscreen(true);
+      } else if (document.documentElement.webkitRequestFullscreen) { // Chrome, Safari & Opera
+        document.documentElement.webkitRequestFullscreen();
+        setIsFullscreen(true);
+      } else if (document.documentElement.msRequestFullscreen) { // IE/Edge
+        document.documentElement.msRequestFullscreen();
+        setIsFullscreen(true);
+      }
+    } else {
+      if (document.exitFullscreen) {
+        document.exitFullscreen();
+        setIsFullscreen(false);
+      } else if (document.mozCancelFullScreen) { // Firefox
+        document.mozCancelFullScreen();
+        setIsFullscreen(false);
+      } else if (document.webkitExitFullscreen) { // Chrome, Safari & Opera
+        document.webkitExitFullscreen();
+        setIsFullscreen(false);
+      } else if (document.msExitFullscreen) { // IE/Edge
+        document.msExitFullscreen();
+        setIsFullscreen(false);
+      }
+    }
+  };
 
     return (
         <div className="top-menu">
@@ -61,6 +94,9 @@ function TopMenu() {
                     )}
                 </div>
             ))}
+        <button id='fullscreen' onClick={toggleFullscreen}>
+          {isFullscreen ? 'Exit Fullscreen' : 'Go Fullscreen'}
+        </button>
         </div>
     );
 }

@@ -122,7 +122,7 @@ function App() {
               <PanelResizeHandle className="resize-handle" />
               <Panel
                 className="solution-section"
-                minSize={5}
+                minSize={15}
                 defaultSize={30}
                 order={2}
                 >
