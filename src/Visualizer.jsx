@@ -475,9 +475,7 @@ function Visualizer({ scene, onPositionUpdate: onExternalPositionUpdate, onAddGr
       <div className="fps-counter">
         FPS: {fps}
       </div>
-
-      {/* Render the OverlayGraph components based on the openGraphs state */}
-      {/* We pass objectHistory as the 'data' prop */}
+      
       {openGraphs.map(graphConfig => (
         <OverlayGraph // Assuming OverlayGraph component exists and handles plotting
           key={graphConfig.id}
@@ -485,9 +483,6 @@ function Visualizer({ scene, onPositionUpdate: onExternalPositionUpdate, onAddGr
           initialType={graphConfig.initialType} // Pass initial graph type
           data={objectHistory} // <-- Pass the accumulated history data
           onClose={handleCloseGraph}
-          // OverlayGraph would need props to select which object and which axes to plot
-          // You would likely add dropdowns or controls within the OverlayGraph component itself
-          // or pass additional state from Visualizer to configure the graph.
         />
       ))}
     </div>

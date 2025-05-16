@@ -1,10 +1,8 @@
 // OverlayGraph.js
 import React, { useState, useEffect, useMemo } from 'react';
 import { Rnd } from 'react-rnd';
-// You'll need to import your charting library here if you're using one
-// import { Line } from 'react-chartjs-2'; // Example using react-chartjs-2
-// import 'chart.js/auto'; // Import necessary Chart.js components
-import './graph.css'; // Assume you have corresponding CSS
+
+import './graph.css';
 
 // Default size and position for the graph overlay
 const defaultOverlaySize = { width: 300, height: 200 }; // Make it a bit larger for a graph

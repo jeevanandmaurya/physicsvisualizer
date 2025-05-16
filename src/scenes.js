@@ -54,21 +54,308 @@ export const mechanicsExamples = [
     gravity: [0, -9.81, 0],
   },
   {
+      "id": "domino_chain_4",
+      "name": "Domino Chain Along Z-Axis - 20 Dominoes",
+      "description": "A chain of twenty dominoes toppling over along the Z-axis. First domino has a larger initial rotation.",
+      "objects": [
+        {
+          "id": "domino-1",
+          "type": "Box",
+          "mass": 10,
+          "position": [
+            0,
+            1.2,
+            0
+          ],
+          "velocity": [
+            0,
+            0,
+            0
+          ],
+          "rotation": [
+            0.5,
+            0,
+            0
+          ],
+          "color": "#FF0000",
+          "restitution": 0.5,
+          "dimensions": [
+            1,
+            2,
+            0.2
+          ]
+        },
+        {
+          "id": "domino-2",
+          "type": "Box",
+          "mass": 10,
+          "position": [
+            0,
+            1.2,
+            1.2
+          ],
+          "velocity": [
+            0,
+            0,
+            0
+          ],
+          "rotation": [
+            0,
+            0,
+            0
+          ],
+          "color": "#00FF00",
+          "restitution": 0.5,
+          "dimensions": [
+            1,
+            2,
+            0.2
+          ]
+        },
+        {
+          "id": "domino-3",
+          "type": "Box",
+          "mass": 10,
+          "position": [
+            0,
+            1.2,
+            2.4
+          ],
+          "velocity": [
+            0,
+            0,
+            0
+          ],
+          "rotation": [
+            0,
+            0,
+            0
+          ],
+          "color": "#0000FF",
+          "restitution": 0.5,
+          "dimensions": [
+            1,
+            2,
+            0.2
+          ]
+        },
+        {
+          "id": "domino-4",
+          "type": "Box",
+          "mass": 10,
+          "position": [
+            0,
+            1.2,
+            3.6
+          ],
+          "velocity": [
+            0,
+            0,
+            0
+          ],
+          "rotation": [
+            0,
+            0,
+            0
+          ],
+          "color": "#FFFF00",
+          "restitution": 0.5,
+          "dimensions": [
+            1,
+            2,
+            0.2
+          ]
+        },
+        {
+          "id": "domino-5",
+          "type": "Box",
+          "mass": 10,
+          "position": [
+            0,
+            1.2,
+            4.8
+          ],
+          "velocity": [
+            0,
+            0,
+            0
+          ],
+          "rotation": [
+            0,
+            0,
+            0
+          ],
+          "color": "#FF00FF",
+          "restitution": 0.5,
+          "dimensions": [
+            1,
+            2,
+            0.2
+          ]
+        },
+        {
+          "id": "domino-6",
+          "type": "Box",
+          "mass": 10,
+          "position": [
+            0,
+            1.2,
+            6
+          ],
+          "velocity": [
+            0,
+            0,
+            0
+          ],
+          "rotation": [
+            0,
+            0,
+            0
+          ],
+          "color": "#800000",
+          "restitution": 0.5,
+          "dimensions": [
+            1,
+            2,
+            0.2
+          ]
+        },
+        {
+          "id": "domino-7",
+          "type": "Box",
+          "mass": 10,
+          "position": [
+            0,
+            1.2,
+            7.2
+          ],
+          "velocity": [
+            0,
+            0,
+            0
+          ],
+          "rotation": [
+            0,
+            0,
+            0
+          ],
+          "color": "#008000",
+          "restitution": 0.5,
+          "dimensions": [
+            1,
+            2,
+            0.2
+          ]
+        },
+        {
+          "id": "domino-8",
+          "type": "Box",
+          "mass": 10,
+          "position": [
+            0,
+            1.2,
+            8.4
+          ],
+          "velocity": [
+            0,
+            0,
+            0
+          ],
+          "rotation": [
+            0,
+            0,
+            0
+          ],
+          "color": "#000080",
+          "restitution": 0.5,
+          "dimensions": [
+            1,
+            2,
+            0.2
+          ]
+        },
+        {
+          "id": "domino-9",
+          "type": "Box",
+          "mass":10,
+          "position": [
+            0,
+            1.2,
+            9.6
+          ],
+          "velocity": [
+            0,
+            0,
+            0
+          ],
+          "rotation": [
+            0,
+            0,
+            0
+          ],
+          "color": "#808000",
+          "restitution": 0.5,
+          "dimensions": [
+            1,
+            2,
+            0.2
+          ]
+        },
+        {
+          "id": "domino-10",
+          "type": "Box",
+          "mass": 10,
+          "position": [
+            0,
+            1.2,
+            10.8
+          ],
+          "velocity": [
+            0,
+            0,
+            0
+          ],
+          "rotation": [
+            0,
+            0,
+            0
+          ],
+          "color": "#800080",
+          "restitution": 0.5,
+          "dimensions": [
+            1,
+            2,
+            0.2
+          ]
+        }
+      ],
+      "gravity": [
+        0,
+        -9.81,
+        0
+      ],
+      "contactMaterial": {
+        "friction": 0.5,
+        "restitution": 0.7
+      }
+
+  },
+  {
     "id": "circular-collision-10-balls Gemini 2.5 ",
     "name": "10 Balls Circular Collision Gemini 2.5",
     "description": "10 balls arranged in a circle, moving towards the center",
     "objects": [
-      { "id": "ball-0", "type": "Sphere", "mass": 10, "radius": 0.5, "position": [5.000, 1, 0.000], "velocity": [-2.000, 10, 0.000], "rotation": [0, 0, 0], "color": "#ff6347", "restitution": 0.7 },
-      { "id": "ball-1", "type": "Sphere", "mass": 10, "radius": 0.5, "position": [4.045, 1, 2.939], "velocity": [-1.618, 10, -1.176], "rotation": [0, 0, 0], "color": "#ff6347", "restitution": 0.7 },
-      { "id": "ball-2", "type": "Sphere", "mass": 10, "radius": 0.5, "position": [1.545, 1, 4.755], "velocity": [-0.618, 10, -1.902], "rotation": [0, 0, 0], "color": "#ff6347", "restitution": 0.7 },
-      { "id": "ball-3", "type": "Sphere", "mass": 10, "radius": 0.5, "position": [-1.545, 1, 4.755], "velocity": [0.618, 10, -1.902], "rotation": [0, 0, 0], "color": "#ff6347", "restitution": 0.7 },
-      { "id": "ball-4", "type": "Sphere", "mass": 10, "radius": 0.5, "position": [-4.045, 1, 2.939], "velocity": [1.618, 10, -1.176], "rotation": [0, 0, 0], "color": "#ff6347", "restitution": 0.7 },
-      { "id": "ball-5", "type": "Sphere", "mass": 10, "radius": 0.5, "position": [-5.000, 1, 0.000], "velocity": [2.000, 10, 0.000], "rotation": [0, 0, 0], "color": "#ff6347", "restitution": 0.7 },
-      { "id": "ball-6", "type": "Sphere", "mass": 10, "radius": 0.5, "position": [-4.045, 1, -2.939], "velocity": [1.618, 10, 1.176], "rotation": [0, 0, 0], "color": "#ff6347", "restitution": 0.7 },
-      { "id": "ball-7", "type": "Sphere", "mass": 10, "radius": 0.5, "position": [-1.545, 1, -4.755], "velocity": [0.618, 10, 1.902], "rotation": [0, 0, 0], "color": "#ff6347", "restitution": 0.7 },
-      { "id": "ball-8", "type": "Sphere", "mass": 10, "radius": 0.5, "position": [1.545, 1, -4.755], "velocity": [-0.618, 10, 1.902], "rotation": [0, 0, 0], "color": "#ff6347", "restitution": 0.7 },
-      { "id": "ball-9", "type": "Sphere", "mass": 10, "radius": 0.5, "position": [4.045, 1, -2.939], "velocity": [-1.618, 10, 1.176], "rotation": [0, 0, 0], "color": "#ff6347", "restitution": 0.7 }],
-    "gravity": [0, -9.81, 0], "contactMaterial": { "friction": 0.5, "restitution": 0.7 }
+      { "id": "ball-0", "type": "Sphere", "mass": 10, "radius": 0.5, "position": [5.000, 1, 0.000], "velocity": [-2.000, 10, 0.000], "rotation": [0, 0, 0], "color": "#ff6347", "restitution": 1 },
+      { "id": "ball-1", "type": "Sphere", "mass": 10, "radius": 0.5, "position": [4.045, 1, 2.939], "velocity": [-1.618, 10, -1.176], "rotation": [0, 0, 0], "color": "#ff6347", "restitution": 1 },
+      { "id": "ball-2", "type": "Sphere", "mass": 10, "radius": 0.5, "position": [1.545, 1, 4.755], "velocity": [-0.618, 10, -1.902], "rotation": [0, 0, 0], "color": "#ff6347", "restitution": 1 },
+      { "id": "ball-3", "type": "Sphere", "mass": 10, "radius": 0.5, "position": [-1.545, 1, 4.755], "velocity": [0.618, 10, -1.902], "rotation": [0, 0, 0], "color": "#ff6347", "restitution": 1 },
+      { "id": "ball-4", "type": "Sphere", "mass": 10, "radius": 0.5, "position": [-4.045, 1, 2.939], "velocity": [1.618, 10, -1.176], "rotation": [0, 0, 0], "color": "#ff6347", "restitution": 1 },
+      { "id": "ball-5", "type": "Sphere", "mass": 10, "radius": 0.5, "position": [-5.000, 1, 0.000], "velocity": [2.000, 10, 0.000], "rotation": [0, 0, 0], "color": "#ff6347", "restitution": 1 },
+      { "id": "ball-6", "type": "Sphere", "mass": 10, "radius": 0.5, "position": [-4.045, 1, -2.939], "velocity": [1.618, 10, 1.176], "rotation": [0, 0, 0], "color": "#ff6347", "restitution": 1 },
+      { "id": "ball-7", "type": "Sphere", "mass": 10, "radius": 0.5, "position": [-1.545, 1, -4.755], "velocity": [0.618, 10, 1.902], "rotation": [0, 0, 0], "color": "#ff6347", "restitution": 1 },
+      { "id": "ball-8", "type": "Sphere", "mass": 10, "radius": 0.5, "position": [1.545, 1, -4.755], "velocity": [-0.618, 10, 1.902], "rotation": [0, 0, 0], "color": "#ff6347", "restitution": 1 },
+      { "id": "ball-9", "type": "Sphere", "mass": 10, "radius": 0.5, "position": [4.045, 1, -2.939], "velocity": [-1.618, 10, 1.176], "rotation": [0, 0, 0], "color": "#ff6347", "restitution": 1 }],
+    "gravity": [0, -9.81, 0], "contactMaterial": { "friction": 0, "restitution": 1 }
   },
   {
     id: "projectile-motion",

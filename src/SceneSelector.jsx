@@ -26,29 +26,47 @@ function SceneSelector({ currentScene, onSceneChange, conversationHistory }) {
     setError(null);
     try {
       const conversationText = conversationHistory.map(msg => `${msg.role}: ${msg.content}`).join('\n');
-      const prompt = `Extract a physics scene from this conversation:\n${conversationText}\nConvert it into a plain JSON object matching the format below. Supported object types are "Sphere", "Box", "Cylinder", and "Box" (used for planes or platforms). Required fields for each type are listed; optional fields can be omitted if not specified. Use numeric values for all fields (e.g., 0.78539816339 for 45 degrees, 1.57079632679 for 90 degrees). If the conversation lacks details, use reasonable defaults (e.g., mass 1 for dynamic objects, 0 for static platforms, position [0, 0, 0]).
+      const prompt = `Extract a physics scene from this conversation:\n${conversationText}\nConvert it into a plain JSON object matching the format below. Supported object types are "Sphere", "Box", and "Cylinder". Note: "Box" can also be used for planes or platforms. Required fields for each type are listed; optional fields can be omitted if not specified (they will then inherit from scene-level defaults or engine defaults). Use numeric values for all fields (e.g., 0.78539816339 for 45 degrees in radians). If the conversation lacks specific details for some properties, use reasonable defaults as outlined.
+
+**Crucial Positioning and Sizing Guidelines:**
+* **Avoid Initial Overlap:** When determining the "position" of each object, meticulously consider its "radius" (for Spheres and Cylinders) or "dimensions" (for Boxes) in conjunction with the positions and sizes of other objects. The goal is to ensure no objects are intersecting or overlapping in their initial state unless explicitly described as such (e.g., an object embedded in another).
+* **Relative Placement Logic:**
+    * **Direct Stacking:** If the conversation implies objects are **stacked directly on top of one another** (e.g., "a box on top of another box," "a tower of three cubes," "cube A supports cube B"), their initial positions MUST reflect this. The bottom surface of an upper object should precisely contact (or be a negligible, visually imperceptible distance above) the top surface of the lower object. Calculate positions based on their full dimensions/radii to achieve this precise initial contact.
+    * **General Vertical Arrangement (to fall and stack):** If objects are described more generally as "above" each other or intended to fall and then stack (e.g., "three boxes arranged vertically, starting separated"), then initial vertical separation is appropriate.
+    * **On Surfaces:** For objects **resting on a platform or ground**, ensure their lowest point is at or slightly above the supporting surface's top. Calculate this based on the object's dimensions and the platform's position and dimensions.
+    * **Adjacent Objects:** For objects described as "next to each other" or "side-by-side," position them so their bounding boxes are adjacent without overlap, unless direct contact is specified. Introduce a small default gap if no explicit contact is mentioned.
+* **Ground Plane Consideration:** If a ground or platform is defined, ensure other dynamic objects are positioned above it and not intersecting it, unless the description specifies embedding.
 
 **Important:** Return the JSON object alone, without any additional text, comments, or Markdown (e.g., no json markers, no explanations). The response must be parseable directly as JSON by a program. Do not wrap it in code blocks or add formatting.
 
 Example of expected output:
-{"id":"example","name":"Bouncing Ball and Ramp","description":"A ball bounces on a sloped platform","objects":[{"id":"ball-1","type":"Sphere","mass":2,"radius":0.5,"position":[0,5,0],"velocity":[0,0,0],"rotation":[0,0,0],"color":"#ff6347","restitution":0.7},{"id":"ramp-1","type":"Box","mass":0,"dimensions":[5,0.2,5],"position":[0,0,0],"rotation":[0.52359877559,0,0],"color":"#88aa88","restitution":0.3},{"id":"cyl-1","type":"Cylinder","mass":1,"radius":0.3,"height":1.5,"position":[2,3,0],"velocity":[0,0,0],"rotation":[0,0,0],"color":"#4682b4","restitution":0.5}],"gravity":[0,-9.81,0],"contactMaterial":{"friction":0.5,"restitution":0.7}}
+{"id":"example","name":"Bouncing Ball and Ramp","description":"A ball bounces on a sloped platform","objects":[{"id":"ball-1","type":"Sphere","mass":2,"radius":0.5,"position":[0,5,0],"velocity":[0,0,0],"rotation":[0,0,0],"color":"#ff6347","restitution":0.7,"friction":0.4},{"id":"ramp-1","type":"Box","mass":0,"dimensions":[5,0.2,5],"position":[0,0,0],"rotation":[0.52359877559,0,0],"color":"#88aa88","restitution":0.3,"friction":0.6},{"id":"cyl-1","type":"Cylinder","mass":1,"radius":0.3,"height":1.5,"position":[2,3,0],"velocity":[0,0,0],"rotation":[0,0,0],"color":"#4682b4","restitution":0.5,"friction":0.5}],"gravity":[0,-9.81,0],"contactMaterial":{"friction":0.5,"restitution":0.7}}
 
 Required fields by type:
 - "Sphere": "id", "type", "mass", "radius", "position"
 - "Box": "id", "type", "mass", "dimensions" (array of 3 numbers: width, height, depth), "position"
 - "Cylinder": "id", "type", "mass", "radius", "height", "position"
-Optional fields for all types: "velocity" (default [0, 0, 0]), "rotation" (default [0, 0, 0]), "color" (default "#ff6347"), "restitution" (default 0.7, range 0 to 1).
+
+Optional fields for all types (if omitted, values from scene 'contactMaterial' are used for friction/restitution, or engine defaults for others):
+- "velocity": array of 3 numbers (default [0, 0, 0])
+- "rotation": array of 3 numbers representing Euler angles in radians (default [0, 0, 0])
+- "color": string (hex or name, default "#ff6347" or a varied color if multiple objects)
+- "restitution": number (range 0 to 1; overrides scene 'contactMaterial.restitution')
+- "friction": number (range 0 to 1+; overrides scene 'contactMaterial.friction')
 
 Scene-level fields:
 - "id": unique string (default to a timestamp if missing)
-- "name": string (default "Extracted Scene")
-- "description": string (default "Scene from conversation")
+- "name": string-based on scene name (default "Extracted Scene")
+- "description": string -based on scene details (default "Scene from conversation")
 - "objects": array of objects (empty array if none found)
 - "gravity": array of 3 numbers (default [0, -9.81, 0])
-- "contactMaterial": object with "friction" (default 0.5) and "restitution" (default 0.7)
+- "contactMaterial": object that **must be present** and defines default physical properties for contacts in the scene.
+    - "friction": number (default 0.5)
+    - "restitution": number (default 0.7)
 
 If no physics scene is identifiable, return this exact JSON object:
 {"id":"empty","name":"No Scene Found","description":"No physics scene in conversation","objects":[],"gravity":[0,-9.81,0],"contactMaterial":{"friction":0.5,"restitution":0.7}}
+
 `;
 
       const response = await fetch(
@@ -112,6 +130,7 @@ If no physics scene is identifiable, return this exact JSON object:
       });
 
       const newExtractedScenes = [extractedScene, ...extractedScenes];
+      console.log("Generated Scene JSON:", JSON.stringify(extractedScene, null, 2));
       setScenes([...newExtractedScenes, ...mechanicsExamples]);
     } catch (error) {
       setError(`Scene extraction failed: ${error.message}`);
