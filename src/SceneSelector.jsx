@@ -26,51 +26,101 @@ function SceneSelector({ currentScene, onSceneChange, conversationHistory }) {
     setError(null);
     try {
       const conversationText = conversationHistory.map(msg => `${msg.role}: ${msg.content}`).join('\n');
-      const prompt = `Extract a physics scene from this conversation:\n${conversationText}\nConvert it into a plain JSON object matching the format below. Supported object types are "Sphere", "Box", and "Cylinder". Note: "Box" can also be used for planes or platforms. Required fields for each type are listed; optional fields can be omitted if not specified (they will then inherit from scene-level defaults or engine defaults). Use numeric values for all fields (e.g., 0.78539816339 for 45 degrees in radians). If the conversation lacks specific details for some properties, use reasonable defaults as outlined.
+      const prompt = `Extract a physics scene from this conversation with enhanced gravitational physics support:\n${conversationText}\n
+      
+Convert it into a plain JSON object matching the format below. This system now supports realistic gravitational attraction between masses in addition to standard physics.
 
-**Crucial Positioning and Sizing Guidelines:**
-* **Avoid Initial Overlap:** When determining the "position" of each object, meticulously consider its "radius" (for Spheres and Cylinders) or "dimensions" (for Boxes) in conjunction with the positions and sizes of other objects. The goal is to ensure no objects are intersecting or overlapping in their initial state unless explicitly described as such (e.g., an object embedded in another).
-* **Relative Placement Logic:**
-    * **Direct Stacking:** If the conversation implies objects are **stacked directly on top of one another** (e.g., "a box on top of another box," "a tower of three cubes," "cube A supports cube B"), their initial positions MUST reflect this. The bottom surface of an upper object should precisely contact (or be a negligible, visually imperceptible distance above) the top surface of the lower object. Calculate positions based on their full dimensions/radii to achieve this precise initial contact.
-    * **General Vertical Arrangement (to fall and stack):** If objects are described more generally as "above" each other or intended to fall and then stack (e.g., "three boxes arranged vertically, starting separated"), then initial vertical separation is appropriate.
-    * **On Surfaces:** For objects **resting on a platform or ground**, ensure their lowest point is at or slightly above the supporting surface's top. Calculate this based on the object's dimensions and the platform's position and dimensions.
-    * **Adjacent Objects:** For objects described as "next to each other" or "side-by-side," position them so their bounding boxes are adjacent without overlap, unless direct contact is specified. Introduce a small default gap if no explicit contact is mentioned.
-* **Ground Plane Consideration:** If a ground or platform is defined, ensure other dynamic objects are positioned above it and not intersecting it, unless the description specifies embedding.
+**Enhanced Gravitational Physics Support:**
+The system now includes gravitational attraction between all objects with mass > 0. Objects with mass = 0 (like static platforms) do not participate in gravitational attraction but can still attract others if they have gravitationalMass specified.
 
-**Important:** Return the JSON object alone, without any additional text, comments, or Markdown (e.g., no json markers, no explanations). The response must be parseable directly as JSON by a program. Do not wrap it in code blocks or add formatting.
+**Object Types and Fields:**
+Supported object types are "Sphere", "Box", and "Cylinder". Note: "Box" can also be used for planes or platforms.
 
-Example of expected output:
-{"id":"example","name":"Bouncing Ball and Ramp","description":"A ball bounces on a sloped platform","objects":[{"id":"ball-1","type":"Sphere","mass":2,"radius":0.5,"position":[0,5,0],"velocity":[0,0,0],"rotation":[0,0,0],"color":"#ff6347","restitution":0.7,"friction":0.4},{"id":"ramp-1","type":"Box","mass":0,"dimensions":[5,0.2,5],"position":[0,0,0],"rotation":[0.52359877559,0,0],"color":"#88aa88","restitution":0.3,"friction":0.6},{"id":"cyl-1","type":"Cylinder","mass":1,"radius":0.3,"height":1.5,"position":[2,3,0],"velocity":[0,0,0],"rotation":[0,0,0],"color":"#4682b4","restitution":0.5,"friction":0.5}],"gravity":[0,-9.81,0],"contactMaterial":{"friction":0.5,"restitution":0.7}}
-
-Required fields by type:
+**Required fields by type:**
 - "Sphere": "id", "type", "mass", "radius", "position"
 - "Box": "id", "type", "mass", "dimensions" (array of 3 numbers: width, height, depth), "position"
 - "Cylinder": "id", "type", "mass", "radius", "height", "position"
 
-Optional fields for all types (if omitted, values from scene 'contactMaterial' are used for friction/restitution, or engine defaults for others):
-- "velocity": array of 3 numbers (default [0, 0, 0])
+**Optional fields for all types (enhanced with gravitational physics):**
+- "velocity": array of 3 numbers (default [0, 0, 0]) - Critical for orbital mechanics
 - "rotation": array of 3 numbers representing Euler angles in radians (default [0, 0, 0])
-- "color": string (hex or name, default "#ff6347" or a varied color if multiple objects)
+- "angularVelocity": array of 3 numbers for rotational motion (default [0, 0, 0])
+- "color": string (hex or name, default varies)
 - "restitution": number (range 0 to 1; overrides scene 'contactMaterial.restitution')
 - "friction": number (range 0 to 1+; overrides scene 'contactMaterial.friction')
+- "gravitationalMass": number (defaults to 'mass' if not specified) - Allows different gravitational vs inertial mass
+- "isStatic": boolean (default false) - If true, object doesn't move but still attracts others gravitationally
 
-Scene-level fields:
+**Enhanced Scene-level fields:**
 - "id": unique string (default to a timestamp if missing)
 - "name": string-based on scene name (default "Extracted Scene")
-- "description": string -based on scene details (default "Scene from conversation")
+- "description": string-based on scene details (default "Scene from conversation")
 - "objects": array of objects (empty array if none found)
-- "gravity": array of 3 numbers (default [0, -9.81, 0])
-- "contactMaterial": object that **must be present** and defines default physical properties for contacts in the scene.
+- "gravity": array of 3 numbers (default [0, -9.81, 0] for Earth gravity, [0, 0, 0] for space/zero-gravity scenarios)
+- "hasGround": boolean (true for terrestrial scenes with ground, false for space/zero-gravity scenarios)
+- "contactMaterial": object that **must be present** defining default physical properties
     - "friction": number (default 0.5)
     - "restitution": number (default 0.7)
+- "gravitationalPhysics": object defining gravitational simulation parameters
+    - "enabled": boolean (default true) - Enable/disable gravitational attraction between masses
+    - "gravitationalConstant": number (default 6.67430e-11) - Can be scaled for dramatic effect
+    - "minDistance": number (default 1e-6) - Minimum distance for gravitational calculations
+    - "softening": number (default 0) - Softening parameter for N-body simulations
+- "simulationScale": string ("terrestrial", "solar_system", "galactic") - Helps with appropriate scaling
 
-If no physics scene is identifiable, return this exact JSON object:
-{"id":"empty","name":"No Scene Found","description":"No physics scene in conversation","objects":[],"gravity":[0,-9.81,0],"contactMaterial":{"friction":0.5,"restitution":0.7}}
+**Crucial Positioning and Sizing Guidelines:**
+* **Avoid Initial Overlap:** When determining the "position" of each object, meticulously consider its "radius" (for Spheres and Cylinders) or "dimensions" (for Boxes) in conjunction with the positions and sizes of other objects. The goal is to ensure no objects are intersecting or overlapping in their initial state unless explicitly described as such.
+* **Orbital Positioning:** For orbital scenarios, position objects at appropriate distances with calculated orbital velocities.
+* **Multi-body Systems:** Consider gravitational interactions between all massive objects when positioning.
 
-`;
+**Ground Plane Control (Enhanced):**
+* **hasGround:** Set to true for scenes that require a ground plane (terrestrial physics, objects falling/bouncing on ground). Set to false for space scenes, celestial body simulations, or scenarios where objects should float freely without a ground reference.
+* **Examples where hasGround should be false and gravitationalPhysics.enabled should be true:** 
+  - Space simulations, satellite orbits, planetary motion
+  - Zero-gravity environments with gravitational attraction
+  - Solar system simulations, moon-earth systems
+  - Binary star systems, gravitational slingshot scenarios
+* **Examples where hasGround should be true and gravitationalPhysics can be enabled or disabled:**
+  - Balls bouncing with slight gravitational attraction between them
+  - Projectile motion with gravitational effects
+  - Pendulum systems with gravitational coupling
+
+**Scenario Type Detection:**
+Based on the conversation content, determine the appropriate scenario type:
+
+1. **Terrestrial Scenarios (Small gravitational effects):**
+   - Use gravitationalConstant: 6.67430e-11 (realistic)
+   - simulationScale: "terrestrial"
+   - hasGround: true typically
+   - gravity: [0, -9.81, 0]
+
+2. **Astronomical Scenarios (Enhanced gravitational effects):**
+   - Use gravitationalConstant: 6.67430e-11 or scaled version
+   - simulationScale: "solar_system" or "galactic"
+   - hasGround: false typically
+   - gravity: [0, 0, 0] (gravitational forces dominate)
+   - Use realistic masses and distances for celestial bodies
+
+3. **Abstract/Educational Scenarios:**
+   - gravitationalConstant can be scaled for visualization
+   - simulationScale: "terrestrial" typically
+   - Adjust based on educational purpose
+
+**Important:** Return the JSON object alone, without any additional text, comments, or Markdown. The response must be parseable directly as JSON by a program.
+
+**Example outputs:**
+
+Terrestrial with gravitational attraction:
+{"id":"terrestrial_gravity","name":"Objects with Gravitational Attraction","description":"Small objects attracting each other","objects":[{"id":"sphere1","type":"Sphere","mass":1000,"radius":0.5,"position":[-2,2,0],"velocity":[0.1,0,0],"color":"#ff6347"},{"id":"sphere2","type":"Sphere","mass":1500,"radius":0.6,"position":[2,2,0],"velocity":[-0.1,0,0],"color":"#4682b4"}],"gravity":[0,-9.81,0],"hasGround":true,"contactMaterial":{"friction":0.5,"restitution":0.7},"gravitationalPhysics":{"enabled":true,"gravitationalConstant":6.67430e-11,"minDistance":1e-6,"softening":0},"simulationScale":"terrestrial"}
+
+Orbital system:
+{"id":"orbital_system","name":"Planet-Moon System","description":"Orbital mechanics demonstration","objects":[{"id":"planet","type":"Sphere","mass":5.972e24,"radius":6371000,"position":[0,0,0],"velocity":[0,0,0],"color":"#4169e1","isStatic":true},{"id":"moon","type":"Sphere","mass":7.342e22,"radius":1737000,"position":[384400000,0,0],"velocity":[0,1022,0],"color":"#c0c0c0"}],"gravity":[0,0,0],"hasGround":false,"contactMaterial":{"friction":0.1,"restitution":0.9},"gravitationalPhysics":{"enabled":true,"gravitationalConstant":6.67430e-11,"minDistance":1000,"softening":0},"simulationScale":"solar_system"}
+
+If no physics scene is identifiable, return:
+{"id":"empty","name":"No Scene Found","description":"No physics scene in conversation","objects":[],"gravity":[0,-9.81,0],"hasGround":true,"contactMaterial":{"friction":0.5,"restitution":0.7},"gravitationalPhysics":{"enabled":false,"gravitationalConstant":6.67430e-11,"minDistance":1e-6,"softening":0},"simulationScale":"terrestrial"}`;
 
       const response = await fetch(
-        `https://generativelanguage.googleapis.com/v1/models/gemini-2.0-flash:generateContent?key=${GEMINI_API_KEY}`,
+        `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-preview-05-20:generateContent?key=${GEMINI_API_KEY}`,
         {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
@@ -91,13 +141,25 @@ If no physics scene is identifiable, return this exact JSON object:
         extractedScene = JSON.parse(cleanedJson);
       }
 
+      // Enhanced normalization with gravitational physics support
       extractedScene.id = extractedScene.id || `extracted-${Date.now()}`;
       extractedScene.name = extractedScene.name || `Extracted Scene ${extractedScenes.length + 1}`;
       extractedScene.description = extractedScene.description || 'Scene from conversation';
       extractedScene.objects = Array.isArray(extractedScene.objects) ? extractedScene.objects : [];
       extractedScene.gravity = Array.isArray(extractedScene.gravity) && extractedScene.gravity.length === 3 ? extractedScene.gravity : [0, -9.81, 0];
       extractedScene.contactMaterial = extractedScene.contactMaterial || { friction: 0.5, restitution: 0.7 };
+      
+      // Enhanced gravitational physics normalization
+      extractedScene.gravitationalPhysics = extractedScene.gravitationalPhysics || {};
+      extractedScene.gravitationalPhysics.enabled = extractedScene.gravitationalPhysics.enabled !== false;
+      extractedScene.gravitationalPhysics.gravitationalConstant = extractedScene.gravitationalPhysics.gravitationalConstant || 6.67430e-11;
+      extractedScene.gravitationalPhysics.minDistance = extractedScene.gravitationalPhysics.minDistance || 1e-6;
+      extractedScene.gravitationalPhysics.softening = extractedScene.gravitationalPhysics.softening || 0;
+      
+      extractedScene.simulationScale = extractedScene.simulationScale || 'terrestrial';
+      extractedScene.hasGround = extractedScene.hasGround !== false; // Default to true unless explicitly false
 
+      // Enhanced object normalization with gravitational physics fields
       extractedScene.objects = extractedScene.objects.map(obj => {
         const normalizedObj = {
           id: obj.id || `obj-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
@@ -109,6 +171,20 @@ If no physics scene is identifiable, return this exact JSON object:
           color: typeof obj.color === 'string' && obj.color.match(/^#([A-Fa-f0-9]{6}|[A-Fa-f0-9]{3})$/) ? obj.color : '#ff6347',
           restitution: typeof obj.restitution === 'number' && obj.restitution >= 0 && obj.restitution <= 1 ? obj.restitution : 0.7,
         };
+
+        // Enhanced gravitational physics fields
+        if (Array.isArray(obj.angularVelocity) && obj.angularVelocity.length === 3) {
+          normalizedObj.angularVelocity = obj.angularVelocity;
+        }
+        if (typeof obj.gravitationalMass === 'number') {
+          normalizedObj.gravitationalMass = obj.gravitationalMass;
+        }
+        if (typeof obj.isStatic === 'boolean') {
+          normalizedObj.isStatic = obj.isStatic;
+        }
+        if (typeof obj.friction === 'number') {
+          normalizedObj.friction = obj.friction;
+        }
 
         switch (normalizedObj.type) {
           case 'Sphere':
@@ -130,7 +206,7 @@ If no physics scene is identifiable, return this exact JSON object:
       });
 
       const newExtractedScenes = [extractedScene, ...extractedScenes];
-      console.log("Generated Scene JSON:", JSON.stringify(extractedScene, null, 2));
+      console.log("Generated Scene JSON with Gravitational Physics:", JSON.stringify(extractedScene, null, 2));
       setScenes([...newExtractedScenes, ...mechanicsExamples]);
     } catch (error) {
       setError(`Scene extraction failed: ${error.message}`);
@@ -141,6 +217,14 @@ If no physics scene is identifiable, return this exact JSON object:
         objects: [],
         gravity: [0, -9.81, 0],
         contactMaterial: { friction: 0.5, restitution: 0.7 },
+        gravitationalPhysics: { 
+          enabled: false, 
+          gravitationalConstant: 6.67430e-11, 
+          minDistance: 1e-6, 
+          softening: 0 
+        },
+        simulationScale: 'terrestrial',
+        hasGround: true,
       };
       const newExtractedScenes = [fallbackScene, ...extractedScenes];
       setScenes([...newExtractedScenes, ...mechanicsExamples]);
@@ -160,6 +244,7 @@ If no physics scene is identifiable, return this exact JSON object:
       [objectId]: !prev[objectId],
     }));
   };
+
   return (
     <div className="scene-selector-container">
       <div className="scene-selector">
@@ -169,14 +254,14 @@ If no physics scene is identifiable, return this exact JSON object:
             onClick={handleExtractScene}
             disabled={isExtracting}
             aria-busy={isExtracting}
-            aria-label="Extract scene from conversation"
+            aria-label="Extract scene from conversation with gravitational physics"
           >
             {isExtracting ? (
               <>
                 <span className="spinner" aria-hidden="true"></span> Extracting...
               </>
             ) : (
-              'Extract Scene from Conversation'
+              'Extract Scene from Conversation (Enhanced Physics)'
             )}
           </button>
           {error && (
@@ -187,7 +272,7 @@ If no physics scene is identifiable, return this exact JSON object:
         </div>
         <PanelGroup direction="vertical">
           <Panel defaultSize={60} minSize={20} className="scene-list-panel">
-            <h3 className="scene-list-title">Scene Examples</h3>
+            <h3 className="scene-list-title">Scene Examples (Enhanced Physics)</h3>
             <ul className="scene-list">
               {scenes.map((example) => (
                 <li
@@ -202,6 +287,9 @@ If no physics scene is identifiable, return this exact JSON object:
                 >
                   <div className="scene-name">{example.name}</div>
                   <div className="scene-description">{example.description}</div>
+                  {example.gravitationalPhysics?.enabled && (
+                    <div className="scene-badge">Gravitational Physics</div>
+                  )}
                 </li>
               ))}
             </ul>
@@ -239,6 +327,7 @@ If no physics scene is identifiable, return this exact JSON object:
                             <span className="object-title">
                               <span className="object-type">{obj.type}</span>
                               <span className="object-id">({obj.id})</span>
+                              {obj.isStatic && <span className="static-badge">Static</span>}
                             </span>
                           </div>
                           {expandedObjects[obj.id || index] && (
@@ -247,6 +336,12 @@ If no physics scene is identifiable, return this exact JSON object:
                                 <span className="property-name">Mass:</span>
                                 <span className="property-value">{obj.mass} kg</span>
                               </div>
+                              {typeof obj.gravitationalMass === 'number' && obj.gravitationalMass !== obj.mass && (
+                                <div className="property-row">
+                                  <span className="property-name">Gravitational Mass:</span>
+                                  <span className="property-value">{obj.gravitationalMass} kg</span>
+                                </div>
+                              )}
                               <div className="property-row">
                                 <span className="property-name">Position:</span>
                                 <span className="property-value">
@@ -270,6 +365,14 @@ If no physics scene is identifiable, return this exact JSON object:
                                       .map((v) => (v * 180 / Math.PI).toFixed(2))
                                       .join(', ')}
                                     ]°
+                                  </span>
+                                </div>
+                              )}
+                              {obj.angularVelocity && (
+                                <div className="property-row">
+                                  <span className="property-name">Angular Velocity:</span>
+                                  <span className="property-value">
+                                    [{obj.angularVelocity.map((v) => v.toFixed(2)).join(', ')}] rad/s
                                   </span>
                                 </div>
                               )}
@@ -325,6 +428,12 @@ If no physics scene is identifiable, return this exact JSON object:
                                   </span>
                                 </div>
                               )}
+                              {obj.isStatic && (
+                                <div className="property-row">
+                                  <span className="property-name">Static:</span>
+                                  <span className="property-value">Yes</span>
+                                </div>
+                              )}
                             </div>
                           )}
                         </li>
@@ -345,6 +454,36 @@ If no physics scene is identifiable, return this exact JSON object:
                     Restitution:{' '}
                     {currentScene.contactMaterial?.restitution?.toFixed(2) ?? 'N/A'}
                   </p>
+                  {currentScene.gravitationalPhysics && (
+                    <div className="gravitational-physics-section">
+                      <p>
+                        <strong>Gravitational Physics:</strong>{' '}
+                        {currentScene.gravitationalPhysics.enabled ? 'Enabled' : 'Disabled'}
+                      </p>
+                      {currentScene.gravitationalPhysics.enabled && (
+                        <>
+                          <p>
+                            <strong>Gravitational Constant:</strong>{' '}
+                            {currentScene.gravitationalPhysics.gravitationalConstant?.toExponential(3) ?? 'N/A'} m³/(kg⋅s²)
+                          </p>
+                          <p>
+                            <strong>Min Distance:</strong>{' '}
+                            {currentScene.gravitationalPhysics.minDistance?.toExponential(3) ?? 'N/A'} m
+                          </p>
+                          <p>
+                            <strong>Softening:</strong>{' '}
+                            {currentScene.gravitationalPhysics.softening ?? 'N/A'} m
+                          </p>
+                        </>
+                      )}
+                    </div>
+                  )}
+                  <p>
+                    <strong>Simulation Scale:</strong> {currentScene.simulationScale || 'terrestrial'}
+                  </p>
+                  <p>
+                    <strong>Has Ground:</strong> {currentScene.hasGround !== false ? 'Yes' : 'No'}
+                  </p>
                 </div>
               </div>
             </div>
@@ -352,5 +491,7 @@ If no physics scene is identifiable, return this exact JSON object:
         </PanelGroup>
       </div>
     </div>
-  );}
-  export default SceneSelector;
+  );
+}
+
+export default SceneSelector;

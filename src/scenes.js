@@ -1,590 +1,356 @@
-
 export const mechanicsExamples = [
+  // Basic physics demonstrations (no individual gravitation needed)
   {
-    id: "all-shapes-scene",
-    name: "All Shapes Scene",
-    description: "A scene with all supported physics shapes interacting dynamically.",
-    objects: [
-      {
-        id: "sphere-1",
-        type: "Sphere",
-        mass: 1,
-        radius: 0.5,
-        position: [0, 4, 0],
-        velocity: [0, 0, 0],
-        color: "#ff6347",
-        restitution: 0.7,
-        friction: 0.4, // Optional, remove if unsupported
-      },
-      {
-        id: "box-1",
-        type: "Box",
-        mass: 1.5,
-        dimensions: [1, 1, 1],
-        position: [2, 4, 0],
-        velocity: [0, 0, 0],
-        color: "#32cd32",
-        restitution: 0.8,
-        friction: 0.5,
-      },
-      {
-        id: "cylinder-1",
-        type: "Cylinder",
-        mass: 2,
-        radius: 0.5,
-        height: 1.5,
-        position: [-2, 4, 0],
-        velocity: [0, 0, 0],
-        color: "#4682b4",
-        restitution: 0.6,
-        friction: 0.3,
-      },
-      {
-        id: "ground",
-        type: "Box",
-        mass: 0, // Static
-        dimensions: [20, 0.1, 20],
-        position: [0, 0, 0],
-        velocity: [0, 0, 0],
-        color: "white",
-        restitution: 0.8,
-        friction: 0.6,
-      },
-    ],
-    gravity: [0, -9.81, 0],
-  },
-  {
-      "id": "domino_chain_4",
-      "name": "Domino Chain Along Z-Axis - 20 Dominoes",
-      "description": "A chain of twenty dominoes toppling over along the Z-axis. First domino has a larger initial rotation.",
-      "objects": [
-        {
-          "id": "domino-1",
-          "type": "Box",
-          "mass": 10,
-          "position": [
-            0,
-            1.2,
-            0
-          ],
-          "velocity": [
-            0,
-            0,
-            0
-          ],
-          "rotation": [
-            0.5,
-            0,
-            0
-          ],
-          "color": "#FF0000",
-          "restitution": 0.5,
-          "dimensions": [
-            1,
-            2,
-            0.2
-          ]
-        },
-        {
-          "id": "domino-2",
-          "type": "Box",
-          "mass": 10,
-          "position": [
-            0,
-            1.2,
-            1.2
-          ],
-          "velocity": [
-            0,
-            0,
-            0
-          ],
-          "rotation": [
-            0,
-            0,
-            0
-          ],
-          "color": "#00FF00",
-          "restitution": 0.5,
-          "dimensions": [
-            1,
-            2,
-            0.2
-          ]
-        },
-        {
-          "id": "domino-3",
-          "type": "Box",
-          "mass": 10,
-          "position": [
-            0,
-            1.2,
-            2.4
-          ],
-          "velocity": [
-            0,
-            0,
-            0
-          ],
-          "rotation": [
-            0,
-            0,
-            0
-          ],
-          "color": "#0000FF",
-          "restitution": 0.5,
-          "dimensions": [
-            1,
-            2,
-            0.2
-          ]
-        },
-        {
-          "id": "domino-4",
-          "type": "Box",
-          "mass": 10,
-          "position": [
-            0,
-            1.2,
-            3.6
-          ],
-          "velocity": [
-            0,
-            0,
-            0
-          ],
-          "rotation": [
-            0,
-            0,
-            0
-          ],
-          "color": "#FFFF00",
-          "restitution": 0.5,
-          "dimensions": [
-            1,
-            2,
-            0.2
-          ]
-        },
-        {
-          "id": "domino-5",
-          "type": "Box",
-          "mass": 10,
-          "position": [
-            0,
-            1.2,
-            4.8
-          ],
-          "velocity": [
-            0,
-            0,
-            0
-          ],
-          "rotation": [
-            0,
-            0,
-            0
-          ],
-          "color": "#FF00FF",
-          "restitution": 0.5,
-          "dimensions": [
-            1,
-            2,
-            0.2
-          ]
-        },
-        {
-          "id": "domino-6",
-          "type": "Box",
-          "mass": 10,
-          "position": [
-            0,
-            1.2,
-            6
-          ],
-          "velocity": [
-            0,
-            0,
-            0
-          ],
-          "rotation": [
-            0,
-            0,
-            0
-          ],
-          "color": "#800000",
-          "restitution": 0.5,
-          "dimensions": [
-            1,
-            2,
-            0.2
-          ]
-        },
-        {
-          "id": "domino-7",
-          "type": "Box",
-          "mass": 10,
-          "position": [
-            0,
-            1.2,
-            7.2
-          ],
-          "velocity": [
-            0,
-            0,
-            0
-          ],
-          "rotation": [
-            0,
-            0,
-            0
-          ],
-          "color": "#008000",
-          "restitution": 0.5,
-          "dimensions": [
-            1,
-            2,
-            0.2
-          ]
-        },
-        {
-          "id": "domino-8",
-          "type": "Box",
-          "mass": 10,
-          "position": [
-            0,
-            1.2,
-            8.4
-          ],
-          "velocity": [
-            0,
-            0,
-            0
-          ],
-          "rotation": [
-            0,
-            0,
-            0
-          ],
-          "color": "#000080",
-          "restitution": 0.5,
-          "dimensions": [
-            1,
-            2,
-            0.2
-          ]
-        },
-        {
-          "id": "domino-9",
-          "type": "Box",
-          "mass":10,
-          "position": [
-            0,
-            1.2,
-            9.6
-          ],
-          "velocity": [
-            0,
-            0,
-            0
-          ],
-          "rotation": [
-            0,
-            0,
-            0
-          ],
-          "color": "#808000",
-          "restitution": 0.5,
-          "dimensions": [
-            1,
-            2,
-            0.2
-          ]
-        },
-        {
-          "id": "domino-10",
-          "type": "Box",
-          "mass": 10,
-          "position": [
-            0,
-            1.2,
-            10.8
-          ],
-          "velocity": [
-            0,
-            0,
-            0
-          ],
-          "rotation": [
-            0,
-            0,
-            0
-          ],
-          "color": "#800080",
-          "restitution": 0.5,
-          "dimensions": [
-            1,
-            2,
-            0.2
-          ]
-        }
-      ],
-      "gravity": [
-        0,
-        -9.81,
-        0
-      ],
-      "contactMaterial": {
-        "friction": 0.5,
-        "restitution": 0.7
-      }
-
-  },
-  {
-    "id": "circular-collision-10-balls Gemini 2.5 ",
-    "name": "10 Balls Circular Collision Gemini 2.5",
-    "description": "10 balls arranged in a circle, moving towards the center",
+    "id": "all-shapes-scene",
+    "name": "All Shapes Scene",
+    "description": "A scene with all supported physics shapes interacting dynamically with standard gravity and collision physics.",
     "objects": [
-      { "id": "ball-0", "type": "Sphere", "mass": 10, "radius": 0.5, "position": [5.000, 1, 0.000], "velocity": [-2.000, 10, 0.000], "rotation": [0, 0, 0], "color": "#ff6347", "restitution": 1 },
-      { "id": "ball-1", "type": "Sphere", "mass": 10, "radius": 0.5, "position": [4.045, 1, 2.939], "velocity": [-1.618, 10, -1.176], "rotation": [0, 0, 0], "color": "#ff6347", "restitution": 1 },
-      { "id": "ball-2", "type": "Sphere", "mass": 10, "radius": 0.5, "position": [1.545, 1, 4.755], "velocity": [-0.618, 10, -1.902], "rotation": [0, 0, 0], "color": "#ff6347", "restitution": 1 },
-      { "id": "ball-3", "type": "Sphere", "mass": 10, "radius": 0.5, "position": [-1.545, 1, 4.755], "velocity": [0.618, 10, -1.902], "rotation": [0, 0, 0], "color": "#ff6347", "restitution": 1 },
-      { "id": "ball-4", "type": "Sphere", "mass": 10, "radius": 0.5, "position": [-4.045, 1, 2.939], "velocity": [1.618, 10, -1.176], "rotation": [0, 0, 0], "color": "#ff6347", "restitution": 1 },
-      { "id": "ball-5", "type": "Sphere", "mass": 10, "radius": 0.5, "position": [-5.000, 1, 0.000], "velocity": [2.000, 10, 0.000], "rotation": [0, 0, 0], "color": "#ff6347", "restitution": 1 },
-      { "id": "ball-6", "type": "Sphere", "mass": 10, "radius": 0.5, "position": [-4.045, 1, -2.939], "velocity": [1.618, 10, 1.176], "rotation": [0, 0, 0], "color": "#ff6347", "restitution": 1 },
-      { "id": "ball-7", "type": "Sphere", "mass": 10, "radius": 0.5, "position": [-1.545, 1, -4.755], "velocity": [0.618, 10, 1.902], "rotation": [0, 0, 0], "color": "#ff6347", "restitution": 1 },
-      { "id": "ball-8", "type": "Sphere", "mass": 10, "radius": 0.5, "position": [1.545, 1, -4.755], "velocity": [-0.618, 10, 1.902], "rotation": [0, 0, 0], "color": "#ff6347", "restitution": 1 },
-      { "id": "ball-9", "type": "Sphere", "mass": 10, "radius": 0.5, "position": [4.045, 1, -2.939], "velocity": [-1.618, 10, 1.176], "rotation": [0, 0, 0], "color": "#ff6347", "restitution": 1 }],
-    "gravity": [0, -9.81, 0], "contactMaterial": { "friction": 0, "restitution": 1 }
+      {
+        "id": "sphere-1",
+        "type": "Sphere",
+        "mass": 1,
+        "radius": 0.5,
+        "position": [0, 4, 0],
+        "velocity": [0, 0, 0],
+        "rotation": [0, 0, 0],
+        "angularVelocity": [0, 0, 0],
+        "color": "#ff6347",
+        "restitution": 0.7,
+        "friction": 0.4
+      },
+      {
+        "id": "box-1",
+        "type": "Box",
+        "mass": 1.5,
+        "dimensions": [1, 1, 1],
+        "position": [2, 4, 0],
+        "velocity": [0, 0, 0],
+        "rotation": [0, 0, 0],
+        "angularVelocity": [0, 0, 0],
+        "color": "#32cd32",
+        "restitution": 0.8,
+        "friction": 0.5
+      },
+      {
+        "id": "cylinder-1",
+        "type": "Cylinder",
+        "mass": 2,
+        "radius": 0.5,
+        "height": 1.5,
+        "position": [-2, 4, 0],
+        "velocity": [0, 0, 0],
+        "rotation": [0, 0, 0],
+        "angularVelocity": [0, 0, 0],
+        "color": "#4682b4",
+        "restitution": 0.6,
+        "friction": 0.3
+      },
+      {
+        "id": "ground",
+        "type": "Box",
+        "mass": 0,
+        "dimensions": [20, 0.1, 20],
+        "position": [0, 0, 0],
+        "velocity": [0, 0, 0],
+        "rotation": [0, 0, 0],
+        "angularVelocity": [0, 0, 0],
+        "color": "white",
+        "restitution": 0.8,
+        "friction": 0.6,
+        "isStatic": true
+      }
+    ],
+    "gravity": [0, -9.81, 0],
+    "hasGround": true,
+    "contactMaterial": {
+      "friction": 0.5,
+      "restitution": 0.7
+    },
+    "simulationScale": "terrestrial"
   },
   {
-    id: "projectile-motion",
-    name: "Projectile Motion",
-    description: "A sphere launched to show parabolic trajectory under gravity.",
-    objects: [
+    "id": "circular-orbital-system",
+    "name": "Circular Orbital System",
+    "description": "Balls in stable circular orbits around a central massive object demonstrating Kepler's laws.",
+    "objects": [
       {
-        id: "projectile-sphere",
-        type: "Sphere",
-        mass: 1,
-        radius: 0.3,
-        position: [-5, 1, 0],
-        velocity: [6, 4, 0], // ~33-degree angle
-        color: "#ff4500",
-        restitution: 0.9,
-        friction: 0.4,
+        "id": "central-mass",
+        "type": "Sphere",
+        "mass": 100,
+        "radius": 2.0,
+        "position": [0, 0, 0],
+        "velocity": [0, 0, 0],
+        "rotation": [0, 0, 0],
+        "angularVelocity": [0, 0, 0],
+        "color": "#FFD700",
+        "restitution": 0.9,
+        "friction": 0.1,
+        "gravitationalMass": 100,
+        "isStatic": true
       },
       {
-        id: "ground",
-        type: "Box",
-        mass: 0,
-        dimensions: [20, 0.1, 20],
-        position: [0, 0, 0],
-        velocity: [0, 0, 0],
-        color: "white",
-        restitution: 0.8,
-        friction: 0.6,
+        "id": "ball-0",
+        "type": "Sphere",
+        "mass": 0.1,
+        "radius": 0.4,
+        "position": [8.000, 0, 0.000],
+        "velocity": [0, 0, 3.536],
+        "rotation": [0, 0, 0],
+        "angularVelocity": [0, 0, 0],
+        "color": "#ff6347",
+        "restitution": 1,
+        "friction": 0,
+        "gravitationalMass": 0.1
       },
+      {
+        "id": "ball-1",
+        "type": "Sphere",
+        "mass": 0.1,
+        "radius": 0.4,
+        "position": [6.472, 0, 4.708],
+        "velocity": [-1.667, 0, 2.291],
+        "rotation": [0, 0, 0],
+        "angularVelocity": [0, 0, 0],
+        "color": "#32cd32",
+        "restitution": 1,
+        "friction": 0,
+        "gravitationalMass": 0.1
+      },
+      {
+        "id": "ball-2",
+        "type": "Sphere",
+        "mass": 0.1,
+        "radius": 0.4,
+        "position": [2.472, 0, 7.611],
+        "velocity": [-2.693, 0, 0.875],
+        "rotation": [0, 0, 0],
+        "angularVelocity": [0, 0, 0],
+        "color": "#4169e1",
+        "restitution": 1,
+        "friction": 0,
+        "gravitationalMass": 0.1
+      },
+      {
+        "id": "ball-3",
+        "type": "Sphere",
+        "mass": 0.1,
+        "radius": 0.4,
+        "position": [-2.472, 0, 7.611],
+        "velocity": [-2.693, 0, -0.875],
+        "rotation": [0, 0, 0],
+        "angularVelocity": [0, 0, 0],
+        "color": "#ff1493",
+        "restitution": 1,
+        "friction": 0,
+        "gravitationalMass": 0.1
+      }
     ],
-    gravity: [0, -9.81, 0],
+    "gravity": [0, 0, 0],
+    "hasGround": false,
+    "contactMaterial": {
+      "friction": 0,
+      "restitution": 1
+    },
+    "gravitationalPhysics": {
+      "enabled": true,
+      "gravitationalConstant": 1,
+      "minDistance": 0.1,
+      "softening": 0.05
+    },
+    "simulationScale": "terrestrial"
   },
   {
-    id: "collision-demo",
-    name: "Elastic Collision",
-    description: "Two spheres colliding to demonstrate momentum conservation.",
-    objects: [
+    "id": "binary-star-system",
+    "name": "Binary Star System with Planets",
+    "description": "Two massive stars orbiting each other with smaller planets in complex gravitational dance.",
+    "objects": [
       {
-        id: "sphere-left",
-        type: "Sphere",
-        mass: 1,
-        radius: 0.5,
-        position: [-4, 3, 0],
-        velocity: [3, 0, 0],
-        color: "#1e90ff",
-        restitution: 0.95,
-        friction: 0.3,
+        "id": "star-a",
+        "type": "Sphere",
+        "mass": 10000,
+        "radius": 25,
+        "position": [-15, 0, 0],
+        "velocity": [0, 8, 0],
+        "rotation": [0, 0, 0],
+        "angularVelocity": [0, 0.1, 0],
+        "color": "#FFD700",
+        "restitution": 0.9,
+        "friction": 0.1,
+        "gravitationalMass": 10000
       },
       {
-        id: "sphere-right",
-        type: "Sphere",
-        mass: 1,
-        radius: 0.5,
-        position: [4, 3, 0],
-        velocity: [-3, 0, 0],
-        color: "#ff69b4",
-        restitution: 0.95,
-        friction: 0.3,
+        "id": "star-b",
+        "type": "Sphere",
+        "mass": 8000,
+        "radius": 22,
+        "position": [18.75, 0, 0],
+        "velocity": [0, -10, 0],
+        "rotation": [0, 0, 0],
+        "angularVelocity": [0, -0.12, 0],
+        "color": "#FF4500",
+        "restitution": 0.9,
+        "friction": 0.1,
+        "gravitationalMass": 8000
       },
       {
-        id: "ground",
-        type: "Box",
-        mass: 0,
-        dimensions: [20, 0.1, 20],
-        position: [0, 0, 0],
-        velocity: [0, 0, 0],
-        color: "white",
-        restitution: 0.8,
-        friction: 0.6,
+        "id": "planet-1",
+        "type": "Sphere",
+        "mass": 0.1,
+        "radius": 2,
+        "position": [-30, 0, 0],
+        "velocity": [0, 6, 0],
+        "rotation": [0, 0, 0],
+        "angularVelocity": [0, 1, 0],
+        "color": "#4169E1",
+        "restitution": 0.7,
+        "friction": 0.3,
+        "gravitationalMass": 0.1
       },
+      {
+        "id": "planet-2",
+        "type": "Sphere",
+        "mass": 0.15,
+        "radius": 2.2,
+        "position": [35, 0, 0],
+        "velocity": [0, -7, 0],
+        "rotation": [0, 0, 0],
+        "angularVelocity": [0, -0.8, 0],
+        "color": "#B22222",
+        "restitution": 0.7,
+        "friction": 0.3,
+        "gravitationalMass": 0.15
+      },
+      {
+        "id": "asteroid",
+        "type": "Sphere",
+        "mass": 0.01,
+        "radius": 0.8,
+        "position": [0, 25, 0],
+        "velocity": [4, 0, 0],
+        "rotation": [0, 0, 0],
+        "angularVelocity": [2, 3, 1],
+        "color": "#696969",
+        "restitution": 0.5,
+        "friction": 0.4,
+        "gravitationalMass": 0.01
+      }
     ],
-    gravity: [0, -9.81, 0],
+    "gravity": [0, 0, 0],
+    "hasGround": false,
+    "contactMaterial": {
+      "friction": 0.2,
+      "restitution": 0.8
+    },
+    "gravitationalPhysics": {
+      "enabled": true,
+      "gravitationalConstant": 1,
+      "minDistance": 1.0,
+      "softening": 0.5
+    },
+    "simulationScale": "solar_system"
   },
   {
-    id: "inclined-plane",
-    name: "Inclined Plane",
-    description: "A box sliding down a ramp to illustrate gravity and friction.",
-    objects: [
+    "id": "solar-system",
+    "name": "Scaled Solar System",
+    "description": "A simplified, scaled-down representation of the inner solar system with proper orbital velocities for G=1.",
+    "objects": [
       {
-        id: "sliding-box",
-        type: "Box",
-        mass: 1,
-        dimensions: [0.5, 0.5, 0.5],
-        position: [6, 6, -2],
-        velocity: [0, 0, 0],
-        color: "#ff69b4",
-        restitution: 0.5,
-        friction: 0.4,
+        "id": "sun",
+        "type": "Sphere",
+        "mass": 100000,
+        "radius": 80,
+        "position": [0, 0, 0],
+        "velocity": [0, 0, 0],
+        "rotation": [0, 0, 0],
+        "angularVelocity": [0, 0, 0],
+        "color": "#FFD700",
+        "restitution": 0.7,
+        "friction": 0.1,
+        "gravitationalMass": 100000
       },
       {
-        id: "sliding-ball",
-        type: "Sphere",
-        mass: 1,
-        radius: 0.5,
-        position: [6, 6, 2],
-        velocity: [0, 0, 0],
-        color: "yellow",
-        restitution: 0.5,
-        friction: 0.4,
+        "id": "mercury",
+        "type": "Sphere",
+        "mass": 0.055,
+        "radius": 12,
+        "position": [120, 0, 0],
+        "velocity": [0, 91.3, 0],
+        "rotation": [0, 0, 0],
+        "angularVelocity": [0, 0, 0],
+        "color": "#A9A9A9",
+        "restitution": 0.7,
+        "friction": 0.3,
+        "gravitationalMass": 0.055
       },
       {
-        id: "ramp",
-        type: "Box",
-        mass: 0,
-        dimensions: [20, 0.2, 10],
-        position: [0, 0.5, 0],
-        rotation: [0, 0, Math.PI / 6], // 30 degrees
-        velocity: [0, 0, 0],
-        color: "#228b22",
-        restitution: 0.7,
-        friction: 0.5,
+        "id": "venus",
+        "type": "Sphere",
+        "mass": 0.815,
+        "radius": 18,
+        "position": [200, 0, 0],
+        "velocity": [0, 70.7, 0],
+        "rotation": [0, 0, 0],
+        "angularVelocity": [0, 0, 0],
+        "color": "#FFDAB9",
+        "restitution": 0.7,
+        "friction": 0.3,
+        "gravitationalMass": 0.815
       },
       {
-        id: "ground",
-        type: "Box",
-        mass: 0,
-        dimensions: [20, 0.1, 20],
-        position: [0, 0, 0],
-        velocity: [0, 0, 0],
-        color: "white",
-        restitution: 0.8,
-        friction: 0.6,
+        "id": "earth",
+        "type": "Sphere",
+        "mass": 1,
+        "radius": 15,
+        "position": [300, 0, 0],
+        "velocity": [0, 57.7, 0],
+        "rotation": [0, 0, 0],
+        "angularVelocity": [0, 0, 0],
+        "color": "#4169E1",
+        "restitution": 0.7,
+        "friction": 0.3,
+        "gravitationalMass": 1
       },
+      {
+        "id": "mars",
+        "type": "Sphere",
+        "mass": 0.107,
+        "radius": 12,
+        "position": [450, 0, 0],
+        "velocity": [0, 47.1, 0],
+        "rotation": [0, 0, 0],
+        "angularVelocity": [0, 0, 0],
+        "color": "#B22222",
+        "restitution": 0.7,
+        "friction": 0.3,
+        "gravitationalMass": 0.107
+      },
+      {
+        "id": "jupiter",
+        "type": "Sphere",
+        "mass": 318,
+        "radius": 40,
+        "position": [800, 0, 0],
+        "velocity": [0, 35.4, 0],
+        "rotation": [0, 0, 0],
+        "angularVelocity": [0, 0, 0],
+        "color": "#DAA520",
+        "restitution": 0.7,
+        "friction": 0.3,
+        "gravitationalMass": 318
+      }
     ],
-    gravity: [0, -9.81, 0],
-  },
-  {
-    id: "narrow-walls-collision",
-    name: "Narrow Walls ",
-    description: "A ball bouncing between two vertical walls that move closer together.",
-    objects: [
-      {
-        id: "ball",
-        type: "Sphere",
-        mass: 1,
-        radius: 0.3,
-        position: [0, 10, 0],
-        velocity: [20, 0, 0], // Directed right
-        color: "#ffd700",
-        restitution: 0.95,
-        friction: 0.2,
-      },
-      {
-        id: "left-wall",
-        type: "Box",
-        mass: 0, // Static (moved in Visualizer)
-        dimensions: [0.2, 20, 2],
-        position: [-3, 5, 0],
-        velocity: [0, 0, 0],
-        rotation: [0, 0, 0.1],
-        color: "#4682b4",
-        restitution: 0.95,
-        friction: 0.2,
-      },
-      {
-        id: "right-wall",
-        type: "Box",
-        mass: 0,
-        dimensions: [0.2, 20, 2],
-        position: [3, 5, 0],
-        velocity: [0, 0, 0],
-        rotation: [0, 0, -0.1],
-        color: "#4682b4",
-        restitution: 0.95,
-        friction: 0.2,
-      },
-      {
-        id: "ground",
-        type: "Box",
-        mass: 0,
-        dimensions: [20, 0.1, 20],
-        position: [0, 0, 0],
-        velocity: [0, 0, 0],
-        color: "white",
-        restitution: 0.8,
-        friction: 0.6,
-      },
-    ],
-    gravity: [0, -9.81, 0],
-  },
-  {
-    id: "stacking-demo",
-    name: "Stacking Demo",
-    description: "Boxes stacked to test stability and gravity in a pile.",
-    objects: [
-      {
-        id: "box-1",
-        type: "Box",
-        mass: 1,
-        dimensions: [1, 1, 1],
-        position: [0, 1, 0],
-        velocity: [0, 0, 0],
-        color: "#ffa500",
-        restitution: 0.6,
-        friction: 0.5,
-      },
-      {
-        id: "box-2",
-        type: "Box",
-        mass: 1,
-        dimensions: [2, 1, 2],
-        position: [0, 4, 0],
-        velocity: [0, 0, 0],
-        color: "#ffa500",
-        restitution: 0.6,
-        friction: 0.5,
-      },
-      {
-        id: "box-3",
-        type: "Box",
-        mass: 1,
-        dimensions: [3, 1, 3],
-        position: [0, 6, 0],
-        velocity: [0, 0, 0],
-        color: "#ffa500",
-        restitution: 0.6,
-        friction: 0.5,
-      },
-      {
-        id: "ground",
-        type: "Box",
-        mass: 0,
-        dimensions: [20, 0.1, 20],
-        position: [0, 0, 0],
-        velocity: [0, 0, 0],
-        color: "white",
-        restitution: 0.8,
-        friction: 0.6,
-      },
-    ],
-    gravity: [0, -9.81, 0],
-  },
+    "gravity": [0, 0, 0],
+    "hasGround": false,
+    "contactMaterial": {
+      "friction": 0.1,
+      "restitution": 0.9
+    },
+    "gravitationalPhysics": {
+      "enabled": true,
+      "gravitationalConstant": 1,
+      "minDistance": 1.0,
+      "softening": 0.1
+    },
+    "simulationScale": "solar_system"
+  }
 ];

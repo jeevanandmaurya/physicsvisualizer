@@ -17,10 +17,166 @@ import OverlayGraph from './OverlayGraph'; // Assuming OverlayGraph.js is in the
 // Import Font Awesome Icons
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { faPlay, faPause, faRedo, faChartLine, faChevronDown, faChevronUp } from '@fortawesome/free-solid-svg-icons';
-// 'time' from three/tsl seems unused, can be removed if not needed elsewhere
 
 // Define a constant for maximum history points to prevent performance issues
 const MAX_HISTORY_POINTS = 2000; // Keep track of up to 2000 points per object
+
+// --- Gravitational Physics Engine ---
+class GravitationalPhysics {
+  constructor(scene) {
+    this.scene = scene;
+    this.G = scene.gravitationalPhysics?.gravitationalConstant || 6.67430e-11;
+    this.minDistance = scene.gravitationalPhysics?.minDistance || 1e-6;
+    this.softening = scene.gravitationalPhysics?.softening || 0;
+    this.enabled = scene.gravitationalPhysics?.enabled !== false;
+    this.simulationScale = scene.simulationScale || 'terrestrial';
+    
+    // Scale gravitational constant based on simulation scale
+    if (this.simulationScale === 'terrestrial' && this.G === 6.67430e-11) {
+      this.G = 6.67430e-8; // Scale up for terrestrial scenarios
+    }
+    
+    // Store current positions for objects
+    this.currentPositions = {};
+  }
+
+  calculateGravitationalForces(objects, objectApis) {
+    if (!this.enabled || !objects || objects.length < 2) return {};
+    
+    const forces = {};
+    const positions = {};
+    const masses = {};
+    
+    // Initialize force arrays and get current positions from physics APIs
+    objects.forEach(obj => {
+      if (obj.mass > 0 && objectApis[obj.id]) {
+        forces[obj.id] = [0, 0, 0];
+        masses[obj.id] = obj.gravitationalMass || obj.mass;
+        
+        // Use stored position if available, otherwise use initial position
+        if (this.currentPositions[obj.id]) {
+          positions[obj.id] = this.currentPositions[obj.id];
+        } else {
+          positions[obj.id] = obj.position || [0, 0, 0];
+        }
+      }
+    });
+
+    // Calculate pairwise gravitational forces
+    const objectIds = Object.keys(positions);
+    for (let i = 0; i < objectIds.length; i++) {
+      for (let j = i + 1; j < objectIds.length; j++) {
+        const id1 = objectIds[i];
+        const id2 = objectIds[j];
+        
+        const obj1 = objects.find(o => o.id === id1);
+        const obj2 = objects.find(o => o.id === id2);
+        
+        // Skip static objects for force application (they can still attract others)
+        if (!obj1 || !obj2) continue;
+        
+        const pos1 = positions[id1];
+        const pos2 = positions[id2];
+        const m1 = masses[id1];
+        const m2 = masses[id2];
+        
+        // Calculate distance vector
+        const dx = pos2[0] - pos1[0];
+        const dy = pos2[1] - pos1[1];
+        const dz = pos2[2] - pos1[2];
+        
+        // Calculate distance magnitude with softening
+        const distanceSquared = dx*dx + dy*dy + dz*dz + this.softening*this.softening;
+        const distance = Math.sqrt(distanceSquared);
+        
+        // Apply minimum distance constraint to prevent singularities
+        const effectiveDistanceSquared = Math.max(distanceSquared, this.minDistance * this.minDistance);
+        
+        // Calculate gravitational force magnitude
+        const forceMagnitude = this.G * m1 * m2 / effectiveDistanceSquared;
+    
+        
+        // Calculate unit direction vector
+        if (distance > 0) {
+          const unitX = dx / distance;
+          const unitY = dy / distance;
+          const unitZ = dz / distance;
+          
+          // Calculate force components
+          const forceX = forceMagnitude * unitX;
+          const forceY = forceMagnitude * unitY;
+          const forceZ = forceMagnitude * unitZ;
+          
+          // Apply forces to both objects (Newton's 3rd law)
+          if (!obj1.isStatic && forces[id1]) {
+            forces[id1][0] += forceX;
+            forces[id1][1] += forceY;
+            forces[id1][2] += forceZ;
+          }
+          
+          if (!obj2.isStatic && forces[id2]) {
+            forces[id2][0] -= forceX;
+            forces[id2][1] -= forceY;
+            forces[id2][2] -= forceZ;
+          }
+        }
+      }
+    }
+    
+    return forces;
+  }
+
+  // Update position tracking
+  updatePosition(objectId, position) {
+    this.currentPositions[objectId] = [...position];
+  }
+
+  // Calculate orbital velocity for circular orbit
+  static calculateOrbitalVelocity(centralMass, orbitalRadius, G = 6.67430e-11) {
+    return Math.sqrt(G * centralMass / orbitalRadius);
+  }
+
+  // Calculate escape velocity
+  static calculateEscapeVelocity(mass, radius, G = 6.67430e-11) {
+    return Math.sqrt(2 * G * mass / radius);
+  }
+}
+
+// --- Gravitational Force Updater Component ---
+function GravitationalForceUpdater({ scene, objectApis, gravitationalPhysics, isPlaying }) {
+  const frameCounter = useRef(0);
+  const forceUpdateFrequency = 1; // Apply forces every frame for smooth simulation
+
+  useFrame(() => {
+    if (!isPlaying || !gravitationalPhysics.current.enabled || !scene?.objects) return;
+    
+    frameCounter.current++;
+    
+    // Apply gravitational forces at the specified frequency
+    if (frameCounter.current % forceUpdateFrequency === 0) {
+      // Calculate gravitational forces
+      const forces = gravitationalPhysics.current.calculateGravitationalForces(
+        scene.objects, 
+        objectApis.current
+      );
+      
+      // Apply forces to physics bodies
+      Object.entries(forces).forEach(([objectId, force]) => {
+        const api = objectApis.current[objectId];
+        if (api && force && (force[0] !== 0 || force[1] !== 0 || force[2] !== 0)) {
+          try {
+            // Apply force to the physics body
+            api.applyForce(force, [0, 0, 0]); // Apply force at center of mass
+          } catch (e) {
+            console.warn(`Failed to apply gravitational force to object ${objectId}:`, e);
+          }
+        }
+      });
+    }
+  });
+
+  return null;
+}
 
 // --- Helper Component for Central Time Update ---
 function TimeUpdater({ isPlaying, setCurrentTime }) {
@@ -34,52 +190,48 @@ function TimeUpdater({ isPlaying, setCurrentTime }) {
 
 // --- Object Components (Sphere, Box, Cylinder, SceneBox) ---
 
-// Modify Sphere component to accept the onPhysicsUpdate callback
-function Sphere({ config, id, setApi, onPhysicsUpdate }) { // <-- Accept onPhysicsUpdate prop
-  const { mass, radius, position: initialPosition, velocity: initialVelocity, rotation = [0, 0, 0], color = "red", restitution = 0.7 } = config;
+// Modified Sphere component with position tracking
+function Sphere({ config, id, setApi, onPhysicsUpdate, gravitationalPhysics }) {
+  const { mass, radius, position: initialPosition, velocity: initialVelocity, rotation = [0, 0, 0], color = "red", restitution = 0.7, isStatic = false } = config;
   const [ref, api] = useSphere(() => ({
-    mass,
+    mass: isStatic ? 0 : mass,
     position: initialPosition,
     velocity: initialVelocity,
     rotation,
     args: [radius],
     material: { restitution },
+    type: isStatic ? 'Static' : 'Dynamic',
   }));
 
   // Ref to store the latest physics position from the subscription
-  const physicsPositionRef = useRef(initialPosition || [0, 0, 0]); // Initialize with initialPosition
+  const physicsPositionRef = useRef(initialPosition || [0, 0, 0]);
 
   useEffect(() => {
     if (api) {
-      setApi(id, api); // Call the original setApi
+      setApi(id, api);
 
       // Subscribe to the physics body's position
       const unsubscribe = api.position.subscribe(p => {
-        // p is an array [x, y, z]
-        physicsPositionRef.current = p;
+        physicsPositionRef.current = [...p];
+        // Update gravitational physics with new position
+        if (gravitationalPhysics?.current) {
+          gravitationalPhysics.current.updatePosition(id, p);
+        }
       });
 
-      // Cleanup subscription on component unmount
       return () => {
         unsubscribe();
       };
     }
-  }, [id, api, setApi]); // Dependencies for this effect
+  }, [id, api, setApi, gravitationalPhysics]);
 
-  // Modify useFrame to report the physics position and time
-  useFrame((state) => { // <-- Get state from useFrame
-    // This logs the THREE.Mesh's position. (Optional logging)
-    // console.log(`Sphere ${id} (ref.current.position):`, ref.current.position.toArray().map(v => parseFloat(v.toFixed(3))));
-
-    // This logs the position obtained directly from the physics engine via subscription. (Optional logging)
-    // console.log(`Sphere ${id} (physicsPositionRef via subscription):`, physicsPositionRef.current.map(v => parseFloat(v.toFixed(3))));
-
+  useFrame((state) => {
     // Report the real-time physics position and time up to the parent (Visualizer)
-    if (onPhysicsUpdate && physicsPositionRef.current) { // <-- Check if callback exists and position is available
+    if (onPhysicsUpdate && physicsPositionRef.current) {
         onPhysicsUpdate({
             id: id,
-            time: state.clock.elapsedTime, // Get current simulation time from useFrame state
-            position: physicsPositionRef.current // Use the position from the subscription ref
+            time: state.clock.elapsedTime,
+            position: physicsPositionRef.current
         });
     }
   });
@@ -92,27 +244,48 @@ function Sphere({ config, id, setApi, onPhysicsUpdate }) { // <-- Accept onPhysi
   );
 }
 
-// Box component (no changes needed for this task as it doesn't report position)
-function Box({ config, id, setApi }) {
-  const { mass, dimensions, position: initialPosition, velocity: initialVelocity, rotation = [0, 0, 0], color = "green", restitution = 0.7 } = config;
+// Box component with position tracking
+function Box({ config, id, setApi, onPhysicsUpdate, gravitationalPhysics }) {
+  const { mass, dimensions, position: initialPosition, velocity: initialVelocity, rotation = [0, 0, 0], color = "green", restitution = 0.7, isStatic = false } = config;
   const [width, height, depth] = dimensions || [1, 1, 1];
   const [ref, api] = useBox(() => ({
-    mass,
+    mass: isStatic ? 0 : mass,
     position: initialPosition,
     velocity: initialVelocity,
     rotation,
     args: [width, height, depth],
     material: { restitution },
+    type: isStatic ? 'Static' : 'Dynamic',
   }));
+
+  const physicsPositionRef = useRef(initialPosition || [0, 0, 0]);
 
   useEffect(() => {
     if (api) {
       setApi(id, api);
-    }
-  }, [id, api, setApi]);
+      
+      const unsubscribe = api.position.subscribe(p => {
+        physicsPositionRef.current = [...p];
+        // Update gravitational physics with new position
+        if (gravitationalPhysics?.current) {
+          gravitationalPhysics.current.updatePosition(id, p);
+        }
+      });
 
-  useFrame(() => {
-    // Intentionally doing nothing with position reporting here for the test
+      return () => {
+        unsubscribe();
+      };
+    }
+  }, [id, api, setApi, gravitationalPhysics]);
+
+  useFrame((state) => {
+    if (onPhysicsUpdate && physicsPositionRef.current) {
+        onPhysicsUpdate({
+            id: id,
+            time: state.clock.elapsedTime,
+            position: physicsPositionRef.current
+        });
+    }
   });
 
   return (
@@ -123,26 +296,47 @@ function Box({ config, id, setApi }) {
   );
 }
 
-// Cylinder component (no changes needed for this task)
-function Cylinder({ config, id, setApi }) {
-  const { mass, radius, height, position: initialPosition, velocity: initialVelocity, rotation = [0, 0, 0], color = "blue", restitution = 0.7 } = config;
+// Cylinder component with position tracking
+function Cylinder({ config, id, setApi, onPhysicsUpdate, gravitationalPhysics }) {
+  const { mass, radius, height, position: initialPosition, velocity: initialVelocity, rotation = [0, 0, 0], color = "blue", restitution = 0.7, isStatic = false } = config;
   const [ref, api] = useCylinder(() => ({
-    mass,
+    mass: isStatic ? 0 : mass,
     position: initialPosition,
     velocity: initialVelocity,
     rotation,
     args: [radius, radius, height, 16],
     material: { restitution },
+    type: isStatic ? 'Static' : 'Dynamic',
   }));
+
+  const physicsPositionRef = useRef(initialPosition || [0, 0, 0]);
 
   useEffect(() => {
     if (api) {
       setApi(id, api);
-    }
-  }, [id, api, setApi]);
+      
+      const unsubscribe = api.position.subscribe(p => {
+        physicsPositionRef.current = [...p];
+        // Update gravitational physics with new position
+        if (gravitationalPhysics?.current) {
+          gravitationalPhysics.current.updatePosition(id, p);
+        }
+      });
 
-  useFrame(() => {
-    // Intentionally doing nothing with position reporting here for the test
+      return () => {
+        unsubscribe();
+      };
+    }
+  }, [id, api, setApi, gravitationalPhysics]);
+
+  useFrame((state) => {
+    if (onPhysicsUpdate && physicsPositionRef.current) {
+        onPhysicsUpdate({
+            id: id,
+            time: state.clock.elapsedTime,
+            position: physicsPositionRef.current
+        });
+    }
   });
 
   return (
@@ -153,7 +347,7 @@ function Cylinder({ config, id, setApi }) {
   );
 }
 
-// SceneBox component (no changes needed for this task)
+// SceneBox component
 function SceneBox({ config, id, setApi }) {
   const {
     mass = 0, // Static by default
@@ -180,10 +374,6 @@ function SceneBox({ config, id, setApi }) {
     }
   }, [id, api, setApi]);
 
-  useFrame(() => {
-    // Intentionally doing nothing with position reporting here for the test
-  });
-
   return (
     <mesh ref={ref} receiveShadow castShadow>
       <boxGeometry args={[width, height, depth]} />
@@ -192,7 +382,7 @@ function SceneBox({ config, id, setApi }) {
   );
 }
 
-// GroundPlane component (no changes needed)
+// GroundPlane component
 function GroundPlane() {
   const [ref] = usePlane(() => ({
     mass: 0, // Static
@@ -203,13 +393,13 @@ function GroundPlane() {
 
   return (
     <mesh ref={ref} receiveShadow>
-      <planeGeometry args={[100, 100]} /> {/* Visual representation */}
+      <planeGeometry args={[100, 100]} />
       <meshStandardMaterial color="#88aa88" side={THREE.DoubleSide} />
     </mesh>
   );
 }
 
-// FpsCounter component (no changes needed)
+// FpsCounter component
 function FpsCounter({ setFps }) {
   const lastTimeRef = useRef(performance.now());
   const frameCountRef = useRef(0);
@@ -219,7 +409,7 @@ function FpsCounter({ setFps }) {
     frameCountRef.current += 1;
     const delta = now - lastTimeRef.current;
 
-    if (delta >= 1000) { // Update approximately every second
+    if (delta >= 1000) {
       setFps(Math.round((frameCountRef.current * 1000) / delta));
       frameCountRef.current = 0;
       lastTimeRef.current = now;
@@ -229,38 +419,38 @@ function FpsCounter({ setFps }) {
   return null;
 }
 
-// SimpleGrid component (no changes needed)
-function SimpleGrid() {
+// SimpleGrid component - now conditional based on hasGround
+function SimpleGrid({ show }) {
+  if (!show) return null;
+  
   return (
     <Grid
-      position={[0, 0.01, 0]} // Slightly above the ground plane
-      args={[100, 100]} // Size of the grid
+      position={[0, 0.01, 0]}
+      args={[100, 100]}
       cellColor="#aaaaaa"
       sectionColor="#888888"
-      sectionSize={10} // Grid lines every 10 units
-      cellSize={1} // Smaller grid lines every 1 unit
+      sectionSize={10}
+      cellSize={1}
       fadeDistance={200}
       fadeStrength={1}
-      infiniteGrid={false} // Finite grid
+      infiniteGrid={false}
     />
   );
 }
-
 
 function Visualizer({ scene, onPositionUpdate: onExternalPositionUpdate, onAddGraph: onExternalAddGraph }) {
   const [fps, setFps] = useState(0);
   const [isPlaying, setIsPlaying] = useState(false);
   const [currentTime, setCurrentTime] = useState(0);
   const objectApis = useRef({});
+  const gravitationalPhysics = useRef(new GravitationalPhysics(scene || {}));
   const initialSceneObjects = useRef(scene?.objects ? JSON.parse(JSON.stringify(scene.objects)) : []);
   const [openGraphs, setOpenGraphs] = useState([]);
-  // historyRef will store the raw data points as they come in
   const historyRef = useRef({});
-  // objectHistory will be a state that updates periodically from historyRef to trigger UI re-renders
   const [objectHistory, setObjectHistory] = useState({});
   const [showGraphDropdown, setShowGraphDropdown] = useState(false);
 
-  const { gravity = [0, -9.81, 0], contactMaterial = {} } = scene || {};
+  const { gravity = [0, -9.81, 0], contactMaterial = {}, hasGround = true } = scene || {};
   const objectsToRender = scene?.objects || [];
 
   const defaultContactMaterial = {
@@ -272,14 +462,11 @@ function Visualizer({ scene, onPositionUpdate: onExternalPositionUpdate, onAddGr
     objectApis.current[id] = api;
   }, []);
 
-  // Define the callback to receive physics updates from child components
   const onPhysicsUpdate = useCallback(({ id, time, position }) => {
-    // Ensure the object ID exists in historyRef
     if (!historyRef.current[id]) {
       historyRef.current[id] = [];
     }
 
-    // Add the new data point {t, x, y, z}
     historyRef.current[id].push({
       t: time,
       x: position[0],
@@ -287,29 +474,24 @@ function Visualizer({ scene, onPositionUpdate: onExternalPositionUpdate, onAddGr
       z: position[2],
     });
 
-    // Optional: Limit the history length to prevent excessive memory usage
     if (historyRef.current[id].length > MAX_HISTORY_POINTS) {
-      historyRef.current[id].shift(); // Remove the oldest point
+      historyRef.current[id].shift();
     }
-
-    // You could potentially trigger an external update here if needed
-    // if (typeof onExternalPositionUpdate === 'function') {
-    //     onExternalPositionUpdate({ id, time, position });
-    // }
-
-  }, []); // No dependencies, as historyRef.current is a stable ref
+  }, []);
 
   const handleReset = useCallback(() => {
-    // Clear history when resetting
     historyRef.current = {};
-    setObjectHistory({}); // Also clear the state used by graphs
+    setObjectHistory({});
+
+    // Reset gravitational physics positions
+    gravitationalPhysics.current.currentPositions = {};
 
     initialSceneObjects.current.forEach((initialConfig, index) => {
       const objectId = initialConfig.id !== undefined && initialConfig.id !== null && initialConfig.id !== ''
         ? String(initialConfig.id)
         : `${initialConfig.type?.toLowerCase() || 'obj'}-${index}`;
       const api = objectApis.current[objectId];
-      // console.log(initialConfig.position); // Original console.log from your code
+      
       if (api) {
         api.wakeUp();
         const initialPosition = initialConfig.position || [0, 0, 0];
@@ -320,32 +502,29 @@ function Visualizer({ scene, onPositionUpdate: onExternalPositionUpdate, onAddGr
         api.velocity.set(...initialVelocity);
         api.rotation.set(...initialRotation);
         api.angularVelocity.set(...initialAngularVelocity);
+        
+        // Update gravitational physics with reset position
+        gravitationalPhysics.current.updatePosition(objectId, initialPosition);
       }
     });
     setIsPlaying(false);
     setCurrentTime(0);
   }, [objectApis, initialSceneObjects]);
 
-  // This callback was for external reporting but is not used internally for history
-  // const handlePositionReport = useCallback(({ id, x, y, z }) => {
-  //   // Intentionally doing nothing with the reported position here for the test
-  // }, []);
-
-   const handleAddGraph = useCallback((initialType) => {
-     const newGraphId = `graph-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
-     setOpenGraphs(prevGraphs => [
-       ...prevGraphs,
-       {
-         id: newGraphId,
-         initialType: initialType,
-       }
-     ]);
-     setShowGraphDropdown(false);
-     if (typeof onExternalAddGraph === 'function') {
-       onExternalAddGraph({ id: newGraphId, initialType: initialType });
-     }
-   }, [onExternalAddGraph]);
-
+  const handleAddGraph = useCallback((initialType) => {
+    const newGraphId = `graph-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
+    setOpenGraphs(prevGraphs => [
+      ...prevGraphs,
+      {
+        id: newGraphId,
+        initialType: initialType,
+      }
+    ]);
+    setShowGraphDropdown(false);
+    if (typeof onExternalAddGraph === 'function') {
+      onExternalAddGraph({ id: newGraphId, initialType: initialType });
+    }
+  }, [onExternalAddGraph]);
 
   const handleCloseGraph = useCallback((graphIdToRemove) => {
     setOpenGraphs(prevGraphs => prevGraphs.filter(graph => graph.id !== graphIdToRemove));
@@ -353,22 +532,19 @@ function Visualizer({ scene, onPositionUpdate: onExternalPositionUpdate, onAddGr
 
   useEffect(() => {
     initialSceneObjects.current = scene?.objects ? JSON.parse(JSON.stringify(scene.objects)) : [];
+    gravitationalPhysics.current = new GravitationalPhysics(scene || {});
     handleReset();
   }, [scene, handleReset]);
 
-  // Effect to periodically update the state (objectHistory) from the ref (historyRef)
-  // This is what triggers re-renders of the OverlayGraph components with new data points.
   useEffect(() => {
     const updateStateInterval = setInterval(() => {
-      // Only update if there's data to prevent unnecessary re-renders
       if (Object.keys(historyRef.current).length > 0) {
         setObjectHistory({ ...historyRef.current });
       }
-    }, 100); // Update state ~10 times per second (adjust as needed)
+    }, 100);
 
-    return () => clearInterval(updateStateInterval); // Cleanup the interval
-  }, []); // Empty dependency array means this runs once on mount and cleans up on unmount
-
+    return () => clearInterval(updateStateInterval);
+  }, []);
 
   const handlePlayPause = () => {
     setIsPlaying(prev => !prev);
@@ -393,7 +569,7 @@ function Visualizer({ scene, onPositionUpdate: onExternalPositionUpdate, onAddGr
               {[{ label: 'Y vs T', value: 'yvt' }, { label: 'X vs T', value: 'xvt' }, { label: 'Z vs T', value: 'zvt' }, { label: 'Y vs X', value: 'yvx' }].map(plotType => (
                 <button
                   key={plotType.value}
-                  onClick={() => handleAddGraph(plotType.value)} // Calls handleAddGraph
+                  onClick={() => handleAddGraph(plotType.value)}
                   className="dropdown-item"
                 >
                   {plotType.label}
@@ -410,7 +586,6 @@ function Visualizer({ scene, onPositionUpdate: onExternalPositionUpdate, onAddGr
         gl={{ logLevel: 'errors' }}
         camera={{ position: [10, 5, 25], fov: 50, near: 0.1, far: 20000 }}
       >
-        {/* Pass the global time state down */}
         <TimeUpdater isPlaying={isPlaying} setCurrentTime={setCurrentTime} />
         <ambientLight intensity={0.6} />
         <directionalLight
@@ -430,25 +605,31 @@ function Visualizer({ scene, onPositionUpdate: onExternalPositionUpdate, onAddGr
         <Physics
           gravity={gravity}
           defaultContactMaterial={defaultContactMaterial}
-          isPaused={!isPlaying} // This prop might not work as expected with @react-three/cannon's default setup
+          isPaused={!isPlaying}
         >
-          <GroundPlane />
+          {/* Add the gravitational force updater */}
+          <GravitationalForceUpdater 
+            scene={scene} 
+            objectApis={objectApis} 
+            gravitationalPhysics={gravitationalPhysics}
+            isPlaying={isPlaying} 
+          />
+          
+          {hasGround && <GroundPlane />}
           {objectsToRender.map((obj, index) => {
             const objectId = obj.id !== undefined && obj.id !== null && obj.id !== ''
               ? String(obj.id)
               : `${obj.type?.toLowerCase() || 'obj'}-${index}`;
             const configWithId = { ...obj, id: objectId };
+            
             switch (configWithId.type) {
               case "Sphere":
-                // Pass the onPhysicsUpdate callback to the Sphere component
-                return <Sphere key={objectId} config={configWithId} id={objectId} setApi={setApi} onPhysicsUpdate={onPhysicsUpdate} />;
+                return <Sphere key={objectId} config={configWithId} id={objectId} setApi={setApi} onPhysicsUpdate={onPhysicsUpdate} gravitationalPhysics={gravitationalPhysics} />;
               case "Box":
-                 // If Boxes should also report position, pass onPhysicsUpdate here too
-                return <Box key={objectId} config={configWithId} id={objectId} setApi={setApi} />;
+                return <Box key={objectId} config={configWithId} id={objectId} setApi={setApi} onPhysicsUpdate={onPhysicsUpdate} gravitationalPhysics={gravitationalPhysics} />;
               case "Cylinder":
-                 // If Cylinders should also report position, pass onPhysicsUpdate here too
-                return <Cylinder key={objectId} config={configWithId} id={objectId} setApi={setApi} />;
-              case "Plane": // Assuming SceneBox represents a static Plane or Box
+                return <Cylinder key={objectId} config={configWithId} id={objectId} setApi={setApi} onPhysicsUpdate={onPhysicsUpdate} gravitationalPhysics={gravitationalPhysics} />;
+              case "Plane":
                 return <SceneBox key={objectId} config={{ ...configWithId, mass: configWithId.mass ?? 0 }} id={objectId} setApi={setApi} />;
               default:
                 console.warn(`Unsupported object type: ${configWithId.type}`);
@@ -458,7 +639,7 @@ function Visualizer({ scene, onPositionUpdate: onExternalPositionUpdate, onAddGr
         </Physics>
         <OrbitControls />
         <axesHelper args={[5]} />
-        <SimpleGrid />
+        <SimpleGrid show={hasGround} />
         <FpsCounter setFps={setFps} />
       </Canvas>
 
@@ -477,11 +658,11 @@ function Visualizer({ scene, onPositionUpdate: onExternalPositionUpdate, onAddGr
       </div>
       
       {openGraphs.map(graphConfig => (
-        <OverlayGraph // Assuming OverlayGraph component exists and handles plotting
+        <OverlayGraph
           key={graphConfig.id}
           id={graphConfig.id}
-          initialType={graphConfig.initialType} // Pass initial graph type
-          data={objectHistory} // <-- Pass the accumulated history data
+          initialType={graphConfig.initialType}
+          data={objectHistory}
           onClose={handleCloseGraph}
         />
       ))}
@@ -489,4 +670,5 @@ function Visualizer({ scene, onPositionUpdate: onExternalPositionUpdate, onAddGr
   );
 }
 
+export { GravitationalPhysics };
 export default Visualizer;
