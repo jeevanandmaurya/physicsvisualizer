@@ -31,8 +31,9 @@ body {
   justify-content: space-between;
   gap: 10px;
   align-items: center;
-  padding: 12px 25px;
-  background-color: #242424;
+  height: 30px;
+  padding: 2px 25px;
+  background-color: #1a1a1a;
   border-bottom: 1px solid #333;
   box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
   flex-shrink: 0;
@@ -113,6 +114,7 @@ body {
   flex-grow: 1;
   overflow: hidden;
   min-height: 0;
+  
 }
 
 .dashboard-column-left {

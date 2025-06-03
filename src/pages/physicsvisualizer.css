@@ -10,7 +10,7 @@ body, html, #root {
   font-size: 16px; /* Adjust base font size if needed */
   background-color: #1e1e1e; /* Slightly lighter dark background */
   color: #e0e0e0;
-  /* overflow: hidden; Prevent body scrollbars */
+  
 }
 
 /* Main application container */
