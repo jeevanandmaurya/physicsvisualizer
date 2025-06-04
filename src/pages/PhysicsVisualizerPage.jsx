@@ -8,8 +8,8 @@ import { Link, useNavigate, useLocation } from 'react-router-dom'; // Import use
 import TopMenu from '../components/TopMenu';
 import Visualizer from '../components/Visualizer';
 import OverlayGraph from '../components/OverlayGraph';
-import RightPanel from '../components/RightPanel.jsx';
-import LeftPanel from '../components/LeftPanel.jsx';
+import RightPanel from '../components/RightPanel';
+import LeftPanel from '../components/LeftPanel';
 import Conversation from '../components/Conversation';
 import SceneSelector from '../components/SceneSelector';
 
