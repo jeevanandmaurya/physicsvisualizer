@@ -1,49 +1,49 @@
 // src/pages/CollectionPage.jsx
+
 import React, { useState, useEffect } from 'react';
-import { Link } from 'react-router-dom';
-import './collection.css'
-// --- Mock User Authentication ---
-const useAuth = () => {
-  const [currentUser, setCurrentUser] = useState({
-    id: 'user123',
-    name: 'Physics Enthusiast',
-    isLoggedIn: true,
-  });
-  return { currentUser };
-};
+import { Link, useLocation } from 'react-router-dom';
+import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
+import { faUserCircle, faSignInAlt, faSignOutAlt } from '@fortawesome/free-solid-svg-icons';
+import logoFull from '../assets/physicsvisualizer.svg';
+import './collection.css';
 
-// --- Placeholder Data ---
-const placeholderData = {
-  scenes: [
-    { id: 's1', title: 'Quantum Entanglement Visualizer', description: 'Explore the fascinating world of quantum entanglement with interactive particles.', thumbnailUrl: 'https://via.placeholder.com/350x180/FF6347/FFFFFF?Text=Quantum+Scene', topic: 'Quantum Mechanics', organization: 'QuantumLeap Org', authorId: 'user456', views: 12050, likes: 1502, createdAt: new Date('2024-01-15T10:00:00Z') },
-    { id: 's2', title: 'Newtonian Gravity Simulator', description: 'Simulate planetary orbits and gravitational forces between multiple bodies.', thumbnailUrl: 'https://via.placeholder.com/350x180/6495ED/FFFFFF?Text=Gravity+Sim', topic: 'Classical Mechanics', organization: 'AstroSimulators', authorId: 'user789', views: 25600, likes: 3200, createdAt: new Date('2024-02-20T14:30:00Z') },
-    { id: 's3', title: 'Optics: Lens and Mirror Lab', description: 'Experiment with different types of lenses and mirrors to understand light refraction and reflection.', thumbnailUrl: 'https://via.placeholder.com/350x180/3CB371/FFFFFF?Text=Optics+Lab', topic: 'Optics', organization: 'PhysicsEdu Initiative', authorId: 'user123', views: 18900, likes: 2100, createdAt: new Date('2023-12-01T09:00:00Z') },
-    { id: 's4', title: 'Thermodynamics: Heat Engine', description: 'A detailed simulation of a Carnot heat engine cycle.', thumbnailUrl: 'https://via.placeholder.com/350x180/FFA500/000000?Text=Heat+Engine', topic: 'Thermodynamics', organization: 'ThermoWorks', authorId: 'user456', views: 9800, likes: 750, createdAt: new Date('2024-03-10T11:00:00Z') },
-    { id: 's5', title: 'My Awesome Fluid Dynamics', description: 'My custom simulation showing cool fluid patterns.', thumbnailUrl: 'https://via.placeholder.com/350x180/BA55D3/FFFFFF?Text=My+Fluid+Sim', topic: 'Fluid Dynamics', organization: null, authorId: 'user123', views: 500, likes: 50, createdAt: new Date('2024-04-05T16:00:00Z') },
-    { id: 's6', title: 'E&M: Wave Propagation', description: 'Visualizing electromagnetic wave propagation in different media.', thumbnailUrl: 'https://via.placeholder.com/350x180/4682B4/FFFFFF?Text=EM+Wave', topic: 'Electromagnetism', organization: 'QuantumLeap Org', authorId: 'user789', views: 11500, likes: 900, createdAt: new Date('2024-03-25T08:20:00Z') },
-  ],
-  // Topics and organizations will be derived in useEffect
-};
-
+// Import Firebase services
+import { db, auth } from '../firebase-config';
+import { collection, query, where, getDocs } from 'firebase/firestore';
+import { onAuthStateChanged, signInWithPopup, GoogleAuthProvider, signOut } from 'firebase/auth';
 
 // --- Reusable SceneCard Component ---
-// Add className props for styling via external CSS
-function SceneCard({ scene }) {
+function SceneCard({ scene, isPublic = false }) {
   return (
     <div className="scene-card">
-      <img src={scene.thumbnailUrl} alt={scene.title} className="scene-thumbnail" />
+      <img 
+        src={scene.thumbnailUrl || 'https://placehold.co/350x180/777777/FFFFFF?text=No+Thumbnail'} 
+        alt={scene.title || scene.name} 
+        className="scene-thumbnail" 
+      />
       <div className="scene-card-content">
-        <h3 className="scene-title" title={scene.title}>{scene.title}</h3>
-        {scene.topic && <p className="scene-topic-org-info">Topic: {scene.topic}</p>}
-        {scene.organization && <p className="scene-topic-org-info">By: {scene.organization}</p>}
-        <p className="scene-description">{scene.description}</p>
-        <div className="scene-meta">
-          <span className="scene-meta-item"> {scene.views.toLocaleString()}</span>
-          <span className="scene-meta-item"> {scene.likes.toLocaleString()}</span>
-        </div>
+        <h3 className="scene-title" title={scene.title || scene.name}>
+          {scene.title || scene.name || 'Untitled Scene'}
+        </h3>
+        <p className="scene-description">
+          {scene.description || 'No description available.'}
+        </p>
+        {!isPublic && (
+          <div className="scene-meta">
+            <span className="scene-meta-item">
+              Created: {scene.created || 'N/A'}
+            </span>
+          </div>
+        )}
       </div>
       <div className="scene-actions">
-        <Link to={`/scene/${scene.id}`} className="scene-action-button">View Scene</Link>
+        <Link 
+          to={`/visualizer`} 
+          state={{ sceneToLoad: scene.id, isPublic }} 
+          className="scene-action-button"
+        >
+          View Scene
+        </Link>
       </div>
     </div>
   );
@@ -51,149 +51,200 @@ function SceneCard({ scene }) {
 
 // --- Main CollectionPage Component ---
 function CollectionPage() {
-  const { currentUser } = useAuth();
-  const [activeTab, setActiveTab] = useState('topics');
-  const [allScenes, setAllScenes] = useState([]);
-  const [topics, setTopics] = useState([]);
-  const [organizations, setOrganizations] = useState([]);
-  const [selectedTopic, setSelectedTopic] = useState('');
-  const [selectedOrganization, setSelectedOrganization] = useState('');
+  const location = useLocation();
+  const [currentUser, setCurrentUser] = useState(null);
+  const [publicScenes, setPublicScenes] = useState([]);
+  const [userScenes, setUserScenes] = useState([]);
+  const [loadingPublic, setLoadingPublic] = useState(true);
+  const [loadingUser, setLoadingUser] = useState(true);
+  const [error, setError] = useState(null);
+
+  // Set active tab based on navigation state or default to public scenes
+  const [activeTab, setActiveTab] = useState(location.state?.activeTab || 'publicScenes');
 
   useEffect(() => {
-    // Simulating API call
-    console.log("Fetching data (simulated)...");
-    setAllScenes(placeholderData.scenes);
-    const uniqueTopics = ['All', ...new Set(placeholderData.scenes.map(s => s.topic).filter(Boolean))];
-    const uniqueOrgs = ['All', ...new Set(placeholderData.scenes.map(s => s.organization).filter(Boolean))];
-    setTopics(uniqueTopics);
-    setOrganizations(uniqueOrgs);
-    setSelectedTopic('All');
-    setSelectedOrganization('All');
+    const unsubscribe = onAuthStateChanged(auth, (user) => {
+      setCurrentUser(user);
+    });
+    return () => unsubscribe();
   }, []);
+
+  useEffect(() => {
+    fetchPublicScenes();
+  }, []);
+
+  useEffect(() => {
+    if (currentUser) {
+      fetchUserScenes(currentUser.uid);
+    } else {
+      setUserScenes([]);
+      setLoadingUser(false);
+    }
+  }, [currentUser]);
+
+  const fetchPublicScenes = async () => {
+    setLoadingPublic(true);
+    try {
+      const q = query(collection(db, 'public_scenes'));
+      const querySnapshot = await getDocs(q);
+      const scenes = querySnapshot.docs.map(doc => ({
+        id: doc.id,
+        ...doc.data()
+      }));
+      setPublicScenes(scenes);
+    } catch (err) {
+      console.error("Error fetching public scenes:", err);
+      setError("Failed to load public scenes. Please try again.");
+    } finally {
+      setLoadingPublic(false);
+    }
+  };
+
+  const fetchUserScenes = async (uid) => {
+    setLoadingUser(true);
+    try {
+      const q = query(
+        collection(db, 'scenes'),
+        where('authorId', '==', uid)
+      );
+      const querySnapshot = await getDocs(q);
+      const scenes = querySnapshot.docs.map(doc => ({
+        id: doc.id,
+        ...doc.data(),
+        created: doc.data().createdAt?.toDate().toLocaleDateString() || 'N/A'
+      }));
+      setUserScenes(scenes);
+    } catch (err) {
+      console.error("Error fetching user scenes:", err);
+      setError("Failed to load your scenes. Please try again.");
+    } finally {
+      setLoadingUser(false);
+    }
+  };
+
+  const handleSignInOut = async () => {
+    if (currentUser) {
+      try {
+        await signOut(auth);
+        alert("You have been signed out.");
+      } catch (error) {
+        console.error("Error signing out:", error);
+        alert("Failed to sign out. Please try again.");
+      }
+    } else {
+      const provider = new GoogleAuthProvider();
+      try {
+        await signInWithPopup(auth, provider);
+      } catch (error) {
+        if (error.code !== 'auth/popup-closed-by-user') {
+          alert("Failed to sign in. Please try again: " + error.message);
+        }
+      }
+    }
+  };
 
   const handleTabClick = (tabName) => {
     setActiveTab(tabName);
-    if (tabName === 'topics') setSelectedTopic('All');
-    if (tabName === 'organizations') setSelectedOrganization('All');
+    setError(null); // Clear any previous errors
   };
 
-  const renderScenes = (scenesToRender) => {
-    if (!scenesToRender || scenesToRender.length === 0) {
-      return <p className="empty-state-message">No scenes found for this selection. Try adjusting your filters or explore other categories! 🌌</p>;
+  // --- renderScenes function ---
+  const renderScenes = (scenes, loading, isPublic) => {
+    if (loading) {
+      return <p className="empty-state-message">Loading scenes... ⏳</p>;
     }
+    
+    if (error) {
+      return <p className="error-state-message">Error: {error}</p>;
+    }
+    
+    if (!scenes || scenes.length === 0) {
+      if (!isPublic && !currentUser) {
+        return <p className="empty-state-message">Please log in to see your scenes. ✨</p>;
+      }
+      return (
+        <p className="empty-state-message">
+          {isPublic 
+            ? "No public scenes available yet. 🌌" 
+            : "You haven't created any scenes yet. Start creating! 🚀"
+          }
+        </p>
+      );
+    }
+    
     return (
       <div className="scene-grid">
-        {scenesToRender.map(scene => <SceneCard key={scene.id} scene={scene} />)}
+        {scenes.map(scene => (
+          <SceneCard key={scene.id} scene={scene} isPublic={isPublic} />
+        ))}
       </div>
     );
   };
 
-  const getFilteredScenes = () => {
-    let filtered = [...allScenes];
-
-    if (activeTab === 'topics') {
-      if (selectedTopic && selectedTopic !== 'All') {
-        filtered = filtered.filter(scene => scene.topic === selectedTopic);
-      }
-    } else if (activeTab === 'trending') {
-      filtered.sort((a, b) => (b.views + b.likes * 10) - (a.views + a.likes * 10));
-    } else if (activeTab === 'organizations') {
-      if (selectedOrganization && selectedOrganization !== 'All') {
-        filtered = filtered.filter(scene => scene.organization === selectedOrganization);
-      }
-    } else if (activeTab === 'myScenes' && currentUser?.isLoggedIn) {
-      filtered = filtered.filter(scene => scene.authorId === currentUser.id);
-    } else if (activeTab === 'myScenes' && !currentUser?.isLoggedIn) {
-      return [];
-    }
-    return filtered;
-  };
-
-  const currentScenesToDisplay = getFilteredScenes();
-
   return (
-    // Assign a root class for page-level styling
     <div className="collection-page-container">
-      <header className="collection-page-header">
-        <h1 className="collection-page-title">🌌 Physics Scene Collection</h1>
-        <Link to="/" className="dashboard-link">← Back to Dashboard</Link>
+      <header className="dashboard-header">
+        <div style={{ display: 'flex', alignItems: 'center' }}>
+          <img src={logoFull} alt="Physics Visualizer Logo" height="45px" />
+          <span className="dashboard-title-text">Explore</span>
+        </div>
+        <div className="user-section">
+          {currentUser ? (
+            <div className="user-info" onClick={handleSignInOut} title="Click to Sign Out">
+              {currentUser.photoURL ? (
+                <img src={currentUser.photoURL} alt={currentUser.displayName || "User"} className="user-avatar" />
+              ) : (
+                <FontAwesomeIcon icon={faUserCircle} className="user-avatar-default" />
+              )}
+              <span>{currentUser.displayName || currentUser.email}</span>
+              <span className="sign-out-link"><FontAwesomeIcon icon={faSignOutAlt} /> (Sign Out)</span>
+            </div>
+          ) : (
+            <button className="sign-in-button" onClick={handleSignInOut}>
+              <FontAwesomeIcon icon={faSignInAlt} /> Sign In
+            </button>
+          )}
+        </div>
       </header>
+
+      <div className="collection-navigation">
+        <Link to="/" className="dashboard-link">← Back to Dashboard</Link>
+      </div>
 
       <nav className="collection-page-nav-tabs">
         <button
-          className={`tab-button ${activeTab === 'topics' ? 'active-tab' : ''}`}
-          onClick={() => handleTabClick('topics')}
+          className={`tab-button ${activeTab === 'publicScenes' ? 'active-tab' : ''}`}
+          onClick={() => handleTabClick('publicScenes')}
         >
-          Browse by Topic
+          Public Scenes
         </button>
         <button
-          className={`tab-button ${activeTab === 'trending' ? 'active-tab' : ''}`}
-          onClick={() => handleTabClick('trending')}
+          className={`tab-button ${activeTab === 'myScenes' ? 'active-tab' : ''}`}
+          onClick={() => handleTabClick('myScenes')}
+          disabled={!currentUser}
         >
-          Trending Scenes
+          Your Scenes {!currentUser && '(Sign in required)'}
         </button>
-        <button
-          className={`tab-button ${activeTab === 'organizations' ? 'active-tab' : ''}`}
-          onClick={() => handleTabClick('organizations')}
-        >
-          By Organization
-        </button>
-        {currentUser?.isLoggedIn && (
-          <button
-            className={`tab-button ${activeTab === 'myScenes' ? 'active-tab' : ''}`}
-            onClick={() => handleTabClick('myScenes')}
-          >
-           My Scenes
-          </button>
-        )}
       </nav>
 
       <main className="collection-page-main-content">
-        {activeTab === 'topics' && (
+        {activeTab === 'publicScenes' && (
           <section className="content-section">
-            <div className="section-header-controls">
-              <h2 className="section-title">Explore by Topic</h2>
-              <select
-                value={selectedTopic}
-                onChange={(e) => setSelectedTopic(e.target.value)}
-                className="category-select"
-              >
-                {topics.map(topic => <option key={topic} value={topic}>{topic}</option>)}
-              </select>
-            </div>
-            {renderScenes(currentScenesToDisplay)}
-          </section>
-        )}
-
-        {activeTab === 'trending' && (
-          <section className="content-section">
-            <h2 className="section-title">Trending Now</h2>
-            {renderScenes(currentScenesToDisplay)}
-          </section>
-        )}
-
-        {activeTab === 'organizations' && (
-          <section className="content-section">
-             <div className="section-header-controls">
-              <h2 className="section-title">Discover from Organizations</h2>
-              <select
-                value={selectedOrganization}
-                onChange={(e) => setSelectedOrganization(e.target.value)}
-                className="category-select"
-              >
-                {organizations.map(org => <option key={org} value={org}>{org}</option>)}
-              </select>
-            </div>
-            {renderScenes(currentScenesToDisplay)}
+            <h2 className="section-title">Public Scenes</h2>
+            <p className="section-description">
+              Explore example scenes and simulations created by educators and the community.
+            </p>
+            {renderScenes(publicScenes, loadingPublic, true)}
           </section>
         )}
 
         {activeTab === 'myScenes' && (
           <section className="content-section">
-            <h2 className="section-title">My Created Scenes</h2>
-            {currentUser?.isLoggedIn ? renderScenes(currentScenesToDisplay)
-              : <p className="empty-state-message">Please log in to see your scenes. ✨</p>
-            }
+            <h2 className="section-title">Your Scenes</h2>
+            <p className="section-description">
+              Your personal collection of physics simulations and scenes.
+            </p>
+            {renderScenes(userScenes, loadingUser, false)}
           </section>
         )}
       </main>

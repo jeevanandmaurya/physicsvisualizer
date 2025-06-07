@@ -1,4 +1,46 @@
-/* App.css */
+/* ===== SHARED VARIABLES (Use across all files) ===== */
+:root {
+  /* VS Code Dark Theme Colors */
+  --bg-main: #1e1e1e;         /* Deepest background */
+  --bg-panel: #252526;        /* Slightly lighter panels */
+  --bg-element: #2d2d2d;      /* Background for list items, properties */
+  --bg-element-hover: #383838; /* Hover state for elements */
+  --bg-element-selected: #3f3f46; /* Selected state */
+  --bg-header: #333333;       /* Header backgrounds */
+  --bg-input: #3c3c3c;        /* Input field backgrounds */
+  --bg-button: #2d2d2d;       /* Button backgrounds */
+
+  --border-color-subtle: #3a3a3a; /* Subtle borders */
+  --border-color-medium: #444444; /* Medium borders */
+  --border-color-focus: #007acc;   /* Accent/Focus border (VS Code blue) */
+
+  --text-primary: #d4d4d4;    /* Primary text */
+  --text-secondary: #a0a0a0;  /* Secondary/muted text */
+  --text-label: #b0b0b0;      /* Labels */
+  --text-header: #cccccc;     /* Header text */
+  --text-on-accent: #ffffff;   /* Text on accent backgrounds */
+
+  --accent-color: #007acc;     /* VS Code blue */
+  --accent-color-hover: #0e639c;
+  --success-color: #4caf50;    /* Green for success states */
+  --success-color-hover: #45a049;
+  --error-color: #f44747;      /* Red for errors */
+  --warning-color: #ffcc02;    /* Yellow for warnings */
+
+  --font-family-ui: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+  --font-size-base: 13px;
+  --font-size-small: 11px;
+  --font-size-large: 16px;
+
+  --padding-base: 10px;
+  --padding-compact: 5px;
+  --padding-large: 15px;
+
+  --radius-base: 3px;
+  --shadow-base: 0 2px 8px rgba(0, 0, 0, 0.3);
+}
+
+/* ===== APP.CSS ===== */
 
 /* Basic Reset and Global Styles */
 body, html, #root {
@@ -6,135 +48,250 @@ body, html, #root {
   padding: 0;
   width: 100%;
   height: 100%;
-  font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; /* Use preferred fonts */
-  font-size: 16px; /* Adjust base font size if needed */
-  background-color: #1e1e1e; /* Slightly lighter dark background */
-  color: #e0e0e0;
-  
+  font-family: var(--font-family-ui);
+  font-size: var(--font-size-base);
+  background-color: var(--bg-main);
+  color: var(--text-primary);
 }
 
 /* Main application container */
 .main {
   width: 100%;
-  height: 100vh; /* Fill viewport height */
+  height: 100vh;
   display: flex;
   flex-direction: column;
+  background-color: var(--bg-main);
 }
 
 /* Styling for Panels from react-resizable-panels */
-/* Add classes to Panels in App.jsx if you need specific background/borders */
 .component-section,
 .visualization-section,
 .graph-section,
 .solution-section {
-  background-color: #191919; /* Example background for panels */
-  /* Add borders or other styles as needed */
-  /* border: 1px solid #444; */
-  overflow: hidden; /* Prevent panels themselves from scrolling unexpectedly */
+  background-color: var(--bg-panel);
+  border: 1px solid var(--border-color-subtle);
+  overflow: hidden;
 }
 
-/* Common container *within* each panel section */
+/* Common container within each panel section */
 .content-section {
   display: flex;
-  flex-direction: column; /* Stack content vertically */
+  flex-direction: column;
   box-sizing: border-box;
-  background-color: #191919; /* Match panel or differentiate */
-  padding: 1px; /* Minimal padding */
-  height: 100%; /* Fill the parent panel's height */
-  width: 100%; /* Fill the parent panel's width */
-  overflow: hidden; /* Changed from auto to hidden - let internal components scroll if needed */
+  background-color: var(--bg-panel);
+  padding: var(--padding-compact);
+  height: 100%;
+  width: 100%;
+  overflow: hidden;
 }
 
-/* Specific Component Styling (Keep relevant styles) */
+/* Specific Component Styling */
 .physics-parameters {
-  font-size: 12px;
+  font-size: var(--font-size-small);
   margin: 0;
-  padding: 5px;
-  background: #2a2a2a;
+  padding: var(--padding-compact);
+  background-color: var(--bg-element);
+  border: 1px solid var(--border-color-subtle);
+  border-radius: var(--radius-base);
 }
+
 .physics-parameters h3 {
-  background: #333;
-  padding: 8px;
-  margin: 0 0 5px 0;
-  font-size: 14px;
-  border-bottom: 1px solid #555;
+  background-color: var(--bg-header);
+  color: var(--text-header);
+  padding: var(--padding-compact) var(--padding-base);
+  margin: 0 0 var(--padding-compact) 0;
+  font-size: var(--font-size-base);
+  font-weight: 600;
+  border-bottom: 1px solid var(--border-color-medium);
+  border-radius: var(--radius-base) var(--radius-base) 0 0;
 }
-/* ... other styles for messages, input, buttons ... */
-.user-message{
-  background: #363636;
-  max-width: 80%; /* Prevent messages getting too wide */
-  padding: 5px 12px;
-  margin: 10px 10px 10px auto;
-  border-radius: 15px;
-  word-wrap: break-word; /* Ensure long words wrap */
-}
-.ai-message{
-  background: #252525; /* Slightly different AI background */
+
+.user-message {
+  background-color: var(--bg-element);
+  color: var(--text-primary);
   max-width: 80%;
-  padding: 5px 12px;
-  margin: 10px auto 10px 10px; /* Align left */
-  border-radius: 15px;
+  padding: var(--padding-compact) var(--padding-base);
+  margin: var(--padding-base) var(--padding-base) var(--padding-base) auto;
+  border-radius: var(--radius-base);
+  border: 1px solid var(--border-color-subtle);
   word-wrap: break-word;
+  box-shadow: var(--shadow-base);
+}
+
+.ai-message {
+  background-color: var(--bg-header);
+  color: var(--text-primary);
+  max-width: 80%;
+  padding: var(--padding-compact) var(--padding-base);
+  margin: var(--padding-base) auto var(--padding-base) var(--padding-base);
+  border-radius: var(--radius-base);
+  border: 1px solid var(--border-color-subtle);
+  word-wrap: break-word;
+  box-shadow: var(--shadow-base);
 }
 
 /* Resize Handles */
 .resize-handle {
-  width: 2px; /* Make handle slightly easier to grab */
-  background-color: #444; /* Darker handle */
+  width: 2px;
+  background-color: var(--border-color-medium);
   cursor: col-resize;
   transition: background-color 0.2s ease;
 }
+
 .resize-handle:hover {
-  background-color: #5e7abd; /* Highlight on hover */
+  background-color: var(--accent-color);
 }
+
 .resize-handle[data-resize-handle-active] {
- background-color: #7a9ff5; /* Highlight when active */
+  background-color: var(--accent-color-hover);
 }
-.resize-handle-horizontal { /* If you use vertical resizing */
+
+.resize-handle-horizontal {
   height: 2px;
-  background-color: #444;
+  background-color: var(--border-color-medium);
   cursor: row-resize;
+  transition: background-color 0.2s ease;
 }
+
 .resize-handle-horizontal:hover {
-  background-color: #5e7abd;
+  background-color: var(--accent-color);
 }
+
 .resize-handle-horizontal[data-resize-handle-active] {
- background-color: #7a9ff5;
+  background-color: var(--accent-color-hover);
 }
 
 .visualization-section .content-section {
-  position: relative; /* Crucial for positioning overlays */
-  overflow: hidden; /* Prevent overlays from overflowing the panel */
-  /* Ensure it fills the panel if not already */
+  position: relative;
+  overflow: hidden;
   height: 100%;
-  display: flex; /* Keep if Visualizer needs it */
-  flex-direction: column; /* Keep if Visualizer needs it */
+  display: flex;
+  flex-direction: column;
+  background-color: var(--bg-main);
 }
 
-/* Basic styling for the overlay close button (add more as needed) */
+/* Overlay close button */
 .overlay-graph-close-button {
   position: absolute;
-  top: 2px;
-  right: 2px;
+  top: var(--padding-compact);
+  right: var(--padding-compact);
   padding: 0;
-  background: #00000041;
-  color: white;
-  border: 1px solid rgba(255, 255, 255, 0.314);
-  border-radius: 10%;
-  width: 18px;
-  height: 18px;
-  font-size: 12px;
-  line-height: 16px; /* Center the 'X' */
+  background-color: var(--bg-element);
+  color: var(--text-primary);
+  border: 1px solid var(--border-color-medium);
+  border-radius: var(--radius-base);
+  width: 20px;
+  height: 20px;
+  font-size: var(--font-size-small);
+  line-height: 18px;
   cursor: pointer;
-  z-index: 10; /* Ensure it's above graph controls */
-}
-.overlay-graph-close-button:hover {
-    background: #d43737;
+  z-index: 10;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: background-color 0.15s ease;
 }
 
-/* Add styles for the Rnd component if needed, e.g., border */
+.overlay-graph-close-button:hover {
+  background-color: var(--error-color);
+  color: var(--text-on-accent);
+}
+
 .overlay-graph-rnd {
-    border: 1px solid #aaa;
-    box-shadow: 0 2px 10px rgba(0,0,0,0.2);
-    /* z-index is set inline below, but could be here too */
+  border: 1px solid var(--border-color-medium);
+  border-radius: var(--radius-base);
+  box-shadow: var(--shadow-base);
+  background-color: var(--bg-panel);
+}
+
+/* ===== CONVERSATION.CSS ===== */
+
+.conversation-container {
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+  background-color: var(--bg-panel);
+  border: 1px solid var(--border-color-subtle);
+}
+
+.conversation-box {
+  flex: 1;
+  overflow-y: auto;
+  padding: var(--padding-base);
+  background-color: var(--bg-main);
+}
+
+.conversation-box .ai-message {
+  background-color: var(--bg-header);
+  color: var(--text-primary);
+  padding: var(--padding-base);
+  margin: var(--padding-compact) 0;
+  border-radius: var(--radius-base);
+  border: 1px solid var(--border-color-subtle);
+  box-shadow: var(--shadow-base);
+}
+
+.conversation-box .user-message {
+  background-color: var(--bg-element);
+  color: var(--text-primary);
+  padding: var(--padding-base);
+  margin: var(--padding-compact) 0;
+  border-radius: var(--radius-base);
+  border: 1px solid var(--border-color-subtle);
+  box-shadow: var(--shadow-base);
+}
+
+.input-section {
+  height: 15%;
+  width: 100%;
+  display: flex;
+  background-color: var(--bg-header);
+  border-top: 1px solid var(--border-color-medium);
+  padding: var(--padding-base);
+  box-sizing: border-box;
+}
+
+.input-textarea {
+  flex: 1;
+  background-color: var(--bg-input);
+  color: var(--text-primary);
+  border: 1px solid var(--border-color-medium);
+  border-radius: var(--radius-base);
+  padding: var(--padding-base);
+  font-family: var(--font-family-ui);
+  font-size: var(--font-size-base);
+  resize: vertical;
+  min-height: 40px;
+}
+
+.input-textarea:focus {
+  outline: none;
+  border-color: var(--accent-color);
+  box-shadow: 0 0 0 2px rgba(0, 122, 204, 0.2);
+}
+
+.process-button {
+  background-color: var(--success-color);
+  color: var(--text-on-accent);
+  border: 1px solid var(--success-color);
+  border-radius: var(--radius-base);
+  padding: var(--padding-base) var(--padding-large);
+  margin-left: var(--padding-base);
+  font-family: var(--font-family-ui);
+  font-size: var(--font-size-base);
+  font-weight: 500;
+  cursor: pointer;
+  transition: background-color 0.15s ease;
+}
+
+.process-button:hover:not(:disabled) {
+  background-color: var(--success-color-hover);
+}
+
+.process-button:disabled {
+  background-color: var(--bg-element);
+  color: var(--text-secondary);
+  border-color: var(--border-color-subtle);
+  cursor: not-allowed;
+  opacity: 0.6;
 }

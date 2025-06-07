@@ -1,20 +1,21 @@
-/* graph.css */
+/* ===== GRAPH.CSS - VS Code Dark Theme ===== */
 
 .overlay {
-    background-color: rgba(0, 0, 0, 0.09);
-    border: 1px solid #cccccc5f;
-    border-radius: 5px;
-    box-shadow: 2px 2px 10px rgba(0, 0, 0, 0.2);
+    background-color: rgba(37, 37, 38, 0.15);
+    border: 1px solid rgba(68, 68, 68, 0.4);
+    border-radius: var(--radius-base);
+    box-shadow: var(--shadow-base);
     display: flex;
     flex-direction: column;
     overflow: hidden; /* Prevents content from spilling out during resize */
     z-index: 10; /* Ensure overlays are above the canvas */
+    backdrop-filter: blur(8px);
 }
 
 .overlay-header {
-    padding: 5px 10px;
-    background-color: #00000000;
-    border-bottom: 1px solid #ffffff4b;
+    padding: var(--padding-compact) var(--padding-base);
+    background-color: rgba(51, 51, 51, 0.3);
+    border-bottom: 1px solid rgba(68, 68, 68, 0.5);
     cursor: grab; /* Indicate it's draggable */
     display: flex; /* Use flexbox for title and button */
     justify-content: space-between; /* Space out title and button */
@@ -26,53 +27,83 @@
 }
 
 .overlay-title {
-    font-size: medium;
+    font-size: var(--font-size-base);
+    color: var(--text-header);
+    font-weight: 500;
+    font-family: var(--font-family-ui);
 }
 
 .overlay-close-button {
-    background: rgb(86, 86, 86);
-    border: none;
+    background-color: var(--bg-element);
+    border: 1px solid var(--border-color-medium);
+    border-radius: var(--radius-base);
     text-align: center;
-    color: #ffffff; /* Color for the close button */
+    color: var(--text-primary);
     cursor: pointer;
-    padding: 0px 5px;
+    padding: var(--padding-compact) var(--padding-compact);
+    font-family: var(--font-family-ui);
+    font-size: var(--font-size-small);
+    transition: background-color 0.15s ease;
+    min-width: 20px;
+    height: 20px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
 }
 
 .overlay-close-button:hover {
-    background-color: #c00; /* Color change on hover */
+    background-color: var(--error-color);
+    color: var(--text-on-accent);
 }
 
 .overlay-content {
     flex-grow: 1; /* Allow content area to take remaining space */
-    padding: 10px;
+    padding: var(--padding-base);
     overflow-y: auto; /* Add scroll if content exceeds height */
     display: flex; /* Use flex for internal layout */
     flex-direction: column;
+    background-color: rgba(30, 30, 30, 0.1);
 }
 
 /* Specific styles for graph content */
 .overlay-content.graph-content {
-    padding: 10px; /* Add padding */
+    padding: var(--padding-base);
 }
 
 .graph-controls {
-    margin-bottom: 10px;
+    margin-bottom: var(--padding-base);
     display: flex; /* Arrange controls horizontally */
     align-items: center;
-    gap: 00px; /* Space between controls */
-    font-size: small;
+    gap: var(--padding-base); /* Space between controls */
+    font-size: var(--font-size-small);
+    font-family: var(--font-family-ui);
 }
 
 .graph-controls label {
-    color: #ffffff; /* Slightly muted label color */
+    color: var(--text-label);
+    font-family: var(--font-family-ui);
 }
 
 .graph-controls select {
-    padding: 3px;
-    font-size: 1em; /* Adjust size as needed */
-    border: 1px solid #ccc;
-    border-radius: 4px;
+    padding: var(--padding-compact);
+    font-size: var(--font-size-small);
+    font-family: var(--font-family-ui);
+    background-color: var(--bg-input);
+    color: var(--text-primary);
+    border: 1px solid var(--border-color-medium);
+    border-radius: var(--radius-base);
     cursor: pointer;
+    transition: border-color 0.15s ease;
+}
+
+.graph-controls select:focus {
+    outline: none;
+    border-color: var(--accent-color);
+    box-shadow: 0 0 0 2px rgba(0, 122, 204, 0.2);
+}
+
+.graph-controls select:hover {
+    border-color: var(--border-color-focus);
 }
 
 .graph-plot-area {
@@ -80,7 +111,24 @@
     display: flex;
     justify-content: center;
     align-items: center;
-    font-size: small;
-    color: #ffffff;
+    font-size: var(--font-size-small);
+    color: var(--text-primary);
+    font-family: var(--font-family-ui);
+    background-color: rgba(30, 30, 30, 0.05);
+    border: 1px solid rgba(58, 58, 58, 0.3);
+    border-radius: var(--radius-base);
     /* Add specific styles for your charting library's container */
+}
+
+/* Additional responsive adjustments for graphs */
+@media (max-width: 768px) {
+    .graph-controls {
+        flex-direction: column;
+        align-items: flex-start;
+        gap: var(--padding-compact);
+    }
+    
+    .overlay-title {
+        font-size: var(--font-size-small);
+    }
 }

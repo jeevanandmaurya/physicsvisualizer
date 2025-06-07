@@ -1,11 +1,10 @@
 // Import the functions you need from the SDKs you need
 import { initializeApp } from "firebase/app";
 import { getAnalytics } from "firebase/analytics";
-// TODO: Add SDKs for Firebase products that you want to use
-// https://firebase.google.com/docs/web/setup#available-libraries
+import { getFirestore } from "firebase/firestore"; // Import Firestore service
+import { getAuth } from "firebase/auth"; // Import Auth service
 
 // Your web app's Firebase configuration
-// For Firebase JS SDK v7.20.0 and later, measurementId is optional
 const firebaseConfig = {
   apiKey: "AIzaSyDDdkh8AQ0J9STZ93mCxiBebZBssgyDAyM",
   authDomain: "physicsvisualizer.firebaseapp.com",
@@ -19,3 +18,8 @@ const firebaseConfig = {
 // Initialize Firebase
 const app = initializeApp(firebaseConfig);
 const analytics = getAnalytics(app);
+const db = getFirestore(app); // Initialize Firestore
+const auth = getAuth(app); // Initialize Auth
+
+// Export the initialized services so you can use them in other components
+export { app, analytics, db, auth };

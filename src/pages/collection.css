@@ -1,32 +1,91 @@
-/* Example for CollectionPage.css */
+/* CollectionPage.css - Fixed and Enhanced */
 
-/* Based on previous 'styles.page' */
 .collection-page-container {
-  padding: 15px;
+  padding: 0;
   font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
   background-color: #1a1a1a;
   color: #e0e0e0;
-  min-height: calc(100vh - 30px);
+  min-height: 100vh;
   line-height: 1.6;
 }
 
-/* Based on previous 'styles.header' */
-.collection-page-header {
+/* Header Section */
+.dashboard-header {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  padding: 12px 25px;
+  padding: 15px 25px;
   background-color: #242424;
   border-bottom: 1px solid #333;
   box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
-  margin-bottom: 20px;
+  margin-bottom: 0;
 }
 
-.collection-page-title {
+.dashboard-title-text {
   color: #ffffff;
-  font-size: 1.4em;
+  font-size: 1.5em;
   font-weight: bold;
-  margin: 0;
+  margin-left: 15px;
+}
+
+/* User Section */
+.user-section {
+  display: flex;
+  align-items: center;
+}
+
+.user-info {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  cursor: pointer;
+  padding: 8px 12px;
+  border-radius: 6px;
+  transition: background-color 0.2s ease;
+}
+
+.user-info:hover {
+  background-color: #333;
+}
+
+.user-avatar {
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  object-fit: cover;
+}
+
+.user-avatar-default {
+  font-size: 32px;
+  color: #888;
+}
+
+.sign-out-link {
+  font-size: 0.85em;
+  color: #888;
+  margin-left: 5px;
+}
+
+.sign-in-button {
+  padding: 10px 16px;
+  background-color: #007bff;
+  color: white;
+  border: none;
+  border-radius: 6px;
+  cursor: pointer;
+  font-size: 0.95em;
+  transition: background-color 0.2s ease;
+}
+
+.sign-in-button:hover {
+  background-color: #0056b3;
+}
+
+/* Navigation */
+.collection-navigation {
+  padding: 15px 25px;
+  background-color: #1f1f1f;
+  border-bottom: 1px solid #333;
 }
 
 .dashboard-link {
@@ -36,6 +95,7 @@
   font-size: 0.95em;
   transition: color 0.2s ease;
 }
+
 .dashboard-link:hover {
   color: #007bff;
 }
@@ -43,12 +103,13 @@
 /* Tabs */
 .collection-page-nav-tabs {
   display: flex;
-  margin-bottom: 25px;
+  padding: 0 25px;
+  background-color: #1f1f1f;
   border-bottom: 1px solid #333;
 }
 
 .tab-button {
-  padding: 12px 20px;
+  padding: 15px 20px;
   cursor: pointer;
   border: none;
   background: none;
@@ -60,38 +121,42 @@
   transition: color 0.2s ease, border-bottom-color 0.2s ease;
 }
 
+.tab-button:hover:not(:disabled) {
+  color: #e0e0e0;
+}
+
 .tab-button.active-tab {
   color: #ffffff;
-  border-bottom-color: #00aaff; /* Ensure this matches desired active color */
+  border-bottom-color: #00aaff;
   font-weight: 600;
 }
 
-/* Sections */
+.tab-button:disabled {
+  color: #666;
+  cursor: not-allowed;
+}
+
+/* Main Content */
+.collection-page-main-content {
+  padding: 25px;
+}
+
 .content-section {
   margin-bottom: 30px;
 }
 
-.section-header-controls {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  margin-bottom: 15px; /* Was sectionTitle.marginBottom */
-}
-
 .section-title {
-  font-size: 1.3em;
+  font-size: 1.4em;
   color: #ffffff;
-  /* Removed margin-bottom and border-bottom as they are on parent or handled differently now */
+  margin-bottom: 8px;
+  font-weight: 600;
 }
 
-.category-select {
-  padding: 10px 12px;
-  font-size: 0.95em;
-  border-radius: 6px;
-  border: 1px solid #444;
-  background-color: #2c2c2c;
-  color: #e0e0e0;
-  outline: none;
+.section-description {
+  font-size: 1em;
+  color: #b0b0b0;
+  margin-bottom: 25px;
+  line-height: 1.5;
 }
 
 /* Scene Grid and Cards */
@@ -104,16 +169,17 @@
 .scene-card {
   background-color: #2c2c2c;
   border: 1px solid #3f3f3f;
-  border-radius: 8px;
-  box-shadow: 0 2px 5px rgba(0, 0, 0, 0.25);
+  border-radius: 12px;
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.25);
   overflow: hidden;
   display: flex;
   flex-direction: column;
-  transition: transform 0.2s ease, box-shadow 0.2s ease;
+  transition: transform 0.3s ease, box-shadow 0.3s ease;
 }
+
 .scene-card:hover {
-  transform: translateY(-3px);
-  box-shadow: 0 6px 12px rgba(0, 0, 0, 0.3);
+  transform: translateY(-5px);
+  box-shadow: 0 8px 20px rgba(0, 0, 0, 0.4);
 }
 
 .scene-thumbnail {
@@ -125,7 +191,7 @@
 }
 
 .scene-card-content {
-  padding: 15px;
+  padding: 18px;
   flex-grow: 1;
   display: flex;
   flex-direction: column;
@@ -135,16 +201,11 @@
   font-size: 1.2em;
   font-weight: 600;
   color: #ffffff;
-  margin-bottom: 10px;
+  margin-bottom: 12px;
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
-}
-
-.scene-topic-org-info {
-  font-size: 0.85em;
-  color: #a0a0a0;
-  margin-bottom: 8px;
+  line-height: 1.3;
 }
 
 .scene-description {
@@ -173,7 +234,6 @@
 }
 
 .scene-meta-item {
-  margin-right: 12px;
   display: flex;
   align-items: center;
   gap: 4px;
@@ -182,32 +242,91 @@
 .scene-actions {
   margin-top: auto;
   border-top: 1px solid #444;
-  padding: 12px 15px;
-  background-color: #242424;
+  padding: 15px 18px;
+  background-color: #262626;
 }
 
 .scene-action-button {
-  padding: 8px 15px;
-  margin-right: 10px;
+  display: inline-block;
+  padding: 10px 16px;
   border: none;
-  border-radius: 5px;
-  background: #007bff;
+  border-radius: 6px;
+  background: linear-gradient(135deg, #007bff, #0056b3);
   color: white;
   cursor: pointer;
   text-decoration: none;
   font-size: 0.9em;
-  transition: background-color 0.2s ease;
-}
-.scene-action-button:hover {
-  background-color: #0056b3;
+  font-weight: 500;
+  transition: all 0.2s ease;
+  text-align: center;
 }
 
+.scene-action-button:hover {
+  background: linear-gradient(135deg, #0056b3, #003d82);
+  transform: translateY(-1px);
+  box-shadow: 0 2px 8px rgba(0, 123, 255, 0.3);
+}
+
+/* State Messages */
 .empty-state-message {
   text-align: center;
   color: #888;
-  padding: 40px 20px;
-  font-size: 1em;
+  padding: 60px 20px;
+  font-size: 1.1em;
   font-style: italic;
+  background-color: #242424;
+  border-radius: 12px;
+  border: 1px solid #333;
 }
 
-/* Add other styles as needed */
+.error-state-message {
+  text-align: center;
+  color: #ff6b6b;
+  padding: 40px 20px;
+  font-size: 1em;
+  background-color: #2a1f1f;
+  border: 1px solid #4a3333;
+  border-radius: 8px;
+  margin: 20px 0;
+}
+
+/* Responsive Design */
+@media (max-width: 768px) {
+  .dashboard-header {
+    flex-direction: column;
+    gap: 15px;
+    padding: 15px;
+  }
+  
+  .collection-page-nav-tabs {
+    padding: 0 15px;
+  }
+  
+  .collection-page-main-content {
+    padding: 15px;
+  }
+  
+  .scene-grid {
+    grid-template-columns: 1fr;
+    gap: 20px;
+  }
+  
+  .user-info span:not(.sign-out-link) {
+    display: none;
+  }
+}
+
+@media (max-width: 480px) {
+  .dashboard-title-text {
+    font-size: 1.2em;
+  }
+  
+  .tab-button {
+    padding: 12px 15px;
+    font-size: 0.9em;
+  }
+  
+  .section-title {
+    font-size: 1.2em;
+  }
+}

@@ -163,55 +163,62 @@
 .scene-list {
   flex: 1; /* Take remaining space in panel */
   overflow-y: auto; /* Only scroll vertically */
-  padding: var(--padding-compact) var(--padding-base); /* Padding around the list */
+  padding: var(--padding-compact); /* Reduced padding around the list */
   list-style: none; /* Remove default list styling */
   margin: 0;
 }
 
 /* Ensure ul/li behave as expected */
-ul {
+ul.scene-list {
   display: block; /* Default block behavior for lists */
-  padding: 0;
+  padding: var(--padding-compact);
   margin: 0;
 }
-li {
-    list-style: none;
+
+li.scene-item {
+  list-style: none;
+  display: block; /* Ensure proper block display */
 }
 
 .scene-item {
-  padding: var(--padding-compact) var(--padding-base);
-  margin-bottom: 4px; /* Space between items */
+  padding: var(--padding-base);
+  margin-bottom: 6px; /* Increased space between items for better separation */
   background-color: var(--bg-element);
-  border: 1px solid transparent; /* Placeholder for selection border */
+  border: 1px solid var(--border-color-subtle); /* Added visible border */
   border-left: 3px solid transparent; /* Placeholder for selection indicator */
   border-radius: var(--radius-base);
   cursor: pointer;
   transition: background-color 0.15s ease, border-color 0.15s ease;
-  padding-left: calc(var(--padding-base) - 3px); /* Account for border width */
+  display: block; /* Ensure block display */
+  position: relative; /* For better positioning */
 }
 
 .scene-item:hover {
   background-color: var(--bg-element-hover);
+  border-color: var(--border-color-medium); /* More visible border on hover */
 }
 
 .scene-item.selected {
   background-color: var(--bg-element-selected);
-  border-left-color: var(--accent-color); /* Common selection indicator */
+  border-left-color: var(--accent-color); /* Selection indicator */
+  border-color: var(--accent-color); /* Highlight entire border */
   color: var(--text-primary); /* Ensure text remains readable */
 }
 
 .scene-name {
   font-size: var(--font-size-base);
-  font-weight: 500; /* Slightly bolder than description */
+  font-weight: 600; /* Made bolder for better visibility */
   color: var(--text-primary);
-  margin-bottom: 2px;
+  margin-bottom: 4px; /* Increased margin for better separation */
   display: block; /* Ensure it takes full width */
+  line-height: 1.2; /* Better line height */
 }
 
 .scene-description {
   font-size: var(--font-size-small);
   color: var(--text-secondary);
-  line-height: 1.3;
+  line-height: 1.4; /* Improved line height for readability */
+  display: block; /* Ensure block display */
 }
 
 /* --- Resizer --- (Basic visual, needs JS for functionality) */
@@ -309,8 +316,8 @@ li {
 .toggle-icon::before {
   content: '▼'; /* Expanded state */
 }
-.object-header.collapsed  {
-  content: '▶'; /* Collapsed state */
+.object-header.collapsed .toggle-icon::before {
+  content: '▶'; /* Collapsed state - FIXED: was missing .toggle-icon */
 }
 
 .object-type {
@@ -332,10 +339,8 @@ li {
 .object-properties {
   padding: var(--padding-base);
   background-color: var(--bg-element); /* Content background */
-  /* border-top: 1px solid var(--border-color-subtle); Remove top border, it's on the item */
   display: block; /* Default */
 }
-
 
 /* --- Property Row Styling (Key for Inspector Look) --- */
 .property-row {

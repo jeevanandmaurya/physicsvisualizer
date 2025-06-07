@@ -204,7 +204,7 @@ If no physics scene is identifiable, return:
         return normalizedObj;
       });
 
-      const newExtractedScenes = [extractedScene, ...extractedScenes];
+      const newExtractedScenes = [extractedScene];
       console.log("Generated Scene JSON with Gravitational Physics:", JSON.stringify(extractedScene, null, 2));
       setScenes([...newExtractedScenes, ...mechanicsExamples]);
     } catch (error) {
