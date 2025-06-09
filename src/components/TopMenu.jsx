@@ -207,119 +207,119 @@ function TopMenu({
         <div className="top-left-menu">
 
 
-            {/* Logo Section */}
-            <div id="icon">
-                <img className="full-logo" src={logoFull} alt="Physics Visualizer Full Logo" />
-                <img className="mini-logo" src={logoMini} alt="Physics Visualizer Mini Logo" />
+                {/* Logo Section */}
+                <div id="icon">
+                    <img className="full-logo" src={logoFull} alt="Physics Visualizer Full Logo" />
+                    <img className="mini-logo" src={logoMini} alt="Physics Visualizer Mini Logo" />
+                </div>
+
+                {/* Main Navigation Container for menu items */}
+                <nav className="menu-nav" aria-label="Main navigation menu">
+                    {Object.entries(baseMenuItems).map(([title, options]) => (
+                        <div
+                        key={title}
+                        className={`menu-item ${openMenu === title ? 'open' : ''}`}
+                        onClick={() => toggleMenu(title)}
+                        aria-haspopup="true"
+                        aria-expanded={openMenu === title}
+                        tabIndex="0"
+                        >
+                            {title}
+                            {openMenu === title && (
+                                <ul className="menu-dropdown" role="menu"> {/* Renamed */}
+                                    {options.map((option, i) => (
+                                        <li
+                                        key={typeof option === 'object' && option.action ? option.action : i}
+                                        className="menu-dropdown-item" /* Renamed */
+                                        onClick={(e) => {
+                                            e.stopPropagation();
+                                            handleItemClick(option);
+                                        }}
+                                        role="menuitem"
+                                        tabIndex="-1"
+                                        >
+                                            {typeof option === 'object' ? option.label : option}
+                                        </li>
+                                    ))}
+                                </ul>
+                            )}
+                        </div>
+                    ))}
+                </nav>
             </div>
 
-            {/* Main Navigation Container for menu items */}
-            <nav className="menu-nav" aria-label="Main navigation menu">
-                {Object.entries(baseMenuItems).map(([title, options]) => (
-                    <div
-                    key={title}
-                    className={`menu-item ${openMenu === title ? 'open' : ''}`}
-                    onClick={() => toggleMenu(title)}
-                    aria-haspopup="true"
-                    aria-expanded={openMenu === title}
-                    tabIndex="0"
+
+                {/* Right-aligned utility buttons: Fullscreen then User */}
+                <div className="menu-utility-section">
+                    {/* Fullscreen Toggle Button */}
+                    <button
+                        id='fullscreen-button'
+                        onClick={toggleFullscreen}
+                        className="fullscreen-button"
+                        aria-label={isFullscreen ? 'Exit fullscreen' : 'Enter fullscreen'}
+                        title={isFullscreen ? 'Exit Fullscreen (F11)' : 'Enter Fullscreen (F11)'}
                     >
-                        {title}
-                        {openMenu === title && (
-                            <ul className="dropdown" role="menu">
-                                {options.map((option, i) => (
+                        <FontAwesomeIcon icon={isFullscreen ? faMinimize : faMaximize} />
+                    </button>
+
+                    {/* User Icon/Profile/Login */}
+                    <div
+                        className={`user-menu-item menu-item ${openUserDropdown ? 'open' : ''}`}
+                        onClick={toggleUserDropdown}
+                        ref={userDropdownRef}
+                        aria-haspopup="true"
+                        aria-expanded={openUserDropdown}
+                        tabIndex="0"
+                        title={isLoggedIn ? `Logged in as ${username}` : 'Login / Register'}
+                    >
+                        {isLoggedIn ? (
+                            <>
+                                {currentUser?.photoURL ? (
+                                    <img
+                                        src={currentUser.photoURL}
+                                        alt="User Avatar"
+                                        className="user-avatar"
+                                        style={{
+                                            width: '24px',
+                                            height: '24px',
+                                            borderRadius: '50%',
+                                            marginRight: '8px'
+                                        }}
+                                    />
+                                ) : (
+                                    <FontAwesomeIcon icon={faUserCircle} className="user-icon" />
+                                )}
+                                <span className="username-label">{username.split(' ')[0]}</span>
+                            </>
+                        ) : (
+                            <>
+                                <FontAwesomeIcon icon={faSignInAlt} className="login-icon" />
+                                <span className="username-label">Login</span>
+                            </>
+                        )}
+
+                        {/* User Dropdown for Logged In or Logged Out */}
+                        {openUserDropdown && (
+                            <ul className="menu-dropdown user-menu-dropdown" role="menu"> {/* Renamed */}
+                                {currentUserMenuItems.map((item) => (
                                     <li
-                                    key={typeof option === 'object' && option.action ? option.action : i}
-                                    className="dropdown-item"
-                                    onClick={(e) => {
-                                        e.stopPropagation();
-                                        handleItemClick(option);
-                                    }}
-                                    role="menuitem"
-                                    tabIndex="-1"
+                                        key={item.action}
+                                        className="menu-dropdown-item" /* Renamed */
+                                        onClick={(e) => {
+                                            e.stopPropagation();
+                                            handleItemClick(item);
+                                        }}
+                                        role="menuitem"
+                                        tabIndex="-1"
                                     >
-                                        {typeof option === 'object' ? option.label : option}
+                                        {item.icon && <FontAwesomeIcon icon={item.icon} className="menu-dropdown-icon" />} {/* Renamed */}
+                                        {item.label}
                                     </li>
                                 ))}
                             </ul>
                         )}
                     </div>
-                ))}
-            </nav>
-        </div>
-
-
-            {/* Right-aligned utility buttons: Fullscreen then User */}
-            <div className="menu-utility-section">
-                {/* Fullscreen Toggle Button */}
-                <button
-                    id='fullscreen-button'
-                    onClick={toggleFullscreen}
-                    className="fullscreen-button"
-                    aria-label={isFullscreen ? 'Exit fullscreen' : 'Enter fullscreen'}
-                    title={isFullscreen ? 'Exit Fullscreen (F11)' : 'Enter Fullscreen (F11)'}
-                >
-                    <FontAwesomeIcon icon={isFullscreen ? faMinimize : faMaximize} />
-                </button>
-
-                {/* User Icon/Profile/Login */}
-                <div
-                    className={`user-menu-item menu-item ${openUserDropdown ? 'open' : ''}`}
-                    onClick={toggleUserDropdown}
-                    ref={userDropdownRef}
-                    aria-haspopup="true"
-                    aria-expanded={openUserDropdown}
-                    tabIndex="0"
-                    title={isLoggedIn ? `Logged in as ${username}` : 'Login / Register'}
-                >
-                    {isLoggedIn ? (
-                        <>
-                            {currentUser?.photoURL ? (
-                                <img
-                                    src={currentUser.photoURL}
-                                    alt="User Avatar"
-                                    className="user-avatar"
-                                    style={{
-                                        width: '24px',
-                                        height: '24px',
-                                        borderRadius: '50%',
-                                        marginRight: '8px'
-                                    }}
-                                />
-                            ) : (
-                                <FontAwesomeIcon icon={faUserCircle} className="user-icon" />
-                            )}
-                            <span className="username-label">{username.split(' ')[0]}</span>
-                        </>
-                    ) : (
-                        <>
-                            <FontAwesomeIcon icon={faSignInAlt} className="login-icon" />
-                            <span className="username-label">Login</span>
-                        </>
-                    )}
-
-                    {/* User Dropdown for Logged In or Logged Out */}
-                    {openUserDropdown && (
-                        <ul className="dropdown user-dropdown" role="menu">
-                            {currentUserMenuItems.map((item) => (
-                                <li
-                                    key={item.action}
-                                    className="dropdown-item"
-                                    onClick={(e) => {
-                                        e.stopPropagation();
-                                        handleItemClick(item);
-                                    }}
-                                    role="menuitem"
-                                    tabIndex="-1"
-                                >
-                                    {item.icon && <FontAwesomeIcon icon={item.icon} className="dropdown-icon" />}
-                                    {item.label}
-                                </li>
-                            ))}
-                        </ul>
-                    )}
                 </div>
-            </div>
         </div>
     );
 }

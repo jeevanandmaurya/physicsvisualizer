@@ -1,91 +1,254 @@
-/* ===== CONVERSATION.CSS ===== */
-
-.conversation-container {
-  height: 100%;
-  display: flex;
-  flex-direction: column;
-  background-color: var(--bg-panel);
-  border: 1px solid var(--border-color-subtle);
+/* Simple Dark Theme */
+body {
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+  background: #1a1a1a;
+  color: #e0e0e0;
+  margin: 0;
 }
 
+/* Container */
+.conversation-container {
+  height: 100vh;
+  display: flex;
+  flex-direction: column;
+  border: 1px solid #333;
+}
+
+/* Header */
+.conversation-header {
+  background: #252525;
+  padding: 12px 16px;
+  border-bottom: 1px solid #333;
+}
+
+.conversation-header label {
+  color: #ccc;
+  font-weight: 500;
+  margin-right: 8px;
+  font-size: 14px;
+}
+
+.model-selector {
+  background: #333;
+  color: #e0e0e0;
+  border: 1px solid #555;
+  border-radius: 6px;
+  padding: 6px 8px;
+  font-size: 14px;
+}
+
+.model-selector:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+/* Messages */
 .conversation-box {
   flex: 1;
   overflow-y: auto;
-  padding: var(--padding-base);
-  background-color: var(--bg-main);
+  padding: 12px;
 }
 
-.conversation-box .ai-message {
-  background-color: var(--bg-header);
-  color: var(--text-primary);
-  padding: var(--padding-base);
-  margin: var(--padding-compact) 0;
-  border-radius: var(--radius-base);
-  border: 1px solid var(--border-color-subtle);
-  box-shadow: var(--shadow-base);
+.conversation-box::-webkit-scrollbar {
+  width: 8px;
 }
 
-.conversation-box .user-message {
-  background-color: var(--bg-element);
-  color: var(--text-primary);
-  padding: var(--padding-base);
-  margin: var(--padding-compact) 0;
-  border-radius: var(--radius-base);
-  border: 1px solid var(--border-color-subtle);
-  box-shadow: var(--shadow-base);
+.conversation-box::-webkit-scrollbar-track {
+  background: #1a1a1a;
 }
 
+.conversation-box::-webkit-scrollbar-thumb {
+  background: #555;
+  border-radius: 4px;
+}
+
+.conversation-box::-webkit-scrollbar-thumb:hover {
+  background: #666;
+}
+
+.ai-message {
+  background: #2d2d2d;
+  border: 1px solid #444;
+  border-radius: 12px;
+  padding: 12px 16px;
+  margin: 8px 0;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+  margin-right: auto;
+  border-bottom-left-radius: 4px;
+}
+
+.ai-message strong {
+  color: #4db8ff;
+  display: block;
+  margin-bottom: 8px;
+}
+
+.user-message {
+  background: #1e3a3a;
+  border: 1px solid #2d5555;
+  border-radius: 12px;
+  padding: 12px 16px;
+  margin: 8px 0;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+  margin-left: auto;
+  border-bottom-right-radius: 4px;
+}
+
+.user-message strong {
+  color: #66d9a7;
+  display: block;
+  margin-bottom: 8px;
+}
+
+/* Math Expression Styles */
+.math-expression {
+  background-color: #333;
+  padding: 2px 6px;
+  border-radius: 3px;
+  font-family: monospace;
+  color: #ffd700;
+  margin: 0 2px;
+}
+
+.math-expression.display-mode {
+  font-size: 1.2em;
+  display: block;
+  margin: 8px 0;
+}
+
+.math-expression.inline-mode {
+  font-size: 1em;
+  display: inline;
+}
+
+/* Input Section */
 .input-section {
-  height: 15%;
-  width: 100%;
+  background: #252525;
+  border-top: 1px solid #333;
   display: flex;
-  background-color: var(--bg-header);
-  border-top: 1px solid var(--border-color-medium);
-  padding: var(--padding-base);
-  box-sizing: border-box;
+  align-items: center;
 }
 
 .input-textarea {
   flex: 1;
-  background-color: var(--bg-input);
-  color: var(--text-primary);
-  border: 1px solid var(--border-color-medium);
-  border-radius: var(--radius-base);
-  padding: var(--padding-base);
-  font-family: var(--font-family-ui);
-  font-size: var(--font-size-base);
+  background: #1a1a1a;
+  color: #e0e0e0;
+  border: 1px solid #555;
+  border-radius: 12px;
+  font-family: system-ui, -apple-system, sans-serif;
+  font-size: 14px;
   resize: vertical;
-  min-height: 40px;
+  min-height: 44px;
+  max-height: 120px;
+  outline: none;
+  transition: border-color 0.15s ease, box-shadow 0.15s ease;
 }
 
 .input-textarea:focus {
-  outline: none;
-  border-color: var(--accent-color);
-  box-shadow: 0 0 0 2px rgba(0, 122, 204, 0.2);
+  border-color: #007acc;
+  box-shadow: 0 0 0 3px rgba(0, 122, 204, 0.1);
+}
+
+.input-textarea::placeholder {
+  color: #888;
+}
+
+.input-textarea:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
 }
 
 .process-button {
-  background-color: var(--success-color);
-  color: var(--text-on-accent);
-  border: 1px solid var(--success-color);
-  border-radius: var(--radius-base);
-  padding: var(--padding-base) var(--padding-large);
-  margin-left: var(--padding-base);
-  font-family: var(--font-family-ui);
-  font-size: var(--font-size-base);
-  font-weight: 500;
+  background: #10b981;
+  color: white;
+  border: none;
+  border-radius: 12px;
+  padding: 12px;
   cursor: pointer;
-  transition: background-color 0.15s ease;
+  min-width: 44px;
+  height: 44px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.15s ease;
 }
 
 .process-button:hover:not(:disabled) {
-  background-color: var(--success-color-hover);
+  background: #059669;
+  transform: translateY(-1px);
 }
 
 .process-button:disabled {
-  background-color: var(--bg-element);
-  color: var(--text-secondary);
-  border-color: var(--border-color-subtle);
+  background: #555;
+  color: #999;
   cursor: not-allowed;
   opacity: 0.6;
+  transform: none;
+}
+
+/* KaTeX Support */
+.katex {
+  color: #e0e0e0 !important;
+}
+
+.katex .mord {
+  color: #e0e0e0 !important;
+}
+
+.katex .mbin,
+.katex .mrel {
+  color: #4db8ff !important;
+}
+
+.katex .mop {
+  color: #ffd700 !important;
+}
+
+/* Additional responsive styles */
+@media (max-width: 768px) {
+  .conversation-header {
+    padding: 8px 12px;
+  }
+  
+  .conversation-box {
+    padding: 12px;
+  }
+  
+  .input-section {
+    padding: 12px;
+    gap: 8px;
+  }
+  
+  .input-textarea {
+    font-size: 16px; /* Prevents zoom on iOS */
+  }
+}
+
+/* Focus styles for accessibility */
+.model-selector:focus,
+.input-textarea:focus,
+.process-button:focus {
+  outline: 2px solid #007acc;
+  outline-offset: 2px;
+}
+
+/* Loading state */
+.process-button.loading {
+  position: relative;
+}
+
+.process-button.loading::after {
+  content: '';
+  position: absolute;
+  width: 16px;
+  height: 16px;
+  border: 2px solid transparent;
+  border-top: 2px solid currentColor;
+  border-radius: 50%;
+  animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+  0% { transform: rotate(0deg); }
+  100% { transform: rotate(360deg); }
 }

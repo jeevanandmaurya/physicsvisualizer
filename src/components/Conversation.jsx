@@ -1,7 +1,8 @@
 import React, { useState, useEffect, useRef } from 'react';
+import { Send } from 'lucide-react';
 import katex from 'katex'; // Import KaTeX
 import 'katex/dist/katex.min.css'; // Import KaTeX CSS
-import './Conversation.css';
+import './Conversation.css'
 
 // --- KaTeX Rendering Component ---
 const MessageContent = ({ content }) => {
@@ -113,7 +114,6 @@ When asked to generate JSON for a scene:
     {"id":"empty","name":"No Scene Found","description":"No physics scene in conversation","objects":[],"gravity":[0,-9.81,0],"contactMaterial":{"friction":0.5,"restitution":0.7}}
     \`\`\`
 `;
-
 
 // --- Original Conversation Component (Modified) ---
 function Conversation({
@@ -283,23 +283,27 @@ function Conversation({
 
   return (
     <div className="conversation-container">
-      <div className="model-selector">
-        <label htmlFor="model-select">Select Model: </label>
+      <div className="conversation-header">
+        <label htmlFor="model-select">Model:</label>
         <select
           id="model-select"
           value={selectedModel}
           onChange={(e) => setSelectedModel(e.target.value)}
           disabled={isProcessing}
+          className="model-selector"
         >
-          <option value="gemini">Gemini (Google AI Studio)</option>
-          <option value="chatgpt">ChatGPT (Puppeteer)</option>
+          <option value="gemini">Gemini</option>
+          <option value="chatgpt">ChatGPT</option>
           <option value="ollama">Ollama</option>
         </select>
       </div>
-      <div className="conversation-box">{displayConversation}</div>
-      <form className="input-section" onSubmit={handleProcess}>
+      
+      <div className="conversation-box">
+        {displayConversation}
+      </div>
+      
+      <div className="input-section">
         <textarea
-          className="input-textarea"
           value={input}
           onChange={(e) => setInput(e.target.value)}
           placeholder="Enter your physics question..."
@@ -310,15 +314,17 @@ function Conversation({
               handleProcess(e);
             }
           }}
+          className="input-textarea"
         />
         <button
-          type="submit"
-          className="process-button"
+          onClick={handleProcess}
           disabled={isProcessing || !input.trim()}
+          className="process-button"
+          title={isProcessing ? "Processing..." : "Send message"}
         >
-          {isProcessing ? "Processing..." : "Process"}
+          <Send size={18} />
         </button>
-      </form>
+      </div>
     </div>
   );
 }
