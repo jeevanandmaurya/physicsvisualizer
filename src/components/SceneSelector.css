@@ -3,29 +3,33 @@
 /* --- Base & Variables --- */
 :root {
   /* Common Dark UI Colors (Inspired by Unity/VS Code Dark Themes) */
-  --bg-main: #1e1e1e;         /* Deepest background */
-  --bg-panel: #252526;        /* Slightly lighter panels */
-  --bg-element: #2d2d2d;      /* Background for list items, properties */
-  --bg-element-hover: #383838; /* Hover state for elements */
-  --bg-element-selected: #3f3f46; /* Selected state */
-  --bg-header: #333333;       /* Header backgrounds */
-  --bg-input: #3c3c3c;        /* Input field backgrounds */
+  --bg-main: #1a1a1b;          /* Slightly darker, more muted main background */
+  --bg-panel: #212122;         /* Slightly lighter panels, subtle contrast */
+  --bg-element: #2c2c2c;       /* Background for list items, properties */
+  --bg-element-hover: #3a3a3a; /* Hover state for elements */
+  --bg-element-selected: #004d80; /* Stronger, more distinct selection blue */
+  --bg-header: #2e2e2e;        /* Header backgrounds, slightly darker than element */
+  --bg-input: #3a3a3a;         /* Input field backgrounds, aligned with hover */
+  --bg-toggle-track: #666;     /* For new toggle switch */
+  --bg-toggle-thumb: #ccc;
 
-  --border-color-subtle: #3a3a3a; /* Subtle borders */
-  --border-color-medium: #444444; /* Medium borders */
-  --border-color-focus: #007acc;   /* Accent/Focus border (like VS Code blue) */
+  --border-color-subtle: #333; /* Subtle borders, slightly darker */
+  --border-color-medium: #444; /* Medium borders */
+  --border-color-focus: #007acc; /* Accent/Focus border (like VS Code blue) */
 
-  --text-primary: #d4d4d4;    /* Primary text */
-  --text-secondary: #a0a0a0;  /* Secondary/muted text */
-  --text-label: #b0b0b0;      /* Labels in properties */
-  --text-header: #cccccc;     /* Header text */
+  --text-primary: #e0e0e0;     /* Primary text, slightly brighter */
+  --text-secondary: #a0a0a0;   /* Secondary/muted text */
+  --text-label: #b0b0b0;       /* Labels in properties */
+  --text-header: #cccccc;      /* Header text */
   --text-on-accent: #ffffff;   /* Text on accent color backgrounds */
 
-  --accent-color: #4a90e2;    /* Original button blue - can be changed */
-  --accent-color-hover: #357abd;
+  --accent-color: #007acc;     /* VS Code blue as primary accent */
+  --accent-color-hover: #006bb3; /* Darker hover */
+  --accent-color-active: #005f99; /* Even darker active */
   --error-color: #f44747;
+  --success-color: #4CAF50;    /* Added for success messages */
 
-  --font-family-ui: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+  --font-family-ui: 'Segoe UI', 'Roboto', sans-serif, 'Apple Color Emoji', 'Segoe UI Emoji', 'Segoe UI Symbol';
   --font-size-base: 13px;
   --font-size-small: 11px;
   --font-size-large: 16px;
@@ -35,17 +39,19 @@
   --padding-large: 15px;
 
   --radius-base: 3px;
+  --radius-button: 4px; /* Slightly more rounded buttons */
 }
 
-/* Apply base font and box-sizing (Apply to relevant container or globally if appropriate) */
-/* Consider scoping this better if integrating into a larger app */
-.scene-selector-container { /* Example wrapper class */
+/* --- Base Apply --- */
+.scene-selector-container {
   font-family: var(--font-family-ui);
   font-size: var(--font-size-base);
   color: var(--text-primary);
   background-color: var(--bg-main);
-  height: 100vh; /* Example: Full viewport height */
-  width: 100%;   /* Example: Full width, maybe constrained by parent */
+  height: 100vh;
+  width: 100%;
+  display: flex; /* Ensure it's a flex container for the main layout */
+  overflow: hidden; /* Prevent body scroll if content overflows */
 }
 
 .scene-selector-container *,
@@ -54,69 +60,79 @@
   box-sizing: border-box;
 }
 
-
-/* --- Main Scene Selector Container --- */
+/* --- Main Scene Selector Container (Sidebar) --- */
 .scene-selector {
-  height: 100%; /* Takes height from parent */
-  width: 100%;  /* Takes width from parent */
+  /* This is likely a sidebar within .scene-selector-container */
+  height: 100%;
+  min-width: 280px; /* Give it a sensible minimum width */
+  max-width: 400px; /* And a maximum width */
+  width: 30%; /* Or set a percentage for flexibility */
   background-color: var(--bg-main);
   color: var(--text-primary);
-  font-family: var(--font-family-ui);
-  font-size: var(--font-size-base);
-  border-right: 1px solid var(--border-color-medium); /* Original border */
+  border-right: 1px solid var(--border-color-medium);
   display: flex;
   flex-direction: column;
-  overflow: hidden; /* Prevent content spill */
+  overflow: hidden;
+  position: relative; /* For potential positioning of children like resizer */
 }
 
 .scene-selector-header {
   padding: var(--padding-base);
   border-bottom: 1px solid var(--border-color-medium);
-  flex-shrink: 0; /* Prevent header from shrinking */
+  flex-shrink: 0;
+  display: flex; /* For better button alignment */
+  justify-content: center;
+  align-items: center;
 }
 
 /* --- Buttons & Interactive Elements --- */
 .extract-button {
-  padding: 6px 12px;
+  padding: 8px 16px; /* Slightly more padding */
   background-color: var(--accent-color);
   color: var(--text-on-accent);
-  border: 1px solid var(--accent-color); /* Subtle border */
-  border-radius: var(--radius-base);
+  border: none; /* No border for a cleaner look */
+  border-radius: var(--radius-button); /* Use new button radius */
   cursor: pointer;
   font-size: var(--font-size-base);
   font-weight: 500;
-  transition: background-color 0.15s ease, border-color 0.15s ease, opacity 0.15s ease;
-  width: 100%; /* Make button full width in header */
+  transition: background-color 0.2s ease, transform 0.1s ease; /* Add transform for active state */
+  width: 100%;
   text-align: center;
+  box-shadow: 0 1px 3px rgba(0,0,0,0.2); /* Subtle shadow */
 }
 
 .extract-button:hover:not(.extracting) {
   background-color: var(--accent-color-hover);
-  border-color: var(--accent-color-hover);
+  transform: translateY(-1px); /* Slight lift on hover */
+  box-shadow: 0 2px 5px rgba(0,0,0,0.3);
 }
 
 .extract-button:active:not(.extracting) {
-  background-color: var(--accent-color); /* Slight feedback on click */
+  background-color: var(--accent-color-active);
+  transform: translateY(0); /* Press down effect */
+  box-shadow: 0 1px 2px rgba(0,0,0,0.2);
 }
 
 .extract-button.extracting {
   background-color: var(--bg-element);
-  border-color: var(--border-color-subtle);
+  border: 1px solid var(--border-color-subtle); /* Add a border for disabled state */
   color: var(--text-secondary);
   cursor: not-allowed;
-  opacity: 0.7;
+  opacity: 0.8; /* Slightly less opaque */
+  transform: none; /* No lift/press when extracting */
+  box-shadow: none;
 }
 
 .spinner {
   display: inline-block;
-  width: 10px; /* Slightly smaller */
-  height: 10px;
+  width: 12px; /* Slightly larger spinner */
+  height: 12px;
   border: 2px solid var(--text-on-accent);
-  border-top-color: transparent; /* Classic spinner look */
+  border-top-color: transparent;
   border-radius: 50%;
   animation: spin 0.8s linear infinite;
   margin-right: 8px;
-  vertical-align: -1px; /* Align better with text */
+  vertical-align: -2px; /* Better alignment */
 }
 
 .extract-button.extracting .spinner {
@@ -129,123 +145,158 @@
   100% { transform: rotate(360deg); }
 }
 
-.error-message {
+.message-box { /* Generic message box for errors/success */
   margin-top: var(--padding-compact);
   padding: var(--padding-compact) var(--padding-base);
-  background-color: var(--error-color);
-  color: var(--text-on-accent);
   border-radius: var(--radius-base);
   font-size: var(--font-size-small);
+  text-align: center;
+}
+
+.error-message {
+  background-color: var(--error-color);
+  color: var(--text-on-accent);
+}
+
+.success-message {
+  background-color: var(--success-color);
+  color: var(--text-on-accent);
 }
 
 /* --- Scene List Panel --- */
 .scene-list-panel {
   display: flex;
   flex-direction: column;
-  /* Let this panel have a default size, but allow resizing */
-  flex-basis: 250px; /* Example starting height */
-  flex-shrink: 0; /* Don't shrink by default */
-  overflow: hidden; /* Contain the list and title */
-  border-bottom: 1px solid var(--border-color-medium); /* Separator */
+  flex-grow: 1; /* Allow it to grow and shrink */
+  overflow: hidden;
+  border-bottom: 1px solid var(--border-color-medium);
 }
 
 .scene-list-title {
-  font-size: var(--font-size-base); /* Standard size, bold */
+  font-size: var(--font-size-base);
   font-weight: 600;
   padding: var(--padding-base);
   margin: 0;
   color: var(--text-header);
-  background-color: var(--bg-header); /* Distinct header background */
+  background-color: var(--bg-header);
   border-bottom: 1px solid var(--border-color-medium);
-  flex-shrink: 0; /* Prevent shrinking */
+  flex-shrink: 0;
 }
 
 .scene-list {
-  flex: 1; /* Take remaining space in panel */
-  overflow-y: auto; /* Only scroll vertically */
-  padding: var(--padding-compact); /* Reduced padding around the list */
-  list-style: none; /* Remove default list styling */
-  margin: 0;
-}
-
-/* Ensure ul/li behave as expected */
-ul.scene-list {
-  display: block; /* Default block behavior for lists */
+  flex: 1;
+  overflow-y: auto;
   padding: var(--padding-compact);
+  list-style: none;
   margin: 0;
 }
 
 li.scene-item {
   list-style: none;
-  display: block; /* Ensure proper block display */
+  display: block;
 }
 
 .scene-item {
   padding: var(--padding-base);
-  margin-bottom: 6px; /* Increased space between items for better separation */
+  margin-bottom: 6px;
   background-color: var(--bg-element);
-  border: 1px solid var(--border-color-subtle); /* Added visible border */
-  border-left: 3px solid transparent; /* Placeholder for selection indicator */
+  border: 1px solid var(--border-color-subtle);
+  border-left: 3px solid transparent;
   border-radius: var(--radius-base);
   cursor: pointer;
-  transition: background-color 0.15s ease, border-color 0.15s ease;
-  display: block; /* Ensure block display */
-  position: relative; /* For better positioning */
+  transition: background-color 0.15s ease, border-color 0.15s ease, transform 0.1s ease;
+  position: relative;
+  overflow: hidden; /* Ensure content doesn't break rounded corners */
+}
+
+.scene-item:last-child {
+  margin-bottom: 0; /* No margin on the last item */
 }
 
 .scene-item:hover {
   background-color: var(--bg-element-hover);
-  border-color: var(--border-color-medium); /* More visible border on hover */
+  border-color: var(--border-color-medium);
+  transform: translateY(-1px); /* Subtle lift on hover */
+  box-shadow: 0 2px 4px rgba(0,0,0,0.2);
 }
 
 .scene-item.selected {
   background-color: var(--bg-element-selected);
-  border-left-color: var(--accent-color); /* Selection indicator */
-  border-color: var(--accent-color); /* Highlight entire border */
-  color: var(--text-primary); /* Ensure text remains readable */
+  border-left-color: var(--accent-color);
+  border-color: var(--accent-color);
+  color: var(--text-on-accent); /* Text on selected item becomes white */
+  font-weight: 600; /* Selected item text slightly bolder */
+  transform: none; /* No lift */
+  box-shadow: 0 0 0 1px var(--accent-color); /* Stronger outline */
 }
+
+.scene-item.selected .scene-name,
+.scene-item.selected .scene-description {
+  color: var(--text-on-accent); /* Ensure text stays white on selected item */
+}
+
 
 .scene-name {
   font-size: var(--font-size-base);
-  font-weight: 600; /* Made bolder for better visibility */
+  font-weight: 600;
   color: var(--text-primary);
-  margin-bottom: 4px; /* Increased margin for better separation */
-  display: block; /* Ensure it takes full width */
-  line-height: 1.2; /* Better line height */
+  margin-bottom: 4px;
+  display: block;
+  line-height: 1.2;
 }
 
 .scene-description {
   font-size: var(--font-size-small);
   color: var(--text-secondary);
-  line-height: 1.4; /* Improved line height for readability */
-  display: block; /* Ensure block display */
+  line-height: 1.4;
+  display: block;
 }
 
-/* --- Resizer --- (Basic visual, needs JS for functionality) */
+/* --- Resizer --- */
 .panel-resize-handle {
-  height: 5px; /* Make slightly easier to grab */
-  background-color: var(--bg-header); /* Use header background */
+  height: 6px; /* Slightly taller for easier grabbing */
+  background-color: var(--bg-header);
   cursor: ns-resize;
-  flex-shrink: 0; /* Prevent resizing */
+  flex-shrink: 0;
   border-top: 1px solid var(--border-color-medium);
   border-bottom: 1px solid var(--border-color-medium);
   transition: background-color 0.15s ease;
+  position: relative; /* For visual cues */
 }
 
 .panel-resize-handle:hover {
-  background-color: var(--accent-color); /* Highlight on hover */
+  background-color: var(--accent-color);
 }
+
+.panel-resize-handle::before { /* Visual indicator for resize handle */
+  content: '';
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  transform: translate(-50%, -50%);
+  width: 24px; /* Width of the dots */
+  height: 2px;
+  background-color: var(--text-secondary);
+  border-top: 1px dotted var(--text-secondary);
+  border-bottom: 1px dotted var(--text-secondary);
+  opacity: 0.7;
+}
+.panel-resize-handle:hover::before {
+  background-color: var(--text-on-accent);
+  border-top-color: var(--text-on-accent);
+  border-bottom-color: var(--text-on-accent);
+}
+
 
 /* --- Scene Details Panel (Inspector Style) --- */
 .scene-details-panel {
   display: flex;
   flex-direction: column;
-  flex-grow: 1; /* Takes remaining space */
+  flex-grow: 1;
   overflow: hidden;
-  background-color: var(--bg-panel); /* Use panel background */
+  background-color: var(--bg-panel);
 }
 
-/* Inspector Title/Header (Optional) */
 .inspector-header {
   padding: var(--padding-base);
   font-size: var(--font-size-base);
@@ -254,13 +305,16 @@ li.scene-item {
   background-color: var(--bg-header);
   border-bottom: 1px solid var(--border-color-medium);
   flex-shrink: 0;
+  display: flex; /* For header content alignment */
+  align-items: center;
+  justify-content: space-between;
 }
 
 .scene-details {
-  padding: 0; /* Remove padding, handle inside components */
+  padding: var(--padding-base); /* Add some global padding for details */
   color: var(--text-primary);
-  flex: 1; /* Take remaining space */
-  overflow-y: auto; /* Scroll content */
+  flex: 1;
+  overflow-y: auto;
 }
 
 /* --- Object List (like Hierarchy/Inspector Components) --- */
@@ -271,57 +325,65 @@ li.scene-item {
 }
 
 .object-list-item {
-  margin-bottom: 1px; /* Minimal space between components */
-  border-top: 1px solid var(--border-color-subtle);
+  margin-bottom: 1px;
+  border: 1px solid var(--border-color-subtle); /* Enclose each item */
+  border-radius: var(--radius-base);
+  overflow: hidden; /* Clip contents within rounded corners */
+  margin-top: 5px; /* Add slight space between items */
 }
 .object-list-item:first-child {
-  border-top: none; /* No top border for the first item */
+  margin-top: 0;
 }
 
+
 .object-header {
-  background-color: var(--bg-header); /* Consistent header bg */
+  background-color: var(--bg-header);
   padding: var(--padding-compact) var(--padding-base);
   cursor: pointer;
   display: flex;
   align-items: center;
-  justify-content: space-between; /* Space out toggle and title */
+  justify-content: space-between;
   transition: background-color 0.15s ease;
+  border-bottom: 1px solid transparent; /* Placeholder for collapse border */
 }
 .object-header:hover {
-  background-color: var(--bg-element-hover); /* Subtle hover */
+  background-color: var(--bg-element-hover);
+}
+.object-header.collapsed {
+  border-bottom-color: var(--border-color-subtle); /* Border when collapsed */
 }
 
 .object-title {
   display: flex;
   align-items: center;
   flex-grow: 1;
-  overflow: hidden; /* Prevent long titles breaking layout */
+  overflow: hidden;
 }
 
 .toggle-icon {
   margin-right: 8px;
-  font-size: 0.8em;
+  font-size: 0.9em; /* Slightly larger toggle */
   color: var(--text-secondary);
-  width: 1em; /* Reserve space */
+  width: 1em;
   text-align: center;
   transition: transform 0.2s ease-in-out;
   display: inline-block;
   flex-shrink: 0;
+  transform-origin: center center; /* Ensure rotation is from center */
 }
 .object-header.collapsed .toggle-icon {
   transform: rotate(-90deg);
 }
 
-/* Using simple text arrows for toggle */
 .toggle-icon::before {
-  content: '▼'; /* Expanded state */
+  content: '▼';
 }
 .object-header.collapsed .toggle-icon::before {
-  content: '▶'; /* Collapsed state - FIXED: was missing .toggle-icon */
+  content: '▶';
 }
 
 .object-type {
-  font-weight: 600; /* Bold type */
+  font-weight: 600;
   color: var(--text-header);
   margin-right: 8px;
   white-space: nowrap;
@@ -338,100 +400,160 @@ li.scene-item {
 
 .object-properties {
   padding: var(--padding-base);
-  background-color: var(--bg-element); /* Content background */
-  display: block; /* Default */
+  background-color: var(--bg-element);
+  display: block;
+}
+
+.object-header.collapsed + .object-properties {
+  display: none; /* Hide properties when collapsed */
 }
 
 /* --- Property Row Styling (Key for Inspector Look) --- */
 .property-row {
   display: flex;
   align-items: center;
-  justify-content: space-between; /* Push label and value apart */
   margin-bottom: var(--padding-compact);
-  padding: 2px 0; /* Minimal vertical padding */
+  padding: 2px 0;
 }
 
 .property-name {
-  font-weight: 400; /* Normal weight label */
-  width: 90px; /* Fixed width for alignment */
-  flex-shrink: 0; /* Prevent shrinking */
+  font-weight: 400;
+  width: 100px; /* Slightly increased fixed width for labels */
+  flex-shrink: 0;
   color: var(--text-label);
   font-size: var(--font-size-base);
   margin-right: var(--padding-base);
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
+  text-align: right; /* Align labels to the right */
+  padding-right: var(--padding-compact); /* Add padding for separation */
 }
 
 .property-value {
-  flex-grow: 1; /* Take remaining space */
+  flex-grow: 1;
   color: var(--text-primary);
   font-size: var(--font-size-base);
-  text-align: left; /* Align value to the left */
-  /* Simulating an input field look for values */
   background-color: var(--bg-input);
-  padding: 3px 6px; /* Slightly more padding */
+  padding: 3px 8px; /* More horizontal padding */
   border-radius: var(--radius-base);
   border: 1px solid var(--border-color-subtle);
-  min-height: 1.8em; /* Ensure consistent height */
-  display: flex; /* Use flex for alignment within the value field */
+  min-height: 28px; /* Consistent height for property value fields */
+  display: flex;
   align-items: center;
-  overflow: hidden; /* Prevent content overflow */
+  overflow: hidden;
   white-space: nowrap;
   text-overflow: ellipsis;
+  transition: border-color 0.15s ease, box-shadow 0.15s ease;
+}
+
+.property-value:focus-within { /* Apply focus style when an input inside is focused */
+  border-color: var(--border-color-focus);
+  box-shadow: 0 0 0 1px var(--border-color-focus);
 }
 
 /* Basic input styling if you were to add actual inputs */
 .property-value input[type="text"],
 .property-value input[type="number"],
-.property-value select {
-    background-color: transparent; /* Inherit from parent */
-    border: none;
-    color: var(--text-primary);
-    padding: 0;
-    margin: 0;
-    width: 100%;
-    height: 100%;
-    font-family: inherit;
-    font-size: inherit;
-    outline: none;
+.property-value select,
+.property-value textarea { /* Added textarea for multiline */
+  background-color: transparent;
+  border: none;
+  color: var(--text-primary);
+  padding: 0;
+  margin: 0;
+  width: 100%;
+  height: 100%;
+  font-family: inherit;
+  font-size: inherit;
+  outline: none;
+  resize: vertical; /* Allow vertical resize for textareas */
 }
 .property-value input:focus,
-.property-value select:focus {
-    /* Maybe a subtle focus indicator if needed */
+.property-value select:focus,
+.property-value textarea:focus {
+    /* No additional outline, focus is handled by parent .property-value:focus-within */
+}
+
+/* New: Toggle Switch Style (for boolean properties) */
+.toggle-switch {
+  position: relative;
+  display: inline-block;
+  width: 34px; /* Standard switch width */
+  height: 20px; /* Standard switch height */
+}
+
+.toggle-switch input {
+  opacity: 0;
+  width: 0;
+  height: 0;
+}
+
+.slider {
+  position: absolute;
+  cursor: pointer;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background-color: var(--bg-toggle-track);
+  transition: .4s;
+  border-radius: 20px; /* Rounded slider */
+}
+
+.slider:before {
+  position: absolute;
+  content: "";
+  height: 16px;
+  width: 16px;
+  left: 2px;
+  bottom: 2px;
+  background-color: var(--bg-toggle-thumb);
+  transition: .4s;
+  border-radius: 50%; /* Rounded thumb */
+}
+
+input:checked + .slider {
+  background-color: var(--accent-color);
+}
+
+input:checked + .slider:before {
+  transform: translateX(14px);
 }
 
 .color-preview {
   display: inline-block;
-  width: 20px; /* Slightly larger */
-  height: 20px;
+  width: 24px; /* Slightly larger */
+  height: 24px;
   border: 1px solid var(--border-color-medium);
   vertical-align: middle;
-  margin-right: 6px;
+  margin-right: 8px; /* Increased margin */
   flex-shrink: 0;
   border-radius: var(--radius-base);
+  box-shadow: inset 0 0 0 1px rgba(0,0,0,0.1); /* Subtle inner shadow */
 }
 
 /* --- Scene Properties Section (Global Scene Settings) --- */
 .scene-properties {
-  margin: var(--padding-base); /* Add margin around this section */
+  margin: var(--padding-base);
   padding: var(--padding-base);
   background-color: var(--bg-element);
   border-radius: var(--radius-base);
   border: 1px solid var(--border-color-subtle);
+  margin-top: 0; /* Remove top margin if it's the first section */
 }
-.scene-properties-title { /* Add a title for this section */
+.scene-properties-title {
   font-weight: 600;
   color: var(--text-header);
   margin-bottom: var(--padding-base);
   font-size: var(--font-size-base);
   display: block;
-  border-bottom: 1px solid var(--border-color-subtle); /* Separator line */
+  border-bottom: 1px solid var(--border-color-subtle);
   padding-bottom: var(--padding-compact);
 }
 
-.scene-properties .property-row { /* Reuse property row style */
-  /* Adjust if needed */
+.scene-properties .property-row {
+  /* Reuse property row style - no specific adjustments needed here unless unique */
 }
 
 /* Placeholder text styling */
@@ -440,28 +562,34 @@ li.scene-item {
     color: var(--text-secondary);
     text-align: center;
     font-style: italic;
+    background-color: var(--bg-element); /* Give it a background */
+    border-radius: var(--radius-base);
+    border: 1px dashed var(--border-color-subtle); /* Dashed border for placeholder */
+    margin: var(--padding-base);
+    line-height: 1.5;
 }
 
 
 /* --- Scrollbar Styling --- */
-/* Works in WebKit browsers (Chrome, Safari, Edge) */
+/* Works in WebKit browsers (Chrome, Safari, Edge, modern Firefox) */
 ::-webkit-scrollbar {
-  width: 8px; /* Slightly wider */
+  width: 8px;
   height: 8px;
 }
 
 ::-webkit-scrollbar-track {
-  background: var(--bg-main); /* Match darkest background */
+  background: var(--bg-panel); /* Match panel background for subtle look */
 }
 
 ::-webkit-scrollbar-thumb {
-  background: var(--bg-element-hover); /* Use hover color */
+  background: var(--border-color-medium); /* Darker thumb */
   border-radius: 4px;
-  border: 2px solid var(--bg-main); /* Creates padding around thumb */
+  border: 2px solid var(--bg-panel); /* Creates padding around thumb */
 }
 
 ::-webkit-scrollbar-thumb:hover {
-  background: var(--border-color-medium); /* Darker on hover */
+  background: var(--accent-color-hover); /* Accent color on hover for better feedback */
+  border-color: var(--bg-panel); /* Keep border consistent */
 }
 
 /* --- Responsive Design Adjustments --- */
@@ -473,8 +601,16 @@ li.scene-item {
     --padding-base: 8px;
   }
 
+  .scene-selector {
+    min-width: 200px; /* Allow narrower sidebar on smaller screens */
+    width: 40%;
+  }
+
   .property-name {
-    width: 75px; /* Reduce label width */
+    width: 80px; /* Reduce label width */
+  }
+  .property-value {
+    min-height: 24px; /* Adjust height */
   }
 }
 

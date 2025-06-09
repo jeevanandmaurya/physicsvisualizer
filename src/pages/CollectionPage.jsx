@@ -5,21 +5,19 @@ import { Link, useLocation } from 'react-router-dom';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { faUserCircle, faSignInAlt, faSignOutAlt } from '@fortawesome/free-solid-svg-icons';
 import logoFull from '../assets/physicsvisualizer.svg';
-import './collection.css';
+import './collection.css'; // Assuming your CSS file
 
-// Import Firebase services
-import { db, auth } from '../firebase-config';
-import { collection, query, where, getDocs } from 'firebase/firestore';
-import { onAuthStateChanged, signInWithPopup, GoogleAuthProvider, signOut } from 'firebase/auth';
+import { useAuth } from '../contexts/AuthContext';
+import { useDatabase } from '../contexts/DatabaseContext';
 
-// --- Reusable SceneCard Component ---
+// --- Reusable SceneCard Component (consider moving this to components/SceneCard.jsx) ---
 function SceneCard({ scene, isPublic = false }) {
   return (
     <div className="scene-card">
-      <img 
-        src={scene.thumbnailUrl || 'https://placehold.co/350x180/777777/FFFFFF?text=No+Thumbnail'} 
-        alt={scene.title || scene.name} 
-        className="scene-thumbnail" 
+      <img
+        src={scene.thumbnailUrl || 'https://placehold.co/350x180/777777/FFFFFF?text=No+Thumbnail'}
+        alt={scene.title || scene.name}
+        className="scene-thumbnail"
       />
       <div className="scene-card-content">
         <h3 className="scene-title" title={scene.title || scene.name}>
@@ -37,9 +35,9 @@ function SceneCard({ scene, isPublic = false }) {
         )}
       </div>
       <div className="scene-actions">
-        <Link 
-          to={`/visualizer`} 
-          state={{ sceneToLoad: scene.id, isPublic }} 
+        <Link
+          to={`/visualizer`}
+          state={{ sceneToLoad: scene.id, isPublic }}
           className="scene-action-button"
         >
           View Scene
@@ -52,89 +50,81 @@ function SceneCard({ scene, isPublic = false }) {
 // --- Main CollectionPage Component ---
 function CollectionPage() {
   const location = useLocation();
-  const [currentUser, setCurrentUser] = useState(null);
+  const { currentUser, loading: authLoading, googleSignIn, logout } = useAuth();
+  const { queryUserCollection, queryPublicCollection } = useDatabase(); // Destructure both functions
+
   const [publicScenes, setPublicScenes] = useState([]);
   const [userScenes, setUserScenes] = useState([]);
   const [loadingPublic, setLoadingPublic] = useState(true);
   const [loadingUser, setLoadingUser] = useState(true);
   const [error, setError] = useState(null);
 
-  // Set active tab based on navigation state or default to public scenes
   const [activeTab, setActiveTab] = useState(location.state?.activeTab || 'publicScenes');
 
+  // Effect to fetch public scenes (runs once on mount)
   useEffect(() => {
-    const unsubscribe = onAuthStateChanged(auth, (user) => {
-      setCurrentUser(user);
-    });
-    return () => unsubscribe();
-  }, []);
+    const getPublicScenes = async () => {
+      setLoadingPublic(true);
+      setError(null);
+      try {
+        // Use queryPublicCollection, fetch all
+        const scenes = await queryPublicCollection('public_scenes');
+        setPublicScenes(scenes);
+      } catch (err) {
+        console.error("Error fetching public scenes:", err);
+        setError("Failed to load public scenes. Please try again.");
+      } finally {
+        setLoadingPublic(false);
+      }
+    };
+    getPublicScenes();
+  }, [queryPublicCollection]); // Depend on queryPublicCollection (from useCallback)
 
+  // Effect to fetch user-specific scenes (runs when auth state changes)
   useEffect(() => {
-    fetchPublicScenes();
-  }, []);
-
-  useEffect(() => {
-    if (currentUser) {
-      fetchUserScenes(currentUser.uid);
-    } else {
-      setUserScenes([]);
-      setLoadingUser(false);
-    }
-  }, [currentUser]);
-
-  const fetchPublicScenes = async () => {
-    setLoadingPublic(true);
-    try {
-      const q = query(collection(db, 'public_scenes'));
-      const querySnapshot = await getDocs(q);
-      const scenes = querySnapshot.docs.map(doc => ({
-        id: doc.id,
-        ...doc.data()
-      }));
-      setPublicScenes(scenes);
-    } catch (err) {
-      console.error("Error fetching public scenes:", err);
-      setError("Failed to load public scenes. Please try again.");
-    } finally {
-      setLoadingPublic(false);
-    }
-  };
-
-  const fetchUserScenes = async (uid) => {
-    setLoadingUser(true);
-    try {
-      const q = query(
-        collection(db, 'scenes'),
-        where('authorId', '==', uid)
-      );
-      const querySnapshot = await getDocs(q);
-      const scenes = querySnapshot.docs.map(doc => ({
-        id: doc.id,
-        ...doc.data(),
-        created: doc.data().createdAt?.toDate().toLocaleDateString() || 'N/A'
-      }));
-      setUserScenes(scenes);
-    } catch (err) {
-      console.error("Error fetching user scenes:", err);
-      setError("Failed to load your scenes. Please try again.");
-    } finally {
-      setLoadingUser(false);
-    }
-  };
+    const getUserScenes = async () => {
+      if (!authLoading) { // Only proceed once auth state is determined
+        if (currentUser) {
+          setLoadingUser(true);
+          setError(null);
+          try {
+            // Use queryUserCollection for user's scenes
+            const scenes = await queryUserCollection('scenes', [
+              { field: 'authorId', operator: '==', value: currentUser.uid }
+            ], {field: 'createdAt', direction: 'desc'}); // Example: order by creation date
+            const formattedScenes = scenes.map(scene => ({
+              ...scene,
+              created: scene.createdAt?.toDate().toLocaleDateString() || 'N/A'
+            }));
+            setUserScenes(formattedScenes);
+          } catch (err) {
+            console.error("Error fetching user scenes:", err);
+            setError("Failed to load your scenes. Please try again.");
+          } finally {
+            setLoadingUser(false);
+          }
+        } else {
+          // No user logged in, clear user scenes and loading state
+          setUserScenes([]);
+          setLoadingUser(false);
+        }
+      }
+    };
+    getUserScenes();
+  }, [currentUser, authLoading, queryUserCollection]); // Depend on currentUser, authLoading, queryUserCollection
 
   const handleSignInOut = async () => {
     if (currentUser) {
       try {
-        await signOut(auth);
+        await logout();
         alert("You have been signed out.");
       } catch (error) {
         console.error("Error signing out:", error);
         alert("Failed to sign out. Please try again.");
       }
     } else {
-      const provider = new GoogleAuthProvider();
       try {
-        await signInWithPopup(auth, provider);
+        await googleSignIn();
       } catch (error) {
         if (error.code !== 'auth/popup-closed-by-user') {
           alert("Failed to sign in. Please try again: " + error.message);
@@ -145,33 +135,32 @@ function CollectionPage() {
 
   const handleTabClick = (tabName) => {
     setActiveTab(tabName);
-    setError(null); // Clear any previous errors
+    setError(null); // Clear any previous errors when changing tabs
   };
 
-  // --- renderScenes function ---
-  const renderScenes = (scenes, loading, isPublic) => {
-    if (loading) {
+  const renderScenes = (scenes, dataLoading, isPublic) => {
+    if (dataLoading) {
       return <p className="empty-state-message">Loading scenes... ⏳</p>;
     }
-    
+
     if (error) {
       return <p className="error-state-message">Error: {error}</p>;
     }
-    
+
     if (!scenes || scenes.length === 0) {
       if (!isPublic && !currentUser) {
         return <p className="empty-state-message">Please log in to see your scenes. ✨</p>;
       }
       return (
         <p className="empty-state-message">
-          {isPublic 
-            ? "No public scenes available yet. 🌌" 
+          {isPublic
+            ? "No public scenes available yet. 🌌"
             : "You haven't created any scenes yet. Start creating! 🚀"
           }
         </p>
       );
     }
-    
+
     return (
       <div className="scene-grid">
         {scenes.map(scene => (
@@ -180,6 +169,15 @@ function CollectionPage() {
       </div>
     );
   };
+
+  // Render a full page loading spinner if auth state is still loading
+  if (authLoading) {
+    return (
+      <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: '100vh', fontSize: '24px', color: '#fff' }}>
+        Loading Physics Visualizer Collection...
+      </div>
+    );
+  }
 
   return (
     <div className="collection-page-container">

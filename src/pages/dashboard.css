@@ -151,7 +151,7 @@ body {
 }
 
 .dashboard-card:hover {
-  transform: translateY(-2px);
+  transform: translateY(1px);
   box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
 }
 
@@ -218,7 +218,7 @@ body {
 .create-scene-card:hover {
   border-color: #00aaff;
   background-color: #333333;
-  transform: translateY(-1px);
+  transform: translateY(1px);
 }
 
 .create-scene-card:hover .card-icon-large {
@@ -272,9 +272,16 @@ body {
   min-height: 50px;
 }
 
-.card-header + .scene-list { 
+.card-header { 
+  display: flex;
+  justify-content: space-between;
   border-top: none; 
   margin-top: 0; 
+}
+.card-title{
+  display: flex;
+  align-items: center;
+  gap: 10px;
 }
 
 .explore-collection-card h4 + .scene-list { 

@@ -1,80 +1,335 @@
-.top-menu {
-  display: flex;
-  background-color: #1e1e1e;
-  color: white;
-  height: 36px;
-  font-size: 14px;
-  border-bottom: 1px solid #6c6c6c;
-  font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+/* --- Top Menu Styled Like Dashboard Header --- */
+:root {
+    --menu-bg: #242424;
+    --menu-border-color: #333;
+    --menu-text-color: #e0e0e0;
+    --menu-item-hover-bg: #383838;
+    --dropdown-bg: #2c2c2c;
+    --dropdown-border: #3f3f3f;
+    --dropdown-item-hover-bg: #383838;
+    --fullscreen-btn-bg: #007acc; /* A vibrant blue for buttons */
+    --fullscreen-btn-hover-bg: #006bb3; /* Darker blue on hover */
+    --text-on-accent: #ffffff; /* White text on accent colors */
+    --text-secondary: #aaaaaa; /* Muted color for icons in dropdown */
+
+    /* Font variables from scene-selector */
+    --font-family-ui: 'Segoe UI', 'Roboto', sans-serif, 'Apple Color Emoji', 'Segoe UI Emoji', 'Segoe UI Symbol';
+    --font-size-base: 13px;
+    --font-size-small: 11px;
 }
 
+.top-menu {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    min-height: 56px;
+    padding: 0 20px;
+    background-color: var(--menu-bg);
+    border-bottom: 1px solid var(--menu-border-color);
+    box-shadow: 0 2px 5px rgba(0, 0, 0, 0.3);
+    flex-shrink: 0; /* Prevents shrinking if content needs more space */
+    color: var(--menu-text-color);
+    font-family: var(--font-family-ui);
+    font-size: var(--font-size-base);
+    z-index: 1000; /* Ensure it stays on top of other content */
+}
+.top-left-menu{
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+/* Logo Section */
 #icon {
-  margin: 0;
+    display: flex;
+    align-items: center;
+    height: 36px; /* Adjust logo height as needed */
+    margin-right: 15px;
+}
+
+.mini-logo, .full-logo {
+    height: 100%;
+    width: auto;
+    object-fit: contain;
 }
 
 .mini-logo {
-  display: block;
+    display: block; /* Show mini logo by default */
 }
 
 .full-logo {
-  display: none;
+    display: none; /* Hide full logo by default */
 }
 
-/* On wider screens, swap */
+/* Show full logo on larger screens */
 @media (min-width: 768px) {
-  .mini-logo {
-    display: none;
-  }
+    .mini-logo {
+        display: none;
+    }
+    .full-logo {
+        display: block;
+    }
+}
 
-  .full-logo {
-    display: block;
-  }
+/* Main Navigation Container for menu items */
+.menu-nav {
+    display: flex;
+    gap: 5px; /* Space between main menu items */
+    flex-grow: 1; /* Allows it to take up available space */
+    justify-content: flex-start;
+    align-items: center;
 }
 
 .menu-item {
-  position: relative;
-  padding: 6px 8px;
-  cursor: pointer;
+    position: relative;
+    padding: 10px 15px;
+    cursor: pointer;
+    border-radius: 4px;
+    transition: background-color 0.2s ease, transform 0.1s ease;
+    color: var(--menu-text-color);
+    font-weight: 500;
+    white-space: nowrap; /* Prevent text wrapping */
 }
 
-.menu-item:hover {
-  background: rgba(255, 255, 255, 0.1);
-  border-radius: 2px;
+.menu-item:hover,
+.menu-item.open {
+    background-color: var(--menu-item-hover-bg);
+    transform: translateY(-1px); /* Slight lift effect on hover/open */
+}
+.menu-item.open {
+    transform: none; /* Reset transform when open to prevent jitter */
+    background-color: var(--menu-item-hover-bg);
 }
 
+/* Dropdown Menu */
 .dropdown {
-  position: absolute;
-  top: 100%;
-  left: 0;
-  right: 100%;
-  background: #2d2d2d;
-  border: 1px solid #444;
-  width: fit-content;
-  z-index: 999;
+    position: absolute;
+    top: calc(100% + 5px); /* Position below the parent menu item */
+    left: 0; /* Align to the left of the parent */
+    background-color: var(--dropdown-bg);
+    border: 1px solid var(--dropdown-border);
+    border-radius: 4px;
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.4);
+    min-width: 180px;
+    z-index: 1001; /* Ensure dropdown is above other content */
+    list-style: none; /* Remove bullet points */
+    padding: 5px 0;
+    margin: 0;
+    animation: fadeIn 0.2s ease-out; /* Smooth fade-in effect */
+}
+
+@keyframes fadeIn {
+    from { opacity: 0; transform: translateY(-5px); }
+    to { opacity: 1; transform: translateY(0); }
 }
 
 .dropdown-item {
-  padding: 8px 12px;
-  cursor: pointer;
-  white-space: nowrap;
+    padding: 10px 20px;
+    cursor: pointer;
+    white-space: nowrap;
+    color: var(--menu-text-color);
+    transition: background-color 0.2s ease, color 0.2s ease;
+    font-size: var(--font-size-base);
+    display: flex; /* For icon and text alignment */
+    align-items: center;
+    gap: 10px; /* Space between icon and text */
 }
 
 .dropdown-item:hover {
-  background: #3a3d41;
+    background-color: var(--dropdown-item-hover-bg);
+    color: var(--text-on-accent);
+}
+.dropdown-item:hover {
+    transform: none; /* Prevent transform on dropdown items */
 }
 
-#fullscreen {
-  color: white;
-  padding: 6px 8px;
-  margin-left: auto;
-  margin-right: 16px;
-  border: none;
-
-  border-radius: 0%;
-  font-size: small;
-  cursor: pointer;
+/* --- New Styles for Utility Section (Fullscreen and User) --- */
+.menu-utility-section {
+    display: flex;
+    align-items: center;
+    gap: 10px; /* Space between Fullscreen and User buttons */
+    margin-left: 15px; /* Push section away from main menu items */
 }
 
-#fullscreen:hover {
-  background: rgba(255, 255, 255, 0.1);
+/* Fullscreen Toggle Button - now on the left within utility section */
+#fullscreen-button {
+    background-color: var(--fullscreen-btn-bg);
+    color: var(--text-on-accent);
+    border: none;
+    padding: 8px 12px;
+    border-radius: 4px;
+    cursor: pointer;
+    font-size: var(--font-size-small);
+    width: 40px; /* Fixed width for a square button */
+    height: 40px; /* Fixed height for a square button */
+    transition: background-color 0.2s ease, transform 0.1s ease;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.2);
+    flex-shrink: 0; /* Prevents shrinking */
+    order: 1; /* Explicitly set order to 1 (left) within its flex container */
+}
+
+#fullscreen-button .svg-inline--fa {
+    font-size: 1.2em; /* Adjust icon size within the button */
+}
+
+#fullscreen-button:hover {
+    background-color: var(--fullscreen-btn-hover-bg);
+    transform: translateY(-1px);
+    box-shadow: 0 2px 5px rgba(0, 0, 0, 0.3);
+}
+
+#fullscreen-button:active {
+    transform: translateY(0);
+    background-color: var(--fullscreen-btn-bg);
+    box-shadow: 0 1px 2px rgba(0, 0, 0, 0.2);
+}
+
+/* User Icon/Profile/Login - now on the right within utility section */
+.user-menu-item {
+    /* Inherits most styles from .menu-item */
+    display: flex;
+    align-items: center;
+    gap: 8px; /* Space between user icon and username */
+    padding: 8px 12px; /* Slightly less padding than main menu items */
+    font-size: var(--font-size-base);
+    font-weight: 500;
+    order: 2; /* Explicitly set order to 2 (right) within its flex container */
+}
+
+.user-icon, .login-icon { /* Styles for both profile and login icons */
+    font-size: 1.4em; /* Larger user/login icon */
+    color: var(--menu-text-color);
+}
+
+.username-label {
+    /* Optional: style for the username text */
+    color: var(--menu-text-color);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis; /* Add ellipsis for long usernames */
+    max-width: 100px; /* Limit username width */
+}
+
+/* User dropdown specifically */
+.user-dropdown {
+    left: unset; /* Override default left:0 */
+    right: 0;    /* Align dropdown to the right of the user icon */
+    min-width: 150px; /* Smaller min-width for user dropdown */
+}
+
+/* Icons within dropdown items */
+.dropdown-icon {
+    width: 20px; /* Fixed width for consistent icon alignment in dropdown */
+    text-align: center;
+    font-size: 1em; /* Ensure icons are proper size */
+    color: var(--text-secondary); /* Muted color for dropdown icons */
+}
+
+.dropdown-item:hover .dropdown-icon {
+    color: var(--text-on-accent); /* Change icon color on hover */
+}
+
+
+/* --- Mobile Responsiveness --- */
+@media (max-width: 768px) {
+    .top-menu {
+        padding: 0 10px;
+        min-height: 45px;
+    }
+
+    #icon {
+        margin-right: 10px;
+    }
+
+    .menu-nav {
+        gap: 0px;
+        flex-wrap: wrap; /* Allow menu items to wrap on smaller screens */
+        justify-content: center;
+    }
+
+    .menu-item {
+        padding: 8px 10px;
+        font-size: var(--font-size-small);
+    }
+
+    .dropdown {
+        min-width: 120px;
+        left: unset; /* Reset left */
+        right: 0;    /* Keep aligned to right */
+    }
+
+    .dropdown-item {
+        padding: 8px 15px;
+        font-size: var(--font-size-small);
+    }
+
+    /* User item specific mobile adjustments */
+    .user-menu-item {
+        padding: 6px 10px; /* Smaller padding */
+        font-size: var(--font-size-small);
+    }
+
+    .user-icon, .login-icon {
+        font-size: 1.2em; /* Slightly smaller icon on mobile */
+    }
+
+    .username-label {
+        display: none; /* Hide username on small screens to save space */
+    }
+
+    .user-dropdown {
+        min-width: 120px;
+    }
+
+    #fullscreen-button {
+        width: 36px;
+        height: 36px;
+        padding: 0; /* Remove padding as width/height are set */
+        font-size: 0.9em;
+    }
+}
+
+/* Very small screens: Stack elements */
+@media (max-width: 480px) {
+    .top-menu {
+        flex-wrap: wrap; /* Allow entire menu to wrap */
+        justify-content: center;
+        min-height: 80px; /* Give more height when wrapped */
+        padding: 5px 10px;
+    }
+
+    #icon {
+        width: 100%; /* Logo takes full width */
+        justify-content: center;
+        margin-bottom: 5px;
+        margin-right: 0;
+    }
+
+    .menu-nav {
+        width: 100%; /* Main nav takes full width */
+        justify-content: center;
+        margin-bottom: 5px;
+    }
+
+    .menu-item {
+        flex: 1 1 auto; /* Allow menu items to grow/shrink */
+        text-align: center;
+    }
+
+    .menu-utility-section {
+        width: 100%; /* Take full width on very small screens */
+        justify-content: space-around; /* Space out user and fullscreen buttons */
+        margin-left: 0;
+        margin-top: 5px; /* Space from main menu */
+    }
+
+    .user-menu-item {
+        padding: 8px 12px; /* Restore some padding */
+        /* username-label already hidden on mobile, ensuring it stays hidden */
+    }
+
+    #fullscreen-button {
+        position: static; /* Remove absolute positioning if any */
+        margin: auto; /* Center button */
+    }
 }
