@@ -190,9 +190,9 @@ function TimeUpdater({ isPlaying, setCurrentTime }) {
 
 // --- Object Components (Sphere, Box, Cylinder, SceneBox) ---
 
-// Modified Sphere component with position tracking
+// Modified Sphere component with position tracking and opacity
 function Sphere({ config, id, setApi, onPhysicsUpdate, gravitationalPhysics }) {
-  const { mass, radius, position: initialPosition, velocity: initialVelocity, rotation = [0, 0, 0], color = "red", restitution = 0.7, isStatic = false } = config;
+  const { mass, radius, position: initialPosition, velocity: initialVelocity, rotation = [0, 0, 0], color = "red", restitution = 0.7, isStatic = false, opacity = 1.0 } = config;
   const [ref, api] = useSphere(() => ({
     mass: isStatic ? 0 : mass,
     position: initialPosition,
@@ -239,14 +239,14 @@ function Sphere({ config, id, setApi, onPhysicsUpdate, gravitationalPhysics }) {
   return (
     <mesh ref={ref} castShadow>
       <sphereGeometry args={[radius, 32, 32]} />
-      <meshStandardMaterial color={color} />
+      <meshStandardMaterial color={color} opacity={opacity} transparent={opacity < 1.0} />
     </mesh>
   );
 }
 
-// Box component with position tracking
+// Box component with position tracking and opacity
 function Box({ config, id, setApi, onPhysicsUpdate, gravitationalPhysics }) {
-  const { mass, dimensions, position: initialPosition, velocity: initialVelocity, rotation = [0, 0, 0], color = "green", restitution = 0.7, isStatic = false } = config;
+  const { mass, dimensions, position: initialPosition, velocity: initialVelocity, rotation = [0, 0, 0], color = "green", restitution = 0.7, isStatic = false, opacity = 1.0 } = config;
   const [width, height, depth] = dimensions || [1, 1, 1];
   const [ref, api] = useBox(() => ({
     mass: isStatic ? 0 : mass,
@@ -291,14 +291,14 @@ function Box({ config, id, setApi, onPhysicsUpdate, gravitationalPhysics }) {
   return (
     <mesh ref={ref} castShadow>
       <boxGeometry args={[width, height, depth]} />
-      <meshStandardMaterial color={color} />
+      <meshStandardMaterial color={color} opacity={opacity} transparent={opacity < 1.0} />
     </mesh>
   );
 }
 
-// Cylinder component with position tracking
+// Cylinder component with position tracking and opacity
 function Cylinder({ config, id, setApi, onPhysicsUpdate, gravitationalPhysics }) {
-  const { mass, radius, height, position: initialPosition, velocity: initialVelocity, rotation = [0, 0, 0], color = "blue", restitution = 0.7, isStatic = false } = config;
+  const { mass, radius, height, position: initialPosition, velocity: initialVelocity, rotation = [0, 0, 0], color = "blue", restitution = 0.7, isStatic = false, opacity = 1.0 } = config;
   const [ref, api] = useCylinder(() => ({
     mass: isStatic ? 0 : mass,
     position: initialPosition,
@@ -342,12 +342,12 @@ function Cylinder({ config, id, setApi, onPhysicsUpdate, gravitationalPhysics })
   return (
     <mesh ref={ref} castShadow>
       <cylinderGeometry args={[radius, radius, height, 16]} />
-      <meshStandardMaterial color={color} />
+      <meshStandardMaterial color={color} opacity={opacity} transparent={opacity < 1.0} />
     </mesh>
   );
 }
 
-// SceneBox component
+// SceneBox component with opacity
 function SceneBox({ config, id, setApi }) {
   const {
     mass = 0, // Static by default
@@ -357,6 +357,7 @@ function SceneBox({ config, id, setApi }) {
     rotation = [0, 0, 0],
     color = "#88aa88",
     restitution = 0.3,
+    opacity = 1.0,
   } = config;
   const [width, height, depth] = dimensions;
   const [ref, api] = useBox(() => ({
@@ -377,7 +378,7 @@ function SceneBox({ config, id, setApi }) {
   return (
     <mesh ref={ref} receiveShadow castShadow>
       <boxGeometry args={[width, height, depth]} />
-      <meshStandardMaterial color={color} />
+      <meshStandardMaterial color={color} opacity={opacity} transparent={opacity < 1.0} />
     </mesh>
   );
 }

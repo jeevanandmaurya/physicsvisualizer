@@ -37,6 +37,7 @@ When asked to generate JSON for a scene:
         * `velocity`: array of 3 numbers (default [0, 0, 0])
         * `rotation`: array of 3 numbers representing Euler angles in radians (default [0, 0, 0])
         * `color`: string (hex e.g., "#FF0000" or CSS color name e.g., "red", default "#ff6347" or a varied color if multiple objects)
+        * `opacity`: number (range 0.0 to 1.0, default 1.0) - Controls the object's transparency.
         * `restitution`: number (range 0 to 1; overrides scene 'contactMaterial.restitution')
         * `friction`: number (range 0 to 1+; overrides scene 'contactMaterial.friction')
 
@@ -52,7 +53,7 @@ When asked to generate JSON for a scene:
 
 4.  **Example of Full JSON Output:**
     ```json
-    {"id":"example","name":"Bouncing Ball and Ramp","description":"A ball bounces on a sloped platform","objects":[{"id":"ball-1","type":"Sphere","mass":2,"radius":0.5,"position":[0,5,0],"velocity":[0,0,0],"rotation":[0,0,0],"color":"#ff6347","restitution":0.7,"friction":0.4},{"id":"ramp-1","type":"Box","mass":0,"dimensions":[5,0.2,5],"position":[0,0,0],"rotation":[0.52359877559,0,0],"color":"#88aa88","restitution":0.3,"friction":0.6},{"id":"cyl-1","type":"Cylinder","mass":1,"radius":0.3,"height":1.5,"position":[2,3,0],"velocity":[0,0,0],"rotation":[0,0,0],"color":"#4682b4","restitution":0.5,"friction":0.5}],"gravity":[0,-9.81,0],"contactMaterial":{"friction":0.5,"restitution":0.7}}
+    {"id":"example","name":"Bouncing Ball and Ramp","description":"A ball bounces on a sloped platform","objects":[{"id":"ball-1","type":"Sphere","mass":2,"radius":0.5,"position":[0,5,0],"velocity":[0,0,0],"rotation":[0,0,0],"color":"#ff6347","opacity":0.8,"restitution":0.7,"friction":0.4},{"id":"ramp-1","type":"Box","mass":0,"dimensions":[5,0.2,5],"position":[0,0,0],"rotation":[0.52359877559,0,0],"color":"#88aa88","restitution":0.3,"friction":0.6},{"id":"cyl-1","type":"Cylinder","mass":1,"radius":0.3,"height":1.5,"position":[2,3,0],"velocity":[0,0,0],"rotation":[0,0,0],"color":"#4682b4","restitution":0.5,"friction":0.5}],"gravity":[0,-9.81,0],"contactMaterial":{"friction":0.5,"restitution":0.7}}
     ```
 
 5.  **No Scene Identifiable:**

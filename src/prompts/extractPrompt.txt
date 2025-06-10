@@ -1,4 +1,5 @@
-Extract a physics scene from this conversation with enhanced gravitational physics support:\n${conversationText}\n
+Extract a physics scene from this conversation with enhanced gravitational physics support:
+${conversationText}
 
 Convert it into a plain JSON object matching the format below. This system now supports realistic gravitational attraction between masses in addition to standard physics.
 
@@ -18,6 +19,7 @@ Supported object types are "Sphere", "Box", and "Cylinder". Note: "Box" can also
 - "rotation": array of 3 numbers representing Euler angles in radians (default [0, 0, 0])
 - "angularVelocity": array of 3 numbers for rotational motion (default [0, 0, 0])
 - "color": string (hex or name, default varies)
+- "opacity": number (range 0.0 to 1.0; default 1.0) - Controls the object's transparency
 - "restitution": number (range 0 to 1; overrides scene 'contactMaterial.restitution')
 - "friction": number (range 0 to 1+; overrides scene 'contactMaterial.friction')
 - "gravitationalMass": number (defaults to 'mass' if not specified) - Allows different gravitational vs inertial mass
@@ -28,8 +30,8 @@ Supported object types are "Sphere", "Box", and "Cylinder". Note: "Box" can also
 - "name": string-based on scene name (default "Extracted Scene")
 - "description": string-based on scene details (default "Scene from conversation")
 - "objects": array of objects (empty array if none found)
-- "gravity": array of 3 numbers (default [0, -9.81, 0] for Earth gravity, [0, 0, 0] for space/zero-gravity scenarios)
-- "hasGround": boolean (true for terrestrial scenes with ground, false for space/zero-gravity scenarios)
+- "gravity": array of 3 numbers. **Since the Gravitational Physics engine is active, this should almost always be [0, 0, 0] to avoid applying a double gravity effect.**
+- "hasGround": boolean (true for terrestrial scenes with a floor, false for space/zero-gravity scenarios)
 - "contactMaterial": object that **must be present** defining default physical properties
     - "friction": number (default 0.5)
     - "restitution": number (default 0.7)
@@ -46,47 +48,43 @@ Supported object types are "Sphere", "Box", and "Cylinder". Note: "Box" can also
 * **Multi-body Systems:** Consider gravitational interactions between all massive objects when positioning.
 
 **Ground Plane Control (Enhanced):**
-* **hasGround:** Set to true for scenes that require a ground plane (terrestrial physics, objects falling/bouncing on ground). Set to false for space scenes, celestial body simulations, or scenarios where objects should float freely without a ground reference.
+* **hasGround:** Set to true for scenes that require a ground plane (terrestrial physics, objects falling/bouncing on a floor). Set to false for space scenes, celestial body simulations, or scenarios where objects should float freely without a ground reference.
 * **Examples where hasGround should be false and gravitationalPhysics.enabled should be true:**
     - Space simulations, satellite orbits, planetary motion
     - Zero-gravity environments with gravitational attraction
     - Solar system simulations, moon-earth systems
     - Binary star systems, gravitational slingshot scenarios
-* **Examples where hasGround should be true and gravitationalPhysics can be enabled or disabled:**
-    - Balls bouncing with slight gravitational attraction between them
-    - Projectile motion with gravitational effects
-    - Pendulum systems with gravitational coupling
+* **Examples where hasGround should be true and gravitationalPhysics.enabled should be true:**
+    - A simulation of balls on a table that also attract each other slightly.
+    - Projectile motion on a planet where objects also attract each other.
 
 **Scenario Type Detection:**
 Based on the conversation content, determine the appropriate scenario type:
 
-1. **Terrestrial Scenarios (Small gravitational effects):**
-    - Use gravitationalConstant: 6.67430e-11 (realistic)
+1. **Terrestrial Scenarios (Objects on a surface):**
     - simulationScale: "terrestrial"
-    - hasGround: true typically
-    - gravity: [0, -9.81, 0]
+    - hasGround: true
+    - gravity: [0, 0, 0] (as `gravitationalPhysics` will handle attraction to a large, static ground-like object if one is defined).
 
-2. **Astronomical Scenarios (Enhanced gravitational effects):**
-    - Use gravitationalConstant: 6.67430e-11 or scaled version
+2. **Astronomical Scenarios (Objects in space):**
     - simulationScale: "solar_system" or "galactic"
-    - hasGround: false typically
-    - gravity: [0, 0, 0] (gravitational forces dominate)
-    - Use realistic masses and distances for celestial bodies
+    - hasGround: false
+    - gravity: [0, 0, 0] (as `gravitationalPhysics` is the only force).
+    - Use realistic masses and distances for celestial bodies.
 
 3. **Abstract/Educational Scenarios:**
-    - gravitationalConstant can be scaled for visualization
-    - simulationScale: "terrestrial" typically
-    - Adjust based on educational purpose
+    - Adjust `simulationScale` and `hasGround` based on the educational purpose.
+    - `gravity` should remain `[0, 0, 0]`.
 
 **Important:** Return the JSON object alone, without any additional text, comments, or Markdown. The response must be parseable directly as JSON by a program.
 
 **Example outputs:**
 
 Terrestrial with gravitational attraction:
-{"id":"terrestrial_gravity","name":"Objects with Gravitational Attraction","description":"Small objects attracting each other","objects":[{"id":"sphere1","type":"Sphere","mass":1000,"radius":0.5,"position":[-2,2,0],"velocity":[0.1,0,0],"color":"#ff6347"},{"id":"sphere2","type":"Sphere","mass":1500,"radius":0.6,"position":[2,2,0],"velocity":[-0.1,0,0],"color":"#4682b4"}],"gravity":[0,-9.81,0],"hasGround":true,"contactMaterial":{"friction":0.5,"restitution":0.7},"gravitationalPhysics":{"enabled":true,"gravitationalConstant":6.67430e-11,"minDistance":1e-6,"softening":0},"simulationScale":"terrestrial"}
+{"id":"terrestrial_gravity","name":"Objects with Gravitational Attraction","description":"Small objects attracting each other on a surface","objects":[{"id":"sphere1","type":"Sphere","mass":1000,"radius":0.5,"position":[-2,2,0],"velocity":[0.1,0,0],"color":"#ff6347"},{"id":"sphere2","type":"Sphere","mass":1500,"radius":0.6,"position":[2,2,0],"velocity":[-0.1,0,0],"color":"#4682b4"}],"gravity":[0,0,0],"hasGround":true,"contactMaterial":{"friction":0.5,"restitution":0.7},"gravitationalPhysics":{"enabled":true,"gravitationalConstant":6.67430e-8,"minDistance":1e-6,"softening":0},"simulationScale":"terrestrial"}
 
 Orbital system:
 {"id":"orbital_system","name":"Planet-Moon System","description":"Orbital mechanics demonstration","objects":[{"id":"planet","type":"Sphere","mass":5.972e24,"radius":6371000,"position":[0,0,0],"velocity":[0,0,0],"color":"#4169e1","isStatic":true},{"id":"moon","type":"Sphere","mass":7.342e22,"radius":1737000,"position":[384400000,0,0],"velocity":[0,1022,0],"color":"#c0c0c0"}],"gravity":[0,0,0],"hasGround":false,"contactMaterial":{"friction":0.1,"restitution":0.9},"gravitationalPhysics":{"enabled":true,"gravitationalConstant":6.67430e-11,"minDistance":1000,"softening":0},"simulationScale":"solar_system"}
 
 If no physics scene is identifiable, return:
-{"id":"empty","name":"No Scene Found","description":"No physics scene in conversation","objects":[],"gravity":[0,-9.81,0],"hasGround":true,"contactMaterial":{"friction":0.5,"restitution":0.7},"gravitationalPhysics":{"enabled":false,"gravitationalConstant":6.67430e-11,"minDistance":1e-6,"softening":0},"simulationScale":"terrestrial"}
+{"id":"empty","name":"No Scene Found","description":"No physics scene in conversation","objects":[],"gravity":[0,0,0],"hasGround":true,"contactMaterial":{"friction":0.5,"restitution":0.7},"gravitationalPhysics":{"enabled":false,"gravitationalConstant":6.67430e-11,"minDistance":1e-6,"softening":0},"simulationScale":"terrestrial"}
