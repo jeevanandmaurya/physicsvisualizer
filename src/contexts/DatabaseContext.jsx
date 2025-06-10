@@ -1,8 +1,9 @@
-// src/contexts/DatabaseContext.jsx
-import React, { createContext, useContext, useEffect, useState, useCallback } from 'react';
-import { db } from '../firebase-config'; // Your Firestore instance
-import { doc, getDoc, setDoc, updateDoc, collection, query, where, getDocs, deleteDoc, limit, orderBy } from 'firebase/firestore';
-import { useAuth } from './AuthContext'; // To get the current user
+import React, { createContext, useContext, useCallback } from 'react';
+import { db, serverTimestamp } from '../firebase-config';
+import { doc, getDoc, setDoc, updateDoc, collection, query, where, getDocs, deleteDoc, limit, orderBy, addDoc } from 'firebase/firestore';
+import { useAuth } from './AuthContext';
+// NOTE: Path updated from scenes.js to data.js as per refactor plan
+import { mechanicsExamples } from '../scenes.js'; 
 
 const DatabaseContext = createContext();
 
@@ -12,151 +13,165 @@ export function useDatabase() {
 
 export function DatabaseProvider({ children }) {
   const { currentUser } = useAuth();
-  const [userProfile, setUserProfile] = useState(null);
-  const [loadingProfile, setLoadingProfile] = useState(true);
 
-  // Function to get a document from a user's specific collection
-  const getUserDocument = useCallback(async (collectionName, documentId) => {
+  // --- LOW-LEVEL FIRESTORE HELPERS (kept internal) ---
+  const getDocument = async (collectionPath, docId) => {
+    const docRef = doc(db, collectionPath, docId);
+    const docSnap = await getDoc(docRef);
+    return docSnap.exists() ? { id: docSnap.id, ...docSnap.data() } : null;
+  };
+
+  const queryCollection = async (collectionPath, conditions = [], order = null, limitTo = null) => {
+    let q = query(collection(db, collectionPath));
+    conditions.forEach(c => { q = query(q, where(c.field, c.operator, c.value)); });
+    if (order) { q = query(q, orderBy(order.field, order.direction)); }
+    if (limitTo) { q = query(q, limit(limitTo)); }
+
+    const querySnapshot = await getDocs(q);
+    return querySnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+  };
+
+  // --- DATA MANAGER API ---
+
+  /**
+   * Fetches scenes from various sources based on type.
+   */
+  const getScenes = useCallback(async (type, options = {}) => {
+    switch (type) {
+      case 'user':
+        if (!currentUser) return [];
+        const userPath = `users/${currentUser.uid}/scenes`;
+        const finalUserConditions = [{ field: 'authorId', operator: '==', value: currentUser.uid }, ...(options.conditions || [])];
+        return queryCollection(userPath, finalUserConditions, options.orderBy, options.limitTo);
+
+      case 'public':
+        return queryCollection('public_scenes', options.conditions, options.orderBy, options.limitTo);
+
+      case 'examples':
+        return Promise.resolve(mechanicsExamples);
+
+      default:
+        console.error(`Unknown scene type: ${type}`);
+        return Promise.resolve([]);
+    }
+  }, [currentUser]);
+
+  /**
+   * Fetches a single scene by its ID.
+   */
+  const getSceneById = useCallback(async (sceneId, isPublic = false) => {
+    if (isPublic) {
+      return getDocument('public_scenes', sceneId);
+    }
     if (!currentUser) return null;
-    const docRef = doc(db, 'users', currentUser.uid, collectionName, documentId);
-    try {
-      const docSnap = await getDoc(docRef);
-      if (docSnap.exists()) {
-        return { id: docSnap.id, ...docSnap.data() };
-      } else {
-        console.log(`Document ${documentId} in ${collectionName} for user ${currentUser.uid} does not exist.`);
-        return null;
-      }
-    } catch (error) {
-      console.error("Error getting user document:", error);
-      throw error; // Propagate error
-    }
+    return getDocument(`users/${currentUser.uid}/scenes`, sceneId);
   }, [currentUser]);
 
-  // Function to set/create a document in a user's specific collection
-  const setUserDocument = useCallback(async (collectionName, documentId, data) => {
-    if (!currentUser) throw new Error("No authenticated user to set document.");
-    const docRef = doc(db, 'users', currentUser.uid, collectionName, documentId);
-    try {
-      await setDoc(docRef, data, { merge: true });
-      console.log("Document successfully written/updated!");
-      return true;
-    } catch (error) {
-      console.error("Error setting user document:", error);
-      throw error;
-    }
-  }, [currentUser]);
+  /**
+   * Saves or updates a scene to the user's collection.
+   */
+  const saveScene = useCallback(async (sceneObject) => {
+    if (!currentUser) throw new Error("Authentication required to save scenes.");
+    
+    // Remove temporary client-side flags before saving
+    const { isExtracted, isTemporary, ...dataToSave } = sceneObject;
 
-  // Function to update fields in an existing document
-  const updateUserDocument = useCallback(async (collectionName, documentId, data) => {
-    if (!currentUser) throw new Error("No authenticated user to update document.");
-    const docRef = doc(db, 'users', currentUser.uid, collectionName, documentId);
-    try {
-      await updateDoc(docRef, data);
-      console.log("Document successfully updated!");
-      return true;
-    } catch (error) {
-      console.error("Error updating user document:", error);
-      throw error;
-    }
-  }, [currentUser]);
-
-  // Function to query a user's specific sub-collection
-  const queryUserCollection = useCallback(async (collectionName, conditions = [], order = null, limitTo = null) => {
-    if (!currentUser) return []; // Return empty array if no user
-    const qRef = collection(db, 'users', currentUser.uid, collectionName);
-    let q = qRef;
-    conditions.forEach(condition => {
-      q = query(q, where(condition.field, condition.operator, condition.value));
-    });
-    if (order) {
-        q = query(q, orderBy(order.field, order.direction));
-    }
-    if (limitTo) {
-        q = query(q, limit(limitTo));
-    }
-
-    try {
-      const querySnapshot = await getDocs(q);
-      const data = [];
-      querySnapshot.forEach((doc) => {
-        data.push({ id: doc.id, ...doc.data() });
-      });
-      return data;
-    } catch (error) {
-      console.error("Error querying user collection:", error);
-      throw error; // Re-throw to allow component to catch and set local error state
-    }
-  }, [currentUser]);
-
-  // NEW: Function to query a public collection (not user-specific path)
-  const queryPublicCollection = useCallback(async (collectionName, conditions = [], limitTo = null, order = null) => {
-    const qRef = collection(db, collectionName);
-    let q = qRef;
-    conditions.forEach(condition => {
-      q = query(q, where(condition.field, condition.operator, condition.value));
-    });
-    if (order) {
-        q = query(q, orderBy(order.field, order.direction));
-    }
-    if (limitTo) {
-        q = query(q, limit(limitTo));
-    }
-
-    try {
-      const querySnapshot = await getDocs(q);
-      const data = [];
-      querySnapshot.forEach((doc) => {
-        data.push({ id: doc.id, ...doc.data() });
-      });
-      return data;
-    } catch (error) {
-      console.error("Error querying public collection:", error);
-      throw error; // Re-throw to allow component to catch and set local error state
-    }
-  }, []); // This does NOT depend on currentUser, as it's public
-
-  // Function to delete a document from a user's specific collection
-  const deleteUserDocument = useCallback(async (collectionName, documentId) => {
-    if (!currentUser) throw new Error("No authenticated user to delete document.");
-    const docRef = doc(db, 'users', currentUser.uid, collectionName, documentId);
-    try {
-      await deleteDoc(docRef);
-      console.log("Document successfully deleted!");
-      return true;
-    } catch (error) {
-      console.error("Error deleting user document:", error);
-      throw error;
-    }
-  }, [currentUser]);
-
-  // Example: Fetch user profile data when currentUser changes
-  useEffect(() => {
-    const fetchUserProfile = async () => {
-      setLoadingProfile(true);
-      if (currentUser) {
-        // Fetch user profile (assuming it's a document 'data' in subcollection 'profile' under the user doc)
-        const profile = await getUserDocument('profile', 'data');
-        setUserProfile(profile);
-      } else {
-        setUserProfile(null);
-      }
-      setLoadingProfile(false);
+    const sceneData = {
+      ...dataToSave,
+      authorId: currentUser.uid,
+      authorName: currentUser.displayName || 'Anonymous',
+      updatedAt: serverTimestamp(),
     };
 
-    fetchUserProfile();
-    // Re-run if currentUser or getUserDocument (which is memoized with useCallback) changes
-  }, [currentUser, getUserDocument]);
+    const collectionRef = collection(db, `users/${currentUser.uid}/scenes`);
 
+    if (!sceneObject.id || sceneObject.id.startsWith('new-') || sceneObject.id.startsWith('extracted-')) {
+        sceneData.createdAt = serverTimestamp();
+        const docRef = await addDoc(collectionRef, sceneData);
+        return docRef.id;
+    } else {
+        const docRef = doc(db, `users/${currentUser.uid}/scenes`, sceneObject.id);
+        await setDoc(docRef, sceneData, { merge: true });
+        return sceneObject.id;
+    }
+  }, [currentUser]);
+
+  /**
+   * Deletes a scene from the user's collection.
+   */
+  const deleteScene = useCallback(async (sceneId) => {
+    if (!currentUser) throw new Error("Authentication required to delete scenes.");
+    if (!sceneId) throw new Error("Scene ID is required for deletion.");
+    const docRef = doc(db, `users/${currentUser.uid}/scenes`, sceneId);
+    await deleteDoc(docRef);
+  }, [currentUser]);
+
+  /**
+   * Fetches the entire chat history for the current user.
+   */
+  const getChatHistory = useCallback(async () => {
+    if (!currentUser) return [];
+    const historyDoc = await getDocument(`users/${currentUser.uid}/chat`, 'history');
+    return historyDoc?.messages || [];
+  }, [currentUser]);
+
+  /**
+   * Overwrites the entire chat history for the current user.
+   */
+  const saveChatHistory = useCallback(async (history) => {
+    if (!currentUser) throw new Error("Authentication required to save chat history.");
+    const docRef = doc(db, `users/${currentUser.uid}/chat`, 'history');
+    await setDoc(docRef, { messages: history });
+  }, [currentUser]);
+
+  /**
+   * Logs that a user has viewed a scene by saving it to localStorage.
+   * The list is capped at 10 items.
+   * @param {string} sceneId - The ID of the viewed scene.
+   * @param {string} sceneName - The name of the viewed scene.
+   * @param {boolean} isPublic - Whether the scene is public.
+   */
+  const logSceneView = useCallback((sceneId, sceneName, isPublic) => {
+    if (!sceneId || !sceneName) return;
+    try {
+      const recentScenes = JSON.parse(localStorage.getItem('recentScenes') || '[]');
+      const filteredScenes = recentScenes.filter(s => s.id !== sceneId);
+      const newRecent = [{ id: sceneId, name: sceneName, isPublic, viewedAt: new Date().toISOString() }, ...filteredScenes];
+      const limitedRecent = newRecent.slice(0, 10);
+      localStorage.setItem('recentScenes', JSON.stringify(limitedRecent));
+    } catch (error) {
+      console.error("Could not update recent scenes in localStorage:", error);
+    }
+  }, []);
+
+  /**
+   * Gets the list of recently viewed scenes from localStorage.
+   * @returns {Array} An array of up to 10 recently viewed scene objects.
+   */
+  const getRecentScenes = useCallback(() => {
+    try {
+      return JSON.parse(localStorage.getItem('recentScenes') || '[]');
+    } catch (error) {
+      console.error("Could not retrieve recent scenes from localStorage:", error);
+      return [];
+    }
+  }, []);
+
+  // The public API provided by the context
   const value = {
-    userProfile,
-    loadingProfile,
-    getUserDocument,
-    setUserDocument,
-    updateUserDocument,
-    queryUserCollection,
-    queryPublicCollection, // Make sure this is exposed
-    deleteUserDocument,
+    // Scene Management
+    getScenes,
+    getSceneById,
+    saveScene,
+    deleteScene,
+
+    // Chat Management
+    getChatHistory,
+    saveChatHistory,
+    
+    // Recently Viewed Management
+    logSceneView,
+    getRecentScenes,
   };
 
   return (

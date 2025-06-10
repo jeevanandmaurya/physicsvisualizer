@@ -468,3 +468,121 @@ body {
     display: none;
   }
 }
+/* === Loading States === */
+
+/* User Profile Loading States */
+.user-info.loading {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  opacity: 0.7;
+  cursor: default;
+  padding: 8px 12px;
+  border-radius: 6px;
+}
+
+.user-avatar-loading {
+  font-size: 28px;
+  color: #888;
+  margin-right: 10px;
+}
+
+/* Scene List Loading States */
+.scene-list-loading {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 30px 20px;
+  gap: 12px;
+  flex-grow: 1;
+  min-height: 100px;
+}
+
+.loading-spinner {
+  font-size: 20px;
+  color: #00aaff;
+}
+
+.loading-message {
+  margin: 0;
+  color: #888;
+  font-style: italic;
+  font-size: 0.9em;
+  text-align: center;
+}
+
+/* Smooth transitions for content loading */
+.scene-list {
+  transition: opacity 0.3s ease;
+}
+
+.scene-list.loading {
+  opacity: 0.6;
+}
+
+/* Disabled button styles when user profile is loading */
+.view-all-button:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+  background-color: #2a2a2a;
+  border-color: #444;
+}
+
+.view-all-button:disabled:hover {
+  background-color: #2a2a2a;
+  border-color: #444;
+  transform: none;
+}
+
+/* Animation for better loading experience */
+@keyframes fadeIn {
+  from { opacity: 0; transform: translateY(10px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+.scene-list ul {
+  animation: fadeIn 0.4s ease-out;
+}
+
+/* Loading skeleton effect for dark theme */
+.scene-item-skeleton {
+  background: linear-gradient(90deg, #2c2c2c 25%, #3c3c3c 50%, #2c2c2c 75%);
+  background-size: 200% 100%;
+  animation: loading-shimmer 1.5s infinite;
+  height: 20px;
+  border-radius: 4px;
+  margin: 8px 0;
+}
+
+@keyframes loading-shimmer {
+  0% { background-position: -200% 0; }
+  100% { background-position: 200% 0; }
+}
+
+/* Mobile adjustments for loading states */
+@media (max-width: 768px) {
+  .scene-list-loading {
+    padding: 20px 15px;
+    min-height: 80px;
+  }
+  
+  .loading-spinner {
+    font-size: 18px;
+  }
+  
+  .loading-message {
+    font-size: 0.85em;
+  }
+  
+  .user-avatar-loading {
+    font-size: 24px;
+  }
+}
+
+@media (max-width: 480px) {
+  .scene-list-loading {
+    padding: 15px 10px;
+    gap: 8px;
+  }
+}

@@ -1,268 +1,211 @@
-// src/pages/DashboardPage.jsx
-
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import logoFull from '../assets/physicsvisualizer.svg';
-import { faPlus, faClockRotateLeft, faFolderOpen, faCompass, faUserCircle, faSignInAlt, faSignOutAlt, faArrowRight } from '@fortawesome/free-solid-svg-icons';
+import { faPlus, faClockRotateLeft, faFolderOpen, faCompass, faUserCircle, faSignInAlt, faSignOutAlt, faArrowRight, faSpinner } from '@fortawesome/free-solid-svg-icons';
 
-import './dashboard.css'; // Assuming your CSS file
+import './dashboard.css';
 
 import { useAuth } from '../contexts/AuthContext';
-import { useDatabase } from '../contexts/DatabaseContext';
+import { useDatabase } from '../contexts/DatabaseContext'; // Use our DataManager
 
 function DashboardPage() {
-  const navigate = useNavigate();
-  const { currentUser, loading: authLoading, googleSignIn, logout } = useAuth();
-  const { queryUserCollection, queryPublicCollection } = useDatabase(); // Destructure both functions
+    const navigate = useNavigate();
+    const { currentUser, loading: authLoading, googleSignIn, logout } = useAuth();
+    const dataManager = useDatabase();
 
-  const [yourScenes, setYourScenes] = useState([]);
-  const [recentScenes, setRecentScenes] = useState([]); // This is still a placeholder for future feature
-  const [publicScenes, setPublicScenes] = useState([]);
+    // --- State Management ---
+    const [yourScenes, setYourScenes] = useState([]);
+    const [publicScenes, setPublicScenes] = useState([]);
+    // NEW: State for recently viewed scenes
+    const [recentScenes, setRecentScenes] = useState([]);
 
-  const [loadingYourScenes, setLoadingYourScenes] = useState(true);
-  const [loadingPublicScenes, setLoadingPublicScenes] = useState(true);
+    const [loadingYourScenes, setLoadingYourScenes] = useState(false);
+    const [loadingPublicScenes, setLoadingPublicScenes] = useState(false);
+    const [error, setError] = useState(null);
 
-  const [error, setError] = useState(null);
+    // --- EFFECT: Fetches all dashboard data ---
+    useEffect(() => {
+        if (!dataManager) return;
+        let isMounted = true;
 
-  // Effect to fetch public scenes (runs once on mount)
-  useEffect(() => {
-    const getPublicScenes = async () => {
-      setLoadingPublicScenes(true);
-      setError(null);
-      try {
-        // Use queryPublicCollection, limit to 3 for dashboard preview
-        const scenes = await queryPublicCollection('public_scenes', [], 3);
-        setPublicScenes(scenes);
-      } catch (err) {
-        console.error("Error fetching public scenes:", err);
-        setError("Failed to load public scenes. Please try again.");
-      } finally {
-        setLoadingPublicScenes(false);
-      }
-    };
-    getPublicScenes();
-  }, [queryPublicCollection]); // Depend on queryPublicCollection (from useCallback)
+        // 1. Fetch Recently Viewed scenes from localStorage (synchronous)
+        setRecentScenes(dataManager.getRecentScenes());
 
-  // Effect to fetch user-specific scenes (runs when auth state changes)
-  useEffect(() => {
-    const getUserScenes = async () => {
-      if (!authLoading) { // Only proceed once auth state is determined
+        // 2. Fetch Public Scenes from Firestore
+        setLoadingPublicScenes(true);
+        dataManager.getScenes('public', { limitTo: 3 })
+            .then(scenes => { if (isMounted) setPublicScenes(scenes); })
+            .catch(err => {
+                console.error("Error fetching public scenes:", err);
+                if (isMounted) setError("Failed to load public scenes.");
+            })
+            .finally(() => { if (isMounted) setLoadingPublicScenes(false); });
+
+        // 3. Fetch User's Scenes from Firestore (if logged in)
+        if (currentUser && !authLoading) {
+            setLoadingYourScenes(true);
+            const options = { limitTo: 5, orderBy: { field: 'updatedAt', direction: 'desc' } };
+            dataManager.getScenes('user', options)
+                .then(scenes => { if (isMounted) setYourScenes(scenes); })
+                .catch(err => {
+                    console.error("Error fetching user scenes:", err);
+                    if (isMounted) setError("Failed to load your scenes.");
+                })
+                .finally(() => { if (isMounted) setLoadingYourScenes(false); });
+        } else if (!currentUser) {
+            setYourScenes([]); // Clear scenes on logout
+        }
+
+        return () => { isMounted = false; };
+    }, [currentUser, authLoading, dataManager]);
+
+
+    // --- Memoized Handlers and UI Components (No changes needed below) ---
+
+    const handleCreateNewScene = useCallback(() => {
+        if (!currentUser) { alert("Please sign in to create a new scene."); return; }
+        navigate('/visualizer', { state: { sceneToLoad: 'new_empty_scene' } });
+    }, [currentUser, navigate]);
+
+    const handleNavigateToScene = useCallback((sceneId, isPublic = false) => {
+        navigate('/visualizer', { state: { sceneToLoad: sceneId, isPublic } });
+    }, [navigate]);
+
+    const handleExploreCollection = useCallback(() => navigate('/collection'), [navigate]);
+    
+    const handleViewAllYourScenes = useCallback(() => {
+        if (!currentUser) { alert("Please sign in to view your collection."); return; }
+        navigate('/collection', { state: { activeTab: 'myScenes' } });
+    }, [currentUser, navigate]);
+
+    const handleSignInOut = useCallback(async () => {
+        if (currentUser) await logout();
+        else await googleSignIn().catch(err => { if (err.code !== 'auth/popup-closed-by-user') console.error(err); });
+    }, [currentUser, logout, googleSignIn]);
+
+    const UserProfile = useMemo(() => {
+        if (authLoading) { return <div className="user-info loading"><FontAwesomeIcon icon={faSpinner} spin /></div>; }
         if (currentUser) {
-          setLoadingYourScenes(true);
-          setError(null);
-          try {
-            // Use queryUserCollection for user's scenes
-            const scenes = await queryUserCollection('scenes', [
-              { field: 'authorId', operator: '==', value: currentUser.uid }
-            ], {field: 'createdAt', direction: 'desc'}, 5); // Example: order by creation date, limit 5
-            const formattedScenes = scenes.map(scene => ({
-              ...scene,
-              created: scene.createdAt?.toDate().toLocaleDateString() || 'N/A'
-            }));
-            setYourScenes(formattedScenes);
-          } catch (err) {
-            console.error("Error fetching user scenes:", err);
-            setError("Failed to load your scenes. Please try again.");
-          } finally {
-            setLoadingYourScenes(false);
-          }
-        } else {
-          // No user logged in, clear user scenes and loading state
-          setYourScenes([]);
-          setLoadingYourScenes(false);
-          setRecentScenes([]); // Still a placeholder
+            return (
+                <div className="user-info" onClick={handleSignInOut} title="Click to Sign Out">
+                    <img src={currentUser.photoURL} alt={currentUser.displayName} className="user-avatar" />
+                    <span>{currentUser.displayName}</span>
+                    <span className="sign-out-link"><FontAwesomeIcon icon={faSignOutAlt} /></span>
+                </div>
+            );
         }
-      }
-    };
-    getUserScenes();
-  }, [currentUser, authLoading, queryUserCollection]); // Depend on currentUser, authLoading, queryUserCollection
+        return <button className="sign-in-button" onClick={handleSignInOut}><FontAwesomeIcon icon={faSignInAlt} /> Sign In</button>;
+    }, [authLoading, currentUser, handleSignInOut]);
 
-  const handleCreateNewScene = () => {
-    if (!currentUser) {
-      alert("Please sign in to create a new scene.");
-      return;
-    }
-    navigate('/visualizer', { state: { sceneToLoad: 'new_empty_scene' } });
-  };
-
-  const handleExploreCollection = () => {
-    navigate('/collection');
-  };
-
-  const handleViewAllYourScenes = () => {
-    if (!currentUser) {
-        alert("Please sign in to view your saved scenes in the collection.");
-        return;
-    }
-    navigate('/collection', { state: { activeTab: 'myScenes' } });
-  };
-
-  const handleSignInOut = async () => {
-    if (currentUser) {
-      try {
-        await logout();
-        alert("You have been signed out.");
-      } catch (error) {
-        console.error("Error signing out:", error);
-        alert("Failed to sign out. Please try again.");
-      }
-    } else {
-      try {
-        await googleSignIn();
-      } catch (error) {
-        if (error.code !== 'auth/popup-closed-by-user') {
-          alert("Failed to sign in. Please try again: " + error.message);
-        }
-      }
-    }
-  };
-
-  const handleSceneClick = (sceneId) => {
-    navigate('/visualizer', { state: { sceneToLoad: sceneId } });
-  };
-
-  const handlePublicSceneClick = (sceneId) => {
-    navigate('/visualizer', { state: { sceneToLoad: sceneId, isPublic: true } });
-  };
-
-  // Render a full page loading spinner if auth state is still loading
-  if (authLoading) {
-    return (
-      <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: '100vh', fontSize: '24px', color: '#fff' }}>
-        Loading Physics Visualizer Dashboard...
-      </div>
-    );
-  }
-
-  return (
-    <div className="dashboard-container">
-      <header className="dashboard-header">
-        <div style={{ display: 'flex', alignItems: 'center' }}>
-          <img src={logoFull} alt="Physics Visualizer Logo" height="45px" />
-          <span className="dashboard-title-text">Dashboard</span>
-        </div>
-        <div className="user-section">
-          {currentUser ? (
-            <div className="user-info" onClick={handleSignInOut} title="Click to Sign Out">
-              {currentUser.photoURL ? (
-                <img src={currentUser.photoURL} alt={currentUser.displayName || "User"} className="user-avatar" />
-              ) : (
-                <FontAwesomeIcon icon={faUserCircle} className="user-avatar-default" />
-              )}
-              <span>{currentUser.displayName || currentUser.email}</span>
-              <span className="sign-out-link"><FontAwesomeIcon icon={faSignOutAlt} /> (Sign Out)</span>
-            </div>
-          ) : (
-            <button className="sign-in-button" onClick={handleSignInOut}>
-              <FontAwesomeIcon icon={faSignInAlt} /> Sign In
-            </button>
-          )}
-        </div>
-      </header>
-
-      <main className="dashboard-content">
-        {/* Left Column: Create New Scene & Recent Scenes */}
-        <div className="dashboard-column-left">
-          <section className="dashboard-card create-scene-card" onClick={handleCreateNewScene}>
-            <FontAwesomeIcon icon={faPlus} className="card-icon-large" />
-            <h3>Create New Scene</h3>
-            <p>Start with a blank canvas.</p>
-            {!currentUser && <small style={{ marginTop: '10px', color: '#ffcc00' }}>(Sign in required)</small>}
-          </section>
-
-          <section className="dashboard-card recent-scenes-card">
-            <div className="card-header">
-              <div className="card-title">
-              <FontAwesomeIcon icon={faClockRotateLeft} className="card-icon" />
-              <h3>Recent Scenes</h3>
-              </div>
-            </div>
-            <div className="scene-list">
-              {recentScenes.length > 0 ? (
+    const YourScenesContent = useMemo(() => {
+        if (loadingYourScenes || authLoading) { return <div className="scene-list-loading"><FontAwesomeIcon icon={faSpinner} spin /></div>; }
+        if (!currentUser) { return <p className="no-scenes-message">Sign in to see your scenes.</p>; }
+        if (yourScenes.length > 0) {
+            return (
                 <ul>
-                  {recentScenes.map(scene => (
-                    <li key={scene.id} onClick={() => handleSceneClick(scene.id)}>
-                      <strong>{scene.name || scene.title}</strong> <small>(Accessed: {scene.lastAccessed || 'N/A'})</small>
-                    </li>
-                  ))}
-                </ul>
-              ) : (
-                <p className="no-scenes-message">No recent scenes available. <br/>(Future feature for tracking your accessed scenes!)</p>
-              )}
-            </div>
-          </section>
-        </div>
-
-        {/* Right Column: Your Scenes & Explore Public Scenes */}
-        <div className="dashboard-column-right">
-          <section className="dashboard-card your-scenes-card">
-            <div className="card-header">
-              <div className="card-title">
-              <FontAwesomeIcon icon={faFolderOpen} className="card-icon" />
-              <h3>Your Scenes</h3>
-              </div>
-
-              <button className="view-all-button" onClick={handleViewAllYourScenes} disabled={!currentUser}>
-                View All <FontAwesomeIcon icon={faArrowRight} />
-              </button>
-            </div>
-            <div className="scene-list">
-              {loadingYourScenes && currentUser ? (
-                <p className="loading-message">Loading your scenes...</p>
-              ) : currentUser ? (
-                yourScenes.length > 0 ? (
-                  <ul>
-                    {yourScenes.slice(0, 5).map(scene => (
-                      <li key={scene.id} onClick={() => handleSceneClick(scene.id)}>
-                        <strong>{scene.name || scene.title}</strong> <small>(Created: {scene.created})</small>
-                      </li>
+                    {yourScenes.map(scene => (
+                        <li key={scene.id} onClick={() => handleNavigateToScene(scene.id)}>
+                            <strong>{scene.name || 'Untitled Scene'}</strong>
+                            <small>(Updated: {scene.updatedAt?.toDate().toLocaleDateString() || 'N/A'})</small>
+                        </li>
                     ))}
-                  </ul>
-                ) : (
-                  <p className="no-scenes-message">You haven't created any scenes yet.</p>
-                )
-              ) : (
-                <p className="no-scenes-message">Sign in to see your saved scenes.</p>
-              )}
-            </div>
-          </section>
-
-          <div className="horizontal-partition"></div>
-
-          <section className="dashboard-card explore-collection-card">
-            <div className="card-header" style={{ justifyContent: 'space-between' }}>
-              <div className='card-title' style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-                <FontAwesomeIcon icon={faCompass} className="card-icon" />
-                <h3>Explore Public Scenes</h3>
-              </div>
-              <button className="view-all-button" onClick={handleExploreCollection}>
-                View All <FontAwesomeIcon icon={faArrowRight}/>
-              </button>
-            </div>
-            <p className="explore-description">Browse predefined example scenes.</p>
-
-            <div className="scene-list">
-              {loadingPublicScenes ? (
-                <p className="loading-message">Loading public scenes...</p>
-              ) : publicScenes.length > 0 ? (
-                <ul>
-                  {publicScenes.map(scene => (
-                    <li key={scene.id} onClick={() => handlePublicSceneClick(scene.id)}>
-                      <strong>{scene.title}</strong>
-                      {scene.description && <small>{scene.description}</small>}
-                    </li>
-                  ))}
                 </ul>
-              ) : (
-                <p className="no-scenes-message">No public scenes available yet.</p>
-              )}
-            </div>
-          </section>
+            );
+        }
+        return <p className="no-scenes-message">You haven't created any scenes yet.</p>;
+    }, [authLoading, currentUser, loadingYourScenes, yourScenes, handleNavigateToScene]);
+
+    return (
+        <div className="dashboard-container">
+            <header className="dashboard-header">
+                <div style={{ display: 'flex', alignItems: 'center', gap: '15px' }}>
+                    <img src={logoFull} alt="Physics Visualizer Logo" height="45px" />
+                    <span className="dashboard-title-text">Dashboard</span>
+                </div>
+                <div className="user-section">{UserProfile}</div>
+            </header>
+
+            <main className="dashboard-content">
+                <div className="dashboard-column-left">
+                    <section className="dashboard-card create-scene-card" onClick={handleCreateNewScene}>
+                        <FontAwesomeIcon icon={faPlus} className="card-icon-large" />
+                        <h3>Create New Scene</h3>
+                        <p>Start with a blank canvas.</p>
+                        {!currentUser && !authLoading && <small className="signin-required">(Sign in required)</small>}
+                    </section>
+
+                    {/* --- RESTORED: Recently Viewed Scenes Card --- */}
+                    <section className="dashboard-card recent-scenes-card">
+                        <div className="card-header">
+                            <div className="card-title">
+                                <FontAwesomeIcon icon={faClockRotateLeft} className="card-icon" />
+                                <h3>Recently Viewed</h3>
+                            </div>
+                        </div>
+                        <div className="scene-list">
+                            {recentScenes.length > 0 ? (
+                                <ul>
+                                    {recentScenes.map(scene => (
+                                        <li key={scene.id} onClick={() => handleNavigateToScene(scene.id, scene.isPublic)}>
+                                            <strong>{scene.name || 'Untitled Scene'}</strong>
+                                        </li>
+                                    ))}
+                                </ul>
+                            ) : (
+                                <p className="no-scenes-message">Scenes you view will appear here.</p>
+                            )}
+                        </div>
+                    </section>
+                </div>
+
+                <div className="dashboard-column-right">
+                    <section className="dashboard-card your-scenes-card">
+                        <div className="card-header">
+                            <div className="card-title">
+                                <FontAwesomeIcon icon={faFolderOpen} className="card-icon" />
+                                <h3>Your Scenes</h3>
+                            </div>
+                            <button className="view-all-button" onClick={handleViewAllYourScenes} disabled={!currentUser}>
+                                View All <FontAwesomeIcon icon={faArrowRight} />
+                            </button>
+                        </div>
+                        <div className="scene-list">{YourScenesContent}</div>
+                    </section>
+
+                    <div className="horizontal-partition"></div>
+
+                    <section className="dashboard-card explore-collection-card">
+                        <div className="card-header">
+                             <div className="card-title">
+                                <FontAwesomeIcon icon={faCompass} className="card-icon" />
+                                <h3>Explore Public Scenes</h3>
+                            </div>
+                            <button className="view-all-button" onClick={handleExploreCollection}>
+                                View All <FontAwesomeIcon icon={faArrowRight}/>
+                            </button>
+                        </div>
+                        <div className="scene-list">
+                            {loadingPublicScenes ? (
+                                <div className="scene-list-loading"><FontAwesomeIcon icon={faSpinner} spin /></div>
+                            ) : publicScenes.length > 0 ? (
+                                <ul>
+                                    {publicScenes.map(scene => (
+                                        <li key={scene.id} onClick={() => handleNavigateToScene(scene.id, true)}>
+                                            <strong>{scene.name || 'Untitled Scene'}</strong>
+                                            {scene.description && <small>{scene.description}</small>}
+                                        </li>
+                                    ))}
+                                </ul>
+                            ) : (
+                                <p className="no-scenes-message">No public scenes available.</p>
+                            )}
+                        </div>
+                    </section>
+                </div>
+            </main>
         </div>
-      </main>
-    </div>
-  );
+    );
 }
 
 export default DashboardPage;

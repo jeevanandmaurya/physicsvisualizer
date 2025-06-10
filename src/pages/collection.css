@@ -1,4 +1,4 @@
-/* CollectionPage.css - Fixed and Enhanced */
+/* CollectionPage.css - Enhanced with Progressive Loading */
 
 .collection-page-container {
   padding: 0;
@@ -32,6 +32,29 @@
 .user-section {
   display: flex;
   align-items: center;
+  min-height: 40px; /* Prevent layout shift */
+}
+
+.user-loading {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  color: #888;
+  font-size: 0.9em;
+}
+
+.user-loading-spinner {
+  width: 16px;
+  height: 16px;
+  border: 2px solid #333;
+  border-top: 2px solid #007bff;
+  border-radius: 50%;
+  animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+  0% { transform: rotate(0deg); }
+  100% { transform: rotate(360deg); }
 }
 
 .user-info {
@@ -177,7 +200,7 @@
   transition: transform 0.3s ease, box-shadow 0.3s ease;
 }
 
-.scene-card:hover {
+.scene-card:hover:not(.skeleton) {
   transform: translateY(-5px);
   box-shadow: 0 8px 20px rgba(0, 0, 0, 0.4);
 }
@@ -265,6 +288,62 @@
   background: linear-gradient(135deg, #0056b3, #003d82);
   transform: translateY(-1px);
   box-shadow: 0 2px 8px rgba(0, 123, 255, 0.3);
+}
+
+/* Skeleton Loading Styles */
+.skeleton {
+  pointer-events: none;
+}
+
+.skeleton-shimmer {
+  background: linear-gradient(90deg, #333 25%, #444 50%, #333 75%);
+  background-size: 200% 100%;
+  animation: shimmer 1.5s infinite;
+}
+
+@keyframes shimmer {
+  0% { background-position: -200% 0; }
+  100% { background-position: 200% 0; }
+}
+
+.skeleton .scene-thumbnail {
+  background-color: #333;
+}
+
+.skeleton-title {
+  height: 24px;
+  border-radius: 4px;
+  margin-bottom: 12px;
+  background-color: #333;
+}
+
+.skeleton-description {
+  margin-bottom: 15px;
+}
+
+.skeleton-line {
+  height: 16px;
+  border-radius: 4px;
+  margin-bottom: 8px;
+  background-color: #333;
+}
+
+.skeleton-line.short {
+  width: 60%;
+}
+
+.skeleton-meta {
+  height: 14px;
+  border-radius: 4px;
+  margin-bottom: 15px;
+  width: 80%;
+  background-color: #333;
+}
+
+.skeleton-button {
+  height: 36px;
+  border-radius: 6px;
+  background-color: #333;
 }
 
 /* State Messages */

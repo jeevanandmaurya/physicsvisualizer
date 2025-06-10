@@ -1,4 +1,4 @@
-── src/
+└── src/
     ├── App.jsx
     ├── index.css
     ├── main.jsx
@@ -6,7 +6,7 @@
     │   └── physicsvisualizer.svg
     ├── components/
     │   ├── Conversation.css
-    │   ├── Conversation.jsx
+    │   ├── Conversation.jsx  # Updated to import agentPrompt from ../prompts/agentPrompt.txt?raw
     │   ├── graph.css
     │   ├── LeftPanel.css
     │   ├── LeftPanel.jsx
@@ -14,7 +14,7 @@
     │   ├── RightPanel.css
     │   ├── RightPanel.jsx
     │   ├── SceneSelector.css
-    │   ├── SceneSelector.jsx
+    │   ├── SceneSelector.jsx  # Updated to import extractPrompt from ../prompts/extractPrompt.txt?raw
     │   ├── TopMenu.jsx
     │   ├── Visualizer.css
     │   └── Visualizer.jsx
@@ -28,4 +28,7 @@
     │   ├── DashboardPage.jsx
     │   ├── physicsvisualizer.css
     │   └── PhysicsVisualizerPage.jsx
+    ├── prompts/
+    │   ├── extractPrompt.txt  # New file containing the extractPrompt content
+    │   └── agentPrompt.txt    # New file containing the agentPrompt content
     └── scenes.js

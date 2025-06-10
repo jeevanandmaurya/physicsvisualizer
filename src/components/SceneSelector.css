@@ -1,35 +1,35 @@
 /* --- Styles for the Scene Selector UI --- */
 
-/* --- Base & Variables --- */
+/* --- Core & Variables --- */
 :root {
   /* Common Dark UI Colors (Inspired by Unity/VS Code Dark Themes) */
-  --bg-main: #1a1a1b;          /* Slightly darker, more muted main background */
-  --bg-panel: #212122;         /* Slightly lighter panels, subtle contrast */
-  --bg-element: #2c2c2c;       /* Background for list items, properties */
-  --bg-element-hover: #3a3a3a; /* Hover state for elements */
-  --bg-element-selected: #004d80; /* Stronger, more distinct selection blue */
-  --bg-header: #2e2e2e;        /* Header backgrounds, slightly darker than element */
-  --bg-input: #3a3a3a;         /* Input field backgrounds, aligned with hover */
-  --bg-toggle-track: #666;     /* For new toggle switch */
+  --bg-main: #1a1a1b;
+  --bg-panel: #212122;
+  --bg-element: #2c2c2c;
+  --bg-element-hover: #3a3a3a;
+  --bg-element-selected: #004d80;
+  --bg-header: #2e2e2e;
+  --bg-input: #3a3a3a;
+  --bg-toggle-track: #666;
   --bg-toggle-thumb: #ccc;
 
-  --border-color-subtle: #333; /* Subtle borders, slightly darker */
-  --border-color-medium: #444; /* Medium borders */
-  --border-color-focus: #007acc; /* Accent/Focus border (like VS Code blue) */
+  --border-color-subtle: #333;
+  --border-color-medium: #444;
+  --border-color-focus: #007acc;
 
-  --text-primary: #e0e0e0;     /* Primary text, slightly brighter */
-  --text-secondary: #a0a0a0;   /* Secondary/muted text */
-  --text-label: #b0b0b0;       /* Labels in properties */
-  --text-header: #cccccc;      /* Header text */
-  --text-on-accent: #ffffff;   /* Text on accent color backgrounds */
+  --text-primary: #e0e0e0;
+  --text-secondary: #a0a0a0;
+  --text-label: #b0b0b0;
+  --text-header: #cccccc;
+  --text-on-accent: #ffffff;
 
-  --accent-color: #007acc;     /* VS Code blue as primary accent */
-  --accent-color-hover: #006bb3; /* Darker hover */
-  --accent-color-active: #005f99; /* Even darker active */
+  --accent-color: #007acc;
+  --accent-color-hover: #006bb3;
+  --accent-color-active: #005f99;
   --error-color: #f44747;
-  --success-color: #4CAF50;    /* Added for success messages */
+  --success-color: #4CAF50;
 
-  --font-family-ui: 'Segoe UI', 'Roboto', sans-serif, 'Apple Color Emoji', 'Segoe UI Emoji', 'Segoe UI Symbol';
+  --font-family-ui: 'Segoe UI', 'Roboto', sans-serif;
   --font-size-base: 13px;
   --font-size-small: 11px;
   --font-size-large: 16px;
@@ -39,10 +39,10 @@
   --padding-large: 15px;
 
   --radius-base: 3px;
-  --radius-button: 4px; /* Slightly more rounded buttons */
+  --radius-button: 4px;
 }
 
-/* --- Base Apply --- */
+/* --- Base & Layout --- */
 .scene-selector-container {
   font-family: var(--font-family-ui);
   font-size: var(--font-size-base);
@@ -50,63 +50,218 @@
   background-color: var(--bg-main);
   height: 100vh;
   width: 100%;
-  display: flex; /* Ensure it's a flex container for the main layout */
-  overflow: hidden; /* Prevent body scroll if content overflows */
+  display: flex;
+  overflow: hidden;
 }
 
-.scene-selector-container *,
-.scene-selector-container *::before,
-.scene-selector-container *::after {
+/* Universal Box Sizing & Text Handling */
+.scene-selector-container *, .scene-selector-container *::before, .scene-selector-container *::after {
   box-sizing: border-box;
 }
 
-/* --- Main Scene Selector Container (Sidebar) --- */
-.scene-selector {
-  /* FIXED: Remove fixed width constraints to allow responsive resizing */
-  height: 100%;
-  width: 100%; /* Take full width of its container (the resizable panel) */
-  background-color: var(--bg-main);
-  color: var(--text-primary);
-  border-right: 1px solid var(--border-color-medium);
+/* Common Text Truncation for single-line elements */
+.scene-tabs button, .extract-button, .scene-list-title, .inspector-header, .object-id, .property-name {
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  min-width: 0; /* Allow flex items to shrink and truncate */
+}
+
+/* Common Word Breaking for multi-line elements */
+.scene-item, .scene-name, .scene-description, .details-content, .property-value {
+  overflow-wrap: break-word; /* Modern property */
+  word-break: break-word;     /* Fallback */
+}
+
+/* Main Layout Panels */
+.scene-selector, .scene-list-panel, .scene-details-panel {
   display: flex;
   flex-direction: column;
   overflow: hidden;
-  position: relative; /* For potential positioning of children like resizer */
-  /* Removed: min-width and max-width that were preventing responsive behavior */
+  flex-grow: 1;
 }
 
-.scene-selector-header {
+.scene-selector {
+  background-color: var(--bg-main);
+  border-right: 1px solid var(--border-color-medium);
+  width: 100%; /* Take full width of its container */
+  position: relative;
+}
+
+.scene-details-panel {
+  background-color: var(--bg-panel);
+}
+
+/* Common Panel Header Styles */
+.scene-selector-header, .scene-list-title, .inspector-header {
   padding: var(--padding-base);
+  background-color: var(--bg-header);
+  color: var(--text-header);
   border-bottom: 1px solid var(--border-color-medium);
   flex-shrink: 0;
-  display: flex; /* For better button alignment */
-  justify-content: center;
+  font-weight: 600;
+  display: flex;
   align-items: center;
 }
 
-/* --- Scene Tabs --- */
+.scene-selector-header { justify-content: center; }
+.inspector-header { justify-content: space-between; }
+
+/* Common Scrollable Content Areas */
+.scene-list, .scene-details {
+  flex: 1;
+  overflow-y: auto;
+  padding: var(--padding-compact);
+}
+
+.scene-details { padding: var(--padding-base); }
+
+
+/* --- Reusable Components (Buttons, Inputs, etc.) --- */
+
+/* Primary Action Button */
+.extract-button {
+  padding: 8px 16px;
+  background-color: var(--accent-color);
+  color: var(--text-on-accent);
+  border: none;
+  border-radius: var(--radius-button);
+  cursor: pointer;
+  font-weight: 500;
+  width: 100%;
+  box-shadow: 0 1px 3px rgba(0,0,0,0.2);
+  transition: background-color 0.2s ease, transform 0.1s ease, box-shadow 0.2s ease;
+}
+
+.extract-button:not(.extracting):hover {
+  background-color: var(--accent-color-hover);
+  transform: translateY(-1px);
+  box-shadow: 0 2px 5px rgba(0,0,0,0.3);
+}
+
+.extract-button:not(.extracting):active {
+  background-color: var(--accent-color-active);
+  transform: translateY(0);
+  box-shadow: 0 1px 2px rgba(0,0,0,0.2);
+}
+
+.extract-button.extracting {
+  background-color: var(--bg-element);
+  color: var(--text-secondary);
+  cursor: not-allowed;
+  opacity: 0.8;
+  box-shadow: none;
+}
+
+/* Message Boxes & Loaders */
+.message-box {
+  margin-top: var(--padding-compact);
+  padding: var(--padding-compact) var(--padding-base);
+  border-radius: var(--radius-base);
+  font-size: var(--font-size-small);
+  text-align: center;
+  color: var(--text-on-accent);
+}
+.error-message { background-color: var(--error-color); }
+.success-message { background-color: var(--success-color); }
+
+.loading-message, .placeholder-text {
+  padding: var(--padding-large);
+  text-align: center;
+  color: var(--text-secondary);
+  font-style: italic;
+}
+
+.placeholder-text {
+  background-color: var(--bg-element);
+  border: 1px dashed var(--border-color-subtle);
+  border-radius: var(--radius-base);
+  margin: var(--padding-base);
+}
+
+/* Spinner Animation */
+.spinner {
+  display: inline-block;
+  width: 12px;
+  height: 12px;
+  border: 2px solid currentColor;
+  border-top-color: transparent;
+  border-radius: 50%;
+  animation: spin 0.8s linear infinite;
+  margin-right: 8px;
+  vertical-align: -2px;
+}
+
+@keyframes spin { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }
+
+/* Property Rows (Inspector Style) */
+.property-row {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: var(--padding-compact);
+  margin-bottom: var(--padding-compact);
+}
+
+.property-name {
+  width: 100px;
+  flex-shrink: 0;
+  color: var(--text-label);
+  text-align: right;
+  padding-right: var(--padding-compact);
+}
+
+.property-value {
+  flex-grow: 1;
+  background-color: var(--bg-input);
+  padding: 3px 8px;
+  border-radius: var(--radius-base);
+  border: 1px solid var(--border-color-subtle);
+  min-height: 28px;
+  display: flex;
+  align-items: center;
+  transition: border-color 0.15s ease, box-shadow 0.15s ease;
+}
+
+.property-value:focus-within {
+  border-color: var(--border-color-focus);
+  box-shadow: 0 0 0 1px var(--border-color-focus);
+}
+
+.property-value input, .property-value select, .property-value textarea {
+  background: transparent;
+  border: none;
+  color: var(--text-primary);
+  padding: 0;
+  margin: 0;
+  width: 100%;
+  height: 100%;
+  font: inherit;
+  outline: none;
+}
+.property-value textarea { resize: vertical; }
+
+
+/* --- Panel: Scene Selector (Left Sidebar) --- */
+
 .scene-tabs {
   display: flex;
-  border-bottom: 1px solid var(--border-color-medium);
   background-color: var(--bg-header);
+  border-bottom: 1px solid var(--border-color-medium);
   flex-shrink: 0;
 }
 
 .scene-tabs button {
-  flex: 1; /* Each tab takes equal width */
+  flex: 1;
   padding: var(--padding-base);
-  background-color: transparent;
+  background: transparent;
   border: none;
+  border-bottom: 2px solid transparent;
   color: var(--text-secondary);
   cursor: pointer;
   font-size: var(--font-size-small);
   font-weight: 500;
   transition: background-color 0.15s ease, color 0.15s ease;
-  border-bottom: 2px solid transparent;
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  min-width: 0; /* Allow flex items to shrink below content size */
 }
 
 .scene-tabs button:hover {
@@ -115,219 +270,58 @@
 }
 
 .scene-tabs button.active {
-  background-color: var(--bg-element);
   color: var(--text-primary);
   border-bottom-color: var(--accent-color);
 }
 
-.scene-tabs button:disabled {
-  opacity: 0.5;
-  cursor: not-allowed;
-}
+.scene-tabs button:disabled { opacity: 0.5; cursor: not-allowed; }
+.scene-tabs button svg { margin-right: 4px; }
 
-.scene-tabs button svg {
-  margin-right: 4px;
-  font-size: 0.9em;
-}
-
-/* --- Buttons & Interactive Elements --- */
-.extract-button {
-  padding: 8px 16px; /* Slightly more padding */
-  background-color: var(--accent-color);
-  color: var(--text-on-accent);
-  border: none; /* No border for a cleaner look */
-  border-radius: var(--radius-button); /* Use new button radius */
-  cursor: pointer;
-  font-size: var(--font-size-base);
-  font-weight: 500;
-  transition: background-color 0.2s ease, transform 0.1s ease; /* Add transform for active state */
-  width: 100%;
-  text-align: center;
-  box-shadow: 0 1px 3px rgba(0,0,0,0.2); /* Subtle shadow */
-  /* FIXED: Make button text responsive */
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  min-width: 0;
-}
-
-.extract-button:hover:not(.extracting) {
-  background-color: var(--accent-color-hover);
-  transform: translateY(-1px); /* Slight lift on hover */
-  box-shadow: 0 2px 5px rgba(0,0,0,0.3);
-}
-
-.extract-button:active:not(.extracting) {
-  background-color: var(--accent-color-active);
-  transform: translateY(0); /* Press down effect */
-  box-shadow: 0 1px 2px rgba(0,0,0,0.2);
-}
-
-.extract-button.extracting {
-  background-color: var(--bg-element);
-  border: 1px solid var(--border-color-subtle); /* Add a border for disabled state */
-  color: var(--text-secondary);
-  cursor: not-allowed;
-  opacity: 0.8; /* Slightly less opaque */
-  transform: none; /* No lift/press when extracting */
-  box-shadow: none;
-}
-
-.spinner {
-  display: inline-block;
-  width: 12px; /* Slightly larger spinner */
-  height: 12px;
-  border: 2px solid var(--text-on-accent);
-  border-top-color: transparent;
-  border-radius: 50%;
-  animation: spin 0.8s linear infinite;
-  margin-right: 8px;
-  vertical-align: -2px; /* Better alignment */
-}
-
-.extract-button.extracting .spinner {
-  border-color: var(--text-secondary);
-  border-top-color: transparent;
-}
-
-@keyframes spin {
-  0% { transform: rotate(0deg); }
-  100% { transform: rotate(360deg); }
-}
-
-.message-box { /* Generic message box for errors/success */
-  margin-top: var(--padding-compact);
-  padding: var(--padding-compact) var(--padding-base);
-  border-radius: var(--radius-base);
-  font-size: var(--font-size-small);
-  text-align: center;
-}
-
-.error-message {
-  background-color: var(--error-color);
-  color: var(--text-on-accent);
-}
-
-.success-message {
-  background-color: var(--success-color);
-  color: var(--text-on-accent);
-}
-
-.loading-message {
-  padding: var(--padding-large);
-  text-align: center;
-  color: var(--text-secondary);
-  font-style: italic;
-}
-
-/* --- Scene List Panel --- */
-.scene-list-panel {
+/* Scene List & Items */
+.scene-list {
+  list-style: none;
+  margin: 0;
   display: flex;
   flex-direction: column;
-  flex-grow: 1; /* Allow it to grow and shrink */
-  overflow: hidden;
-  border-bottom: 1px solid var(--border-color-medium);
+  gap: 6px; /* Replaces margin-bottom on items */
 }
 
-.scene-list-title {
-  font-size: var(--font-size-base);
-  font-weight: 600;
-  padding: var(--padding-base);
-  margin: 0;
-  color: var(--text-header);
-  background-color: var(--bg-header);
-  border-bottom: 1px solid var(--border-color-medium);
-  flex-shrink: 0;
-  /* FIXED: Make title responsive */
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
-}
-
-.scene-list {
-  flex: 1;
-  overflow-y: auto;
-  padding: var(--padding-compact);
-  list-style: none;
-  margin: 0;
-}
-
-li.scene-item {
-  list-style: none;
-  display: block;
-}
+li.scene-item { list-style: none; display: block; }
 
 .scene-item {
   padding: var(--padding-base);
-  margin-bottom: 6px;
   background-color: var(--bg-element);
   border: 1px solid var(--border-color-subtle);
   border-left: 3px solid transparent;
   border-radius: var(--radius-base);
   cursor: pointer;
   transition: background-color 0.15s ease, border-color 0.15s ease, transform 0.1s ease;
-  position: relative;
-  overflow: hidden; /* Ensure content doesn't break rounded corners */
-  /* FIXED: Ensure proper text wrapping in narrow spaces */
-  word-wrap: break-word;
-  word-break: break-word;
-}
-
-.scene-item:last-child {
-  margin-bottom: 0; /* No margin on the last item */
 }
 
 .scene-item:hover {
   background-color: var(--bg-element-hover);
   border-color: var(--border-color-medium);
-  transform: translateY(-1px); /* Subtle lift on hover */
+  transform: translateY(-1px);
   box-shadow: 0 2px 4px rgba(0,0,0,0.2);
 }
 
 .scene-item.selected {
   background-color: var(--bg-element-selected);
-  border-left-color: var(--accent-color);
   border-color: var(--accent-color);
-  color: var(--text-on-accent); /* Text on selected item becomes white */
-  font-weight: 600; /* Selected item text slightly bolder */
-  transform: none; /* No lift */
-  box-shadow: 0 0 0 1px var(--accent-color); /* Stronger outline */
-}
-
-.scene-item.selected .scene-name,
-.scene-item.selected .scene-description {
-  color: var(--text-on-accent); /* Ensure text stays white on selected item */
-}
-
-.scene-name {
-  font-size: var(--font-size-base);
+  border-left-color: var(--accent-color);
+  color: var(--text-on-accent);
   font-weight: 600;
-  color: var(--text-primary);
-  margin-bottom: 4px;
-  display: block;
-  line-height: 1.2;
-  /* FIXED: Better text handling in narrow spaces */
-  word-wrap: break-word;
-  word-break: break-word;
+  box-shadow: 0 0 0 1px var(--accent-color);
 }
 
-.scene-description {
-  font-size: var(--font-size-small);
-  color: var(--text-secondary);
-  line-height: 1.4;
-  display: block;
-  /* FIXED: Better text handling in narrow spaces */
-  word-wrap: break-word;
-  word-break: break-word;
-}
+/* Ensure text inside selected item is also white */
+.scene-item.selected, .scene-item.selected * { color: var(--text-on-accent); }
 
-.scene-author {
-  font-size: var(--font-size-small);
-  color: var(--text-secondary);
-  font-style: italic;
-  font-weight: normal;
-}
+.scene-name { font-weight: 600; margin-bottom: 4px; }
+.scene-description { font-size: var(--font-size-small); }
+.scene-author { font-size: var(--font-size-small); font-style: italic; font-weight: normal; }
 
+/* Badges */
 .scene-badge {
   display: inline-block;
   font-size: var(--font-size-small);
@@ -336,119 +330,88 @@ li.scene-item {
   margin-top: 4px;
   margin-right: 4px;
   font-weight: 500;
-}
-
-.public-badge {
-  background-color: var(--success-color);
   color: var(--text-on-accent);
 }
-
-.gravitational-badge {
-  background-color: var(--accent-color);
-  color: var(--text-on-accent);
-}
+.public-badge { background-color: var(--success-color); }
+.gravitational-badge { background-color: var(--accent-color); }
 
 .static-badge {
   background-color: var(--border-color-medium);
   color: var(--text-primary);
-  font-size: var(--font-size-small);
   padding: 1px 4px;
-  border-radius: var(--radius-base);
   margin-left: 8px;
 }
 
-/* --- Resizer --- */
+/* Resizer Handle */
 .panel-resize-handle {
-  height: 6px; /* Slightly taller for easier grabbing */
+  height: 6px;
   background-color: var(--bg-header);
   cursor: ns-resize;
   flex-shrink: 0;
   border-top: 1px solid var(--border-color-medium);
   border-bottom: 1px solid var(--border-color-medium);
   transition: background-color 0.15s ease;
-  position: relative; /* For visual cues */
-}
-
-.panel-resize-handle:hover {
-  background-color: var(--accent-color);
-}
-
-.panel-resize-handle::before { /* Visual indicator for resize handle */
-  content: '';
-  position: absolute;
-  left: 50%;
-  top: 50%;
-  transform: translate(-50%, -50%);
-  width: 24px; /* Width of the dots */
-  height: 2px;
-  background-color: var(--text-secondary);
-  border-top: 1px dotted var(--text-secondary);
-  border-bottom: 1px dotted var(--text-secondary);
-  opacity: 0.7;
-}
-
-.panel-resize-handle:hover::before {
-  background-color: var(--text-on-accent);
-  border-top-color: var(--text-on-accent);
-  border-bottom-color: var(--text-on-accent);
-}
-
-/* --- Scene Details Panel (Inspector Style) --- */
-.scene-details-panel {
   display: flex;
-  flex-direction: column;
-  flex-grow: 1;
-  overflow: hidden;
-  background-color: var(--bg-panel);
+  align-items: center;
+  justify-content: center;
 }
 
-.inspector-header {
+.panel-resize-handle:hover { background-color: var(--accent-color); }
+
+/* Simplified resizer "dots" */
+.panel-resize-handle::before {
+  content: '···';
+  color: var(--text-secondary);
+  font-weight: bold;
+  letter-spacing: 2px;
+  line-height: 0; /* Helps vertical alignment */
+  transition: color 0.15s ease;
+}
+
+.panel-resize-handle:hover::before { color: var(--text-on-accent); }
+
+
+/* --- Panel: Scene Details (Inspector) --- */
+
+/* Scene Global Properties Section */
+.scene-properties {
+  margin: var(--padding-base);
+  margin-top: 0;
   padding: var(--padding-base);
-  font-size: var(--font-size-base);
+  background-color: var(--bg-element);
+  border: 1px solid var(--border-color-subtle);
+  border-radius: var(--radius-base);
+}
+
+.scene-properties-title {
   font-weight: 600;
   color: var(--text-header);
-  background-color: var(--bg-header);
-  border-bottom: 1px solid var(--border-color-medium);
-  flex-shrink: 0;
-  display: flex; /* For header content alignment */
-  align-items: center;
-  justify-content: space-between;
-  /* FIXED: Make header responsive */
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
+  font-size: var(--font-size-base);
+  padding-bottom: var(--padding-compact);
+  margin-bottom: var(--padding-base);
+  border-bottom: 1px solid var(--border-color-subtle);
 }
 
-.scene-details {
-  padding: var(--padding-base); /* Add some global padding for details */
-  color: var(--text-primary);
-  flex: 1;
-  overflow-y: auto;
+.gravitational-physics-section {
+  margin-top: var(--padding-base);
+  padding-top: var(--padding-base);
+  border-top: 1px solid var(--border-color-subtle);
 }
 
-.details-content {
-  /* FIXED: Ensure content doesn't break layout in narrow spaces */
-  word-wrap: break-word;
-  word-break: break-word;
-}
-
-/* --- Object List (like Hierarchy/Inspector Components) --- */
+/* Object List (Hierarchy) */
 .object-list {
   list-style: none;
   padding: 0;
   margin: 0;
+  display: flex;
+  flex-direction: column;
+  gap: var(--padding-base); /* Space between object groups */
 }
 
 .object-list-item {
-  margin-bottom: 1px;
-  border: 1px solid var(--border-color-subtle); /* Enclose each item */
+  border: 1px solid var(--border-color-subtle);
   border-radius: var(--radius-base);
-  overflow: hidden; /* Clip contents within rounded corners */
-  margin-top: 5px; /* Add slight space between items */
-}
-
-.object-list-item:first-child {
-  margin-top: 0;
+  overflow: hidden;
 }
 
 .object-header {
@@ -459,326 +422,74 @@ li.scene-item {
   align-items: center;
   justify-content: space-between;
   transition: background-color 0.15s ease;
-  border-bottom: 1px solid transparent; /* Placeholder for collapse border */
 }
 
-.object-header:hover {
-  background-color: var(--bg-element-hover);
-}
+.object-header:hover { background-color: var(--bg-element-hover); }
+.object-header.collapsed { border-bottom: 1px solid var(--border-color-subtle); }
 
-.object-header.collapsed {
-  border-bottom-color: var(--border-color-subtle); /* Border when collapsed */
-}
-
-.object-title {
-  display: flex;
-  align-items: center;
-  flex-grow: 1;
-  overflow: hidden;
-  min-width: 0; /* FIXED: Allow flex item to shrink */
-}
+.object-title { display: flex; align-items: center; flex-grow: 1; overflow: hidden; }
 
 .toggle-icon {
   margin-right: 8px;
-  font-size: 0.9em; /* Slightly larger toggle */
   color: var(--text-secondary);
   width: 1em;
   text-align: center;
   transition: transform 0.2s ease-in-out;
-  display: inline-block;
-  flex-shrink: 0;
-  transform-origin: center center; /* Ensure rotation is from center */
-}
-
-.object-header.collapsed .toggle-icon {
-  transform: rotate(-90deg);
-}
-
-.toggle-icon::before {
-  content: '▼';
-}
-
-.object-header.collapsed .toggle-icon::before {
-  content: '▶';
-}
-
-.object-type {
-  font-weight: 600;
-  color: var(--text-header);
-  margin-right: 8px;
-  white-space: nowrap;
   flex-shrink: 0;
 }
+.toggle-icon::before { content: '▼'; }
+.object-header.collapsed .toggle-icon { transform: rotate(-90deg); }
 
-.object-id {
-  color: var(--text-secondary);
-  font-size: var(--font-size-small);
-  font-style: italic;
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  min-width: 0; /* FIXED: Allow text to be truncated */
-}
+.object-type { font-weight: 600; color: var(--text-header); margin-right: 8px; flex-shrink: 0; }
+.object-id { color: var(--text-secondary); font-size: var(--font-size-small); font-style: italic; }
 
 .object-properties {
   padding: var(--padding-base);
   background-color: var(--bg-element);
-  display: block;
 }
+.object-header.collapsed + .object-properties { display: none; }
 
-.object-header.collapsed + .object-properties {
-  display: none; /* Hide properties when collapsed */
-}
-
-/* --- Property Row Styling (Key for Inspector Look) --- */
-.property-row {
-  display: flex;
-  align-items: center;
-  margin-bottom: var(--padding-compact);
-  padding: 2px 0;
-  /* FIXED: Allow wrapping on very narrow screens */
-  flex-wrap: wrap;
-  min-width: 0;
-}
-
-.property-name {
-  font-weight: 400;
-  width: 100px; /* Fixed width for labels */
-  flex-shrink: 0;
-  color: var(--text-label);
-  font-size: var(--font-size-base);
-  margin-right: var(--padding-base);
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  text-align: right; /* Align labels to the right */
-  padding-right: var(--padding-compact); /* Add padding for separation */
-  /* FIXED: Reduce width on very narrow screens */
-  min-width: 60px;
-}
-
-.property-value {
-  flex-grow: 1;
-  color: var(--text-primary);
-  font-size: var(--font-size-base);
-  background-color: var(--bg-input);
-  padding: 3px 8px; /* More horizontal padding */
-  border-radius: var(--radius-base);
-  border: 1px solid var(--border-color-subtle);
-  min-height: 28px; /* Consistent height for property value fields */
-  display: flex;
-  align-items: center;
-  overflow: hidden;
-  white-space: nowrap;
-  text-overflow: ellipsis;
-  transition: border-color 0.15s ease, box-shadow 0.15s ease;
-  /* FIXED: Ensure minimum width and proper text handling */
-  min-width: 0;
-  word-wrap: break-word;
-  word-break: break-all;
-}
-
-.property-value:focus-within { /* Apply focus style when an input inside is focused */
-  border-color: var(--border-color-focus);
-  box-shadow: 0 0 0 1px var(--border-color-focus);
-}
-
-/* Basic input styling if you were to add actual inputs */
-.property-value input[type="text"],
-.property-value input[type="number"],
-.property-value select,
-.property-value textarea { /* Added textarea for multiline */
-  background-color: transparent;
-  border: none;
-  color: var(--text-primary);
-  padding: 0;
-  margin: 0;
-  width: 100%;
-  height: 100%;
-  font-family: inherit;
-  font-size: inherit;
-  outline: none;
-  resize: vertical; /* Allow vertical resize for textareas */
-}
-
-.property-value input:focus,
-.property-value select:focus,
-.property-value textarea:focus {
-    /* No additional outline, focus is handled by parent .property-value:focus-within */
-}
-
-/* New: Toggle Switch Style (for boolean properties) */
-.toggle-switch {
-  position: relative;
-  display: inline-block;
-  width: 34px; /* Standard switch width */
-  height: 20px; /* Standard switch height */
-}
-
-.toggle-switch input {
-  opacity: 0;
-  width: 0;
-  height: 0;
-}
-
-.slider {
-  position: absolute;
-  cursor: pointer;
-  top: 0;
-  left: 0;
-  right: 0;
-  bottom: 0;
-  background-color: var(--bg-toggle-track);
-  transition: .4s;
-  border-radius: 20px; /* Rounded slider */
-}
-
-.slider:before {
-  position: absolute;
-  content: "";
-  height: 16px;
-  width: 16px;
-  left: 2px;
-  bottom: 2px;
-  background-color: var(--bg-toggle-thumb);
-  transition: .4s;
-  border-radius: 50%; /* Rounded thumb */
-}
-
-input:checked + .slider {
-  background-color: var(--accent-color);
-}
-
-input:checked + .slider:before {
-  transform: translateX(14px);
-}
-
+/* Color Preview & Toggle Switch */
 .color-preview {
-  display: inline-block;
-  width: 24px; /* Slightly larger */
+  width: 24px;
   height: 24px;
   border: 1px solid var(--border-color-medium);
+  border-radius: var(--radius-base);
   vertical-align: middle;
-  margin-right: 8px; /* Increased margin */
+  margin-right: 8px;
   flex-shrink: 0;
-  border-radius: var(--radius-base);
-  box-shadow: inset 0 0 0 1px rgba(0,0,0,0.1); /* Subtle inner shadow */
 }
 
-/* --- Scene Properties Section (Global Scene Settings) --- */
-.scene-properties {
-  margin: var(--padding-base);
-  padding: var(--padding-base);
-  background-color: var(--bg-element);
-  border-radius: var(--radius-base);
-  border: 1px solid var(--border-color-subtle);
-  margin-top: 0; /* Remove top margin if it's the first section */
-}
+.toggle-switch { position: relative; display: inline-block; width: 34px; height: 20px; }
+.toggle-switch input { opacity: 0; width: 0; height: 0; }
+.slider { position: absolute; cursor: pointer; inset: 0; background-color: var(--bg-toggle-track); transition: .4s; border-radius: 20px; }
+.slider:before { position: absolute; content: ""; height: 16px; width: 16px; left: 2px; bottom: 2px; background-color: var(--bg-toggle-thumb); transition: .4s; border-radius: 50%; }
+input:checked + .slider { background-color: var(--accent-color); }
+input:checked + .slider:before { transform: translateX(14px); }
 
-.scene-properties-title {
-  font-weight: 600;
-  color: var(--text-header);
-  margin-bottom: var(--padding-base);
-  font-size: var(--font-size-base);
-  display: block;
-  border-bottom: 1px solid var(--border-color-subtle);
-  padding-bottom: var(--padding-compact);
-}
 
-.scene-properties .property-row {
-  /* Reuse property row style - no specific adjustments needed here unless unique */
-}
+/* --- Utilities (Scrollbar) --- */
+::-webkit-scrollbar { width: 8px; height: 8px; }
+::-webkit-scrollbar-track { background: var(--bg-panel); }
+::-webkit-scrollbar-thumb { background: var(--border-color-medium); border-radius: 4px; border: 2px solid var(--bg-panel); }
+::-webkit-scrollbar-thumb:hover { background: var(--accent-color-hover); }
 
-.gravitational-physics-section {
-  margin-top: var(--padding-base);
-  padding-top: var(--padding-base);
-  border-top: 1px solid var(--border-color-subtle);
-}
-
-/* Placeholder text styling */
-.placeholder-text {
-    padding: var(--padding-large);
-    color: var(--text-secondary);
-    text-align: center;
-    font-style: italic;
-    background-color: var(--bg-element); /* Give it a background */
-    border-radius: var(--radius-base);
-    border: 1px dashed var(--border-color-subtle); /* Dashed border for placeholder */
-    margin: var(--padding-base);
-    line-height: 1.5;
-}
-
-/* --- Scrollbar Styling --- */
-/* Works in WebKit browsers (Chrome, Safari, Edge, modern Firefox) */
-::-webkit-scrollbar {
-  width: 8px;
-  height: 8px;
-}
-
-::-webkit-scrollbar-track {
-  background: var(--bg-panel); /* Match panel background for subtle look */
-}
-
-::-webkit-scrollbar-thumb {
-  background: var(--border-color-medium); /* Darker thumb */
-  border-radius: 4px;
-  border: 2px solid var(--bg-panel); /* Creates padding around thumb */
-}
-
-::-webkit-scrollbar-thumb:hover {
-  background: var(--accent-color-hover); /* Accent color on hover for better feedback */
-  border-color: var(--bg-panel); /* Keep border consistent */
-}
-
-/* --- Responsive Design Adjustments --- */
+/* --- Responsive Design --- */
 @media (max-width: 768px) {
   :root {
     --font-size-base: 12px;
     --font-size-small: 10px;
-    --font-size-large: 14px;
     --padding-base: 8px;
   }
-
-  .property-name {
-    width: 60px; /* Further reduce label width on mobile */
-    min-width: 50px;
-  }
-  
-  .property-value {
-    min-height: 24px; /* Adjust height */
-  }
-
-  .extract-button {
-    font-size: var(--font-size-small);
-    padding: 6px 12px;
-  }
-
-  .scene-tabs button {
-    font-size: 10px;
-    padding: 8px 4px;
-  }
-
-  .scene-tabs button svg {
-    margin-right: 2px;
-  }
+  .property-name { width: 60px; min-width: 50px; }
+  .property-value { min-height: 24px; }
+  .extract-button { font-size: var(--font-size-small); padding: 6px 12px; }
+  .scene-tabs button { font-size: 10px; padding: 8px 4px; }
+  .scene-tabs button svg { margin-right: 2px; }
 }
 
 @media (max-width: 480px) {
-  .property-row {
-    flex-direction: column;
-    align-items: stretch;
-  }
-  
-  .property-name {
-    width: 100%;
-    text-align: left;
-    margin-right: 0;
-    margin-bottom: 4px;
-  }
-  
-  .property-value {
-    width: 100%;
-  }
+  .property-row { flex-direction: column; align-items: stretch; }
+  .property-name { width: 100%; text-align: left; margin-right: 0; }
+  .property-value { width: 100%; }
 }
-
-/* --- End Styles --- */
