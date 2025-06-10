@@ -584,7 +584,7 @@ function Visualizer({ scene, onPositionUpdate: onExternalPositionUpdate, onAddGr
         style={{ height: '100%', width: '100%' }}
         shadows
         gl={{ logLevel: 'errors' }}
-        camera={{ position: [10, 5, 25], fov: 50, near: 0.1, far: 20000 }}
+        camera={{ position: [10, 5, 25], fov: 50, near: 0.1, far: 200000 }}
       >
         <TimeUpdater isPlaying={isPlaying} setCurrentTime={setCurrentTime} />
         <ambientLight intensity={0.6} />

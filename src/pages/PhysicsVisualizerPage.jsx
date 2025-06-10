@@ -274,7 +274,7 @@ function PhysicsVisualizerPage() {
                                             userScenes,
                                             loadingUserScenes,
                                             extractedScenes,
-                                            handleExtractedScene,
+                                            onExtractedScene:handleExtractedScene,
                                             currentUser,
                                         }}
                                     />
