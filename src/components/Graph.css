@@ -1,134 +1,82 @@
-/* ===== GRAPH.CSS - VS Code Dark Theme ===== */
-
-.overlay {
-    background-color: rgba(37, 37, 38, 0.15);
-    border: 1px solid rgba(68, 68, 68, 0.4);
-    border-radius: var(--radius-base);
-    box-shadow: var(--shadow-base);
-    display: flex;
-    flex-direction: column;
-    overflow: hidden; /* Prevents content from spilling out during resize */
-    z-index: 10; /* Ensure overlays are above the canvas */
-    backdrop-filter: blur(2px);
+/* --- MAIN OVERLAY CONTAINER (Unchanged) --- */
+.overlay-graph {
+  background-color: rgba(25, 35, 51, 0.05);
+  backdrop-filter: blur(1px);
+  -webkit-backdrop-filter: blur(1px);
+  border: 1px solid rgba(255, 255, 255, 0.15);
+  border-radius: 10px;
+  box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.37);
+  color: #e0e0e0;
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
 }
 
-.overlay-header {
-    padding: var(--padding-compact) var(--padding-base);
-    background-color: rgba(51, 51, 51, 0.3);
-    border-bottom: 1px solid rgba(68, 68, 68, 0.5);
-    cursor: grab; /* Indicate it's draggable */
-    display: flex; /* Use flexbox for title and button */
-    justify-content: space-between; /* Space out title and button */
-    align-items: center; /* Vertically align items */
+/* --- HEADER (Unchanged) --- */
+.graph-header {
+  padding: 8px 12px;
+  background-color: rgba(255, 255, 255, 0.1);
+  cursor: grab;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  user-select: none;
+  flex-shrink: 0;
+}
+.title-text {
+  font-weight: 600; font-size: 14px; white-space: nowrap;
+  overflow: hidden; text-overflow: ellipsis;
+}
+.close-btn {
+  background: none; border: none; color: #a0a0a0; font-size: 22px;
+  line-height: 1; cursor: pointer; padding: 0 4px; transition: color 0.2s ease;
+}
+.close-btn:hover { color: #ffffff; }
+
+/* --- LAYOUT WRAPPERS (Unchanged) --- */
+.graph-content-wrapper {
+  flex: 1 1 auto; display: flex; flex-direction: column;
+  padding: 12px; gap: 12px; min-height: 0;
+}
+.chart-area-wrapper {
+  flex: 1 1 auto; position: relative; min-height: 0;
 }
 
-.overlay-header:active {
-    cursor: grabbing;
-}
-
-.overlay-title {
-    font-size: var(--font-size-base);
-    color: var(--text-header);
-    font-weight: 500;
-    font-family: var(--font-family-ui);
-}
-
-.overlay-close-button {
-    background-color: var(--bg-element);
-    border: 1px solid var(--border-color-medium);
-    border-radius: var(--radius-base);
-    text-align: center;
-    color: var(--text-primary);
-    cursor: pointer;
-    padding: var(--padding-compact) var(--padding-compact);
-    font-family: var(--font-family-ui);
-    font-size: var(--font-size-small);
-    transition: background-color 0.15s ease;
-    min-width: 20px;
-    height: 20px;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-}
-
-.overlay-close-button:hover {
-    background-color: var(--error-color);
-    color: var(--text-on-accent);
-}
-
-.overlay-content {
-    flex-grow: 1; /* Allow content area to take remaining space */
-    padding: var(--padding-base);
-    overflow-y: auto; /* Add scroll if content exceeds height */
-    display: flex; /* Use flex for internal layout */
-    flex-direction: column;
-    background-color: rgba(30, 30, 30, 0.1);
-}
-
-/* Specific styles for graph content */
-.overlay-content.graph-content {
-    padding: var(--padding-base);
-}
-
+/* --- CONTROLS (Unchanged) --- */
 .graph-controls {
-    margin-bottom: var(--padding-base);
-    display: flex; /* Arrange controls horizontally */
-    align-items: center;
-    gap: var(--padding-base); /* Space between controls */
-    font-size: var(--font-size-small);
-    font-family: var(--font-family-ui);
+  flex-shrink: 0; display: flex; gap: 10px; align-items: center;
+  flex-wrap: wrap; font-size: 13px;
 }
-
+.graph-controls select, .graph-controls input {
+  background-color: rgba(0, 0, 0, 0.3); color: #e0e0e0;
+  border: 1px solid rgba(255, 255, 255, 0.2); border-radius: 5px;
+  padding: 5px 8px; font-size: 13px; transition: border-color 0.2s;
+}
+.graph-controls select:focus, .graph-controls input:focus {
+  outline: none; border-color: #3b82f6;
+  background: #3d3d3d;
+}
 .graph-controls label {
-    color: var(--text-label);
-    font-family: var(--font-family-ui);
+  display: flex; align-items: center; gap: 6px; cursor: pointer;
 }
+.live-controls {
+  display: flex; align-items: center; gap: 8px; margin-left: auto;
+}
+.live-indicator {
+  width: 10px; height: 10px; border-radius: 50%;
+  background-color: #6b7280; transition: background-color 0.3s ease;
+}
+.live-indicator.active {
+  background-color: #10b981; box-shadow: 0 0 8px #10b981;
+}
+.live-controls button {
+  background-color: #374151; color: #e5e7eb; border: 1px solid #4b5563;
+  border-radius: 5px; padding: 5px 10px; font-size: 13px; font-weight: 500;
+  cursor: pointer; transition: background-color 0.2s, border-color 0.2s;
+}
+.live-controls button:hover:not(:disabled) {
+  background-color: #4b5563; border-color: #6b7280;
+}
+.live-controls button:disabled { opacity: 0.5; cursor: not-allowed; }
 
-.graph-controls select {
-    padding: var(--padding-compact);
-    font-size: var(--font-size-small);
-    font-family: var(--font-family-ui);
-    background-color: var(--bg-input);
-    color: var(--text-primary);
-    border: 1px solid var(--border-color-medium);
-    border-radius: var(--radius-base);
-    cursor: pointer;
-    transition: border-color 0.15s ease;
-}
-
-.graph-controls select:focus {
-    outline: none;
-    border-color: var(--accent-color);
-    box-shadow: 0 0 0 2px rgba(0, 122, 204, 0.2);
-}
-
-.graph-controls select:hover {
-    border-color: var(--border-color-focus);
-}
-
-.graph-plot-area {
-    flex-grow: 1;
-    display: flex;
-    justify-content: center;
-    align-items: center;
-    font-size: var(--font-size-small);
-    color: var(--text-primary);
-    font-family: var(--font-family-ui);
-    background-color: rgba(30, 30, 30, 0.05);
-    border: 1px solid rgba(58, 58, 58, 0.3);
-    border-radius: var(--radius-base);
-    /* Add specific styles for your charting library's container */
-}
-
-/* Additional responsive adjustments for graphs */
-@media (max-width: 768px) {
-    .graph-controls {
-        flex-direction: column;
-        align-items: flex-start;
-        gap: var(--padding-compact);
-    }
-    
-    .overlay-title {
-        font-size: var(--font-size-small);
-    }
-}

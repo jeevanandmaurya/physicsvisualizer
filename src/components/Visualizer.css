@@ -1,23 +1,31 @@
 /* ===== VISUALIZER STYLES - DASHBOARD THEME ===== */
 
-.visualizer {
-  position: relative;
+/* Make the root fill the viewport */
+html, body, #root {
+  width: 100%;
+  height: 100%;
+  margin: 0;
+  padding: 0;
+  overflow: hidden; /* Prevent body scroll */
+}
+
+/* The new main flex container */
+.visualizer-container {
+  display: flex;
+  flex-direction: column; /* Stack children vertically */
   width: 100%;
   height: 100%;
   background-color: #1a1a1a;
-  display: flex;
-  flex-direction: column;
   font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
 }
 
+/* The top control bar */
 .controllbar {
+  flex-shrink: 0; /* Prevent the bar from shrinking */
   display: flex;
-  background-color: #24242468;
-  backdrop-filter: blur(1px);
-  position: absolute;
-  z-index: 10;
   align-items: center;
-  justify-content: space-between;
+  gap: 15px;
+  background-color: #242424;
   color: #e0e0e0;
   height: 50px;
   width: 100%;
@@ -25,19 +33,28 @@
   border-bottom: 1px solid #ffffff1e;
   padding: 0 15px;
   box-sizing: border-box;
-  flex-shrink: 0;
+  z-index: 100; /* High z-index */
 }
+
+/* The main content area that takes up the remaining space */
+.main-content {
+  flex-grow: 1; /* Allow this container to grow and fill available space */
+  position: relative; /* CRITICAL: This becomes the positioning context for the canvas and graphs */
+  overflow: hidden; /* Hide anything that goes outside this box */
+}
+
 
 .controllbar button {
   background-color: #3a3a3a;
   color: #e0e0e0;
   border: 1px solid #555;
   border-radius: 6px;
-  padding: 6px 10px;
-  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
-  font-size: 0.8em;
+  padding: 6px 12px;
+  font-size: 13px;
   cursor: pointer;
   transition: all 0.2s ease;
+  display: flex;
+  align-items: center;
 }
 
 .controllbar button:hover {
@@ -50,30 +67,54 @@
   border-color: #0056b3;
 }
 
+.vector-scale-control {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    background-color: #3a3a3a;
+    padding: 0 8px;
+    border-radius: 4px;
+}
+
+.vector-scale-control button {
+    background: none;
+    border: none;
+    color: white;
+    padding: 8px 4px;
+    cursor: pointer;
+}
+
+.vector-scale-control button:hover {
+    background-color: #555;
+}
+
+.vector-scale-control span {
+    font-size: 14px;
+    min-width: 80px;
+    text-align: center;
+}
+
 .fps-counter {
   position: absolute;
-  font-size: 0.8em;
-  top: 60px;
-  left: 15px;
-  background-color: #2c2c2c;
+  font-size: 12px;
+  top: 15px; 
+  left: 15px; 
+  background-color: #2c2c2c99;
   color: #e0e0e0;
-  padding: 6px 10px;
+  padding: 4px 8px;
   border-radius: 6px;
-  border: 1px solid #3f3f3f;
-  box-shadow: 0 2px 5px rgba(0, 0, 0, 0.2);
   z-index: 10;
-  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+  font-family: monospace;
 }
 
 .timeControllbar {
   background-color: #2c2c2cb3;
   backdrop-filter: blur(1px);
   position: absolute;
-  bottom: 60px;
+  bottom: 15px;
   left: 50%;
   transform: translateX(-50%);
-  height: 60px;
-  padding: 0 10px;
+  padding: 5px 15px;
   color: #e0e0e0;
   font-size: 16px;
   border: 1px solid #ffffff4a;
@@ -84,58 +125,38 @@
   justify-content: center;
   box-shadow: 0 2px 5px rgba(0, 0, 0, 0.2);
   gap: 10px;
+  z-index: 100;
 }
 
 .timeControllbar button {
-  background-color:transparent;
+  background-color: transparent;
   color: white;
   border: none;
-  border-radius: 12px;
-  /* padding: 20px 12px; */
-  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
-  font-size: 0.9em;
+  border-radius: 50%;
+  width: 40px;
+  height: 40px;
   cursor: pointer;
   transition: background-color 0.2s ease;
   display: flex;
   align-items: center;
-  gap: 6px;
+  justify-content: center;
 }
 
 .timeControllbar button:hover {
-  background-color: #404040;
+  background-color: #ffffff22;
 }
 
 .time-display {
-  margin-right: 15px;
-  font-weight: 600;
+  margin-left: 10px;
+  font-weight: 500;
   color: #ffffff;
-  font-size: 1.1em;
+  font-size: 1em;
+  font-family: monospace;
 }
 
 .graphs-dropdown-container {
   position: relative;
   display: inline-block;
-  margin-left: 15px;
-}
-
-.graphs-button {
-  background-color: #3a3a3a;
-  color: #e0e0e0;
-  border: 1px solid #555;
-  border-radius: 6px;
-  padding: 6px 10px;
-  cursor: pointer;
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
-  font-size: 0.8em;
-  transition: all 0.2s ease;
-}
-
-.graphs-button:hover {
-  background-color: #4a4a4a;
-  border-color: #777;
 }
 
 .graphs-dropdown-menu {
@@ -144,12 +165,12 @@
   left: 0;
   z-index: 101;
   background-color: #2c2c2c;
-  /* border: 1px solid #3f3f3f; */
-  /* border-radius: 6px; */
+  border: 1px solid #3f3f3f;
+  border-radius: 6px;
   box-shadow: 0 2px 5px rgba(0, 0, 0, 0.2);
   display: flex;
   flex-direction: column;
-  min-width: 150px;
+  min-width: 160px;
   overflow: hidden;
 }
 
@@ -161,8 +182,7 @@
   text-align: left;
   cursor: pointer;
   width: 100%;
-  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
-  font-size: 0.9em;
+  font-size: 13px;
   transition: background-color 0.2s ease;
 }
 
@@ -170,105 +190,59 @@
   background-color: #383838;
 }
 
-.dropdown-item:active {
-  background-color: #007bff;
+/* ===== NEW STYLES FOR OVERLAY GRAPH ===== */
+.overlay-graph-container {
+  position: absolute; /* Positioned relative to main-content */
+  width: 350px;
+  height: 250px;
+  background-color: #2c2c2cc0;
+  backdrop-filter: blur(2px);
+  border: 1px solid #3f3f3f;
+  border-radius: 8px;
+  box-shadow: 0 4px 10px rgba(0, 0, 0, 0.3);
+  z-index: 20;
+  display: flex;
+  flex-direction: column;
+  color: #e0e0e0;
+  resize: both; /* Allow user to resize the graph */
+  overflow: auto; /* Show scrollbars if content overflows */
+  min-width: 250px; /* Set a minimum size */
+  min-height: 200px; /* Set a minimum size */
 }
 
-canvas {
-  width: 100%;
-  height: 100%;
-  background-color: #121212;
-  border-radius: 0;
+.overlay-graph-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 8px 12px;
+  border-bottom: 1px solid #3f3f3f;
+  cursor: move; /* Indicate that this area is draggable */
+  flex-shrink: 0;
+}
+
+.overlay-graph-header select {
+  background-color: #3a3a3a;
+  color: #e0e0e0;
+  border: 1px solid #555;
+  border-radius: 4px;
+  padding: 2px 5px;
+  font-size: 12px;
+}
+
+.overlay-graph-header .close-button {
+  background: none;
+  border: none;
+  color: #aaa;
+  cursor: pointer;
+  padding: 2px;
+  font-size: 18px;
+  line-height: 1;
+}
+.overlay-graph-header .close-button:hover {
+  color: #fff;
+}
+
+.overlay-graph-body {
   flex-grow: 1;
-}
-
-/* ===== SCROLLBAR STYLING ===== */
-/* Works in WebKit browsers (Chrome, Safari, Edge) */
-::-webkit-scrollbar {
-  width: 6px;
-  height: 6px;
-}
-
-::-webkit-scrollbar-track {
-  background: #2c2c2c;
-  border-radius: 3px;
-}
-
-::-webkit-scrollbar-thumb {
-  background: #555;
-  border-radius: 3px;
-}
-
-::-webkit-scrollbar-thumb:hover {
-  background: #666;
-}
-
-/* ===== RESPONSIVE DESIGN ===== */
-@media (max-width: 768px) {
-  .controllbar {
-    height: 40px;
-    padding: 0 10px;
-    font-size: 12px;
-  }
-
-  .controllbar button {
-    padding: 4px 8px;
-    font-size: 0.75em;
-  }
-
-  .timeControllbar {
-    bottom: 40px;
-    height: 50px;
-    font-size: 14px;
-    padding: 0 15px;
-  }
-
-  .timeControllbar button {
-    padding: 6px 10px;
-    font-size: 0.8em;
-  }
-
-  .fps-counter {
-    top: 50px;
-    left: 10px;
-    font-size: 0.7em;
-    padding: 4px 8px;
-  }
-
-  .time-display {
-    font-size: 1em;
-    margin-right: 10px;
-  }
-
-  .graphs-dropdown-container {
-    margin-left: 10px;
-  }
-}
-
-@media (max-width: 480px) {
-  .controllbar {
-    height: 35px;
-    font-size: 11px;
-  }
-
-  .controllbar button {
-    padding: 3px 6px;
-    font-size: 0.7em;
-  }
-
-  .timeControllbar {
-    bottom: 30px;
-    height: 45px;
-    font-size: 13px;
-    padding: 0 12px;
-  }
-
-  .timeControllbar button {
-    padding: 5px 8px;
-    font-size: 0.75em;
-  }
-
-  .fps-counter {
-    font-size: 0.65em;
-  }
+  min-height: 0; /* Fix for flexbox overflow issue in some browsers */
 }

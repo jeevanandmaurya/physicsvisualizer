@@ -1,134 +1,219 @@
-// OverlayGraph.js
-import React, { useState, useEffect, useMemo } from 'react';
+import React, { useState, useEffect, useMemo, useRef } from 'react';
 import { Rnd } from 'react-rnd';
+import { Chart as ChartJS, CategoryScale, LinearScale, PointElement, LineElement, Title, Tooltip, Legend } from 'chart.js';
+import { Scatter } from 'react-chartjs-2';
+import zoomPlugin from 'chartjs-plugin-zoom';
+import './Graph.css';
 
-import './graph.css';
+ChartJS.register(CategoryScale, LinearScale, PointElement, LineElement, Title, Tooltip, Legend, zoomPlugin);
 
-// Default size and position for the graph overlay
-const defaultOverlaySize = { width: 300, height: 200 }; // Make it a bit larger for a graph
-const defaultOverlayPosition = { x: 20, y: 80 }; // Default starting position
 
 function OverlayGraph({ id, initialType, data, onClose }) {
-    // Extract the list of available object IDs from the data keys
-    const objectIds = useMemo(() => Object.keys(data), [data]);
+  const chartRef = useRef(null); // Ref to access the chart instance directly
+  const objectIds = useMemo(() => Object.keys(data), [data]);
 
-    // State to keep track of the currently selected object ID for this graph instance
-    const [selectedObjectId, setSelectedObjectId] = useState(objectIds[0] || null);
+  // --- STATE FOR USER CONTROLS (Managed by React) ---
+  const [selectedObjectId, setSelectedObjectId] = useState(objectIds[0] || null);
+  const [connectPoints, setConnectPoints] = useState(false);
+  const [isLive, setIsLive] = useState(true);
+  const [liveWindowSeconds, setLiveWindowSeconds] = useState(10);
 
-    // Effect to set the selected object when the list of objects changes or on initial mount
-    useEffect(() => {
-        // If no object is selected yet and there are objects available, select the first one
-        if (!selectedObjectId && objectIds.length > 0) {
-            setSelectedObjectId(objectIds[0]);
-        } else if (selectedObjectId && !objectIds.includes(selectedObjectId)) {
-             // If the currently selected object was removed, select the first available one (or null if none left)
-            setSelectedObjectId(objectIds[0] || null);
+  // --- DATA PROCESSING (Memoized) ---
+  const { plotData, labels } = useMemo(() => {
+    const objectLabel = selectedObjectId ? `Object ${selectedObjectId}` : 'Select Object';
+    let newLabels;
+    switch (initialType) {
+      case 'yvt': newLabels = { title: `Y vs Time (${objectLabel})`, xlabel: 'Time (s)', ylabel: 'Y Position (m)' }; break;
+      case 'xvt': newLabels = { title: `X vs Time (${objectLabel})`, xlabel: 'Time (s)', ylabel: 'X Position (m)' }; break;
+      case 'zvt': newLabels = { title: `Z vs Time (${objectLabel})`, xlabel: 'Time (s)', ylabel: 'Z Position (m)' }; break;
+      case 'yvx': newLabels = { title: `Y vs X (${objectLabel})`, xlabel: 'X Position (m)', ylabel: 'Y Position (m)' }; break;
+      default: newLabels = { title: 'Graph', xlabel: 'X', ylabel: 'Y' };
+    }
+    if (!selectedObjectId || !data[selectedObjectId]) return { plotData: [], labels: newLabels };
+    const history = data[selectedObjectId];
+    
+    let newPlotData;
+    // Correctly map data based on type
+    if (initialType === 'yvx') {
+        newPlotData = history.map(p => ({ x: p.x, y: p.y }));
+    } else if (initialType === 'yvt') {
+        newPlotData = history.map(p => ({ x: p.t, y: p.y }));
+    } else if (initialType === 'xvt') {
+        newPlotData = history.map(p => ({ x: p.t, y: p.x }));
+    } else if (initialType === 'zvt') {
+        newPlotData = history.map(p => ({ x: p.t, y: p.z }));
+    }
+    
+    return { plotData: newPlotData, labels: newLabels };
+  }, [selectedObjectId, data, initialType]);
+
+
+  // --- EFFECT TO IMPERATIVELY UPDATE CHART ---
+  useEffect(() => {
+    const chart = chartRef.current;
+    if (!chart) return;
+
+    chart.data.datasets[0].data = plotData;
+    chart.data.datasets[0].showLine = connectPoints;
+
+    if (isLive && initialType !== 'yvx' && plotData.length > 0) {
+      const lastTime = plotData[plotData.length - 1].x;
+      const newXMin = lastTime - liveWindowSeconds;
+      const newXMax = lastTime;
+      
+      chart.options.scales.x.min = newXMin;
+      chart.options.scales.x.max = newXMax;
+    }
+
+    chart.update('none');
+
+  }, [plotData, connectPoints, isLive, liveWindowSeconds, initialType]);
+
+  // --- EFFECT FOR OBJECT CHANGE ---
+  useEffect(() => {
+    const chart = chartRef.current;
+    if (chart) {
+        chart.options.scales.x.min = null;
+        chart.options.scales.x.max = null;
+        chart.options.scales.y.min = null;
+        chart.options.scales.y.max = null;
+        
+        // Update axis labels for the new object/graph type
+        chart.options.scales.x.title.text = labels.xlabel;
+        chart.options.scales.y.title.text = labels.ylabel;
+        
+        chart.update('none');
+    }
+    setIsLive(true);
+  }, [selectedObjectId, labels]);
+
+
+  // --- CHART OPTIONS (WITH TOOLTIP FIX) ---
+  const chartOptions = useMemo(() => ({
+    responsive: true,
+    maintainAspectRatio: false,
+    animation: false,
+    scales: {
+        x: { 
+            title: { display: true, text: labels.xlabel, color: '#9ca3af' },
+            ticks: { color: '#9ca3af', font: { size: 10 } },
+            grid: { color: 'rgba(255, 255, 255, 0.1)' },
+        },
+        y: { 
+            title: { display: true, text: labels.ylabel, color: '#9ca3af' },
+            ticks: { color: '#9ca3af', font: { size: 10 } },
+            grid: { color: 'rgba(255, 255, 255, 0.1)' },
+        },
+    },
+    plugins: {
+      legend: { display: false },
+      title: { display: false },
+      
+      // --- TOOLTIP CONFIGURATION FIX ---
+      tooltip: {
+        enabled: true,
+        mode: 'nearest',   // Find the single nearest point
+        intersect: false,  // Trigger tooltip even if not directly on the point
+        backgroundColor: 'rgba(0, 0, 0, 0.8)',
+        titleColor: '#ffffff',
+        bodyColor: '#ffffff',
+        callbacks: {
+          // Custom label formatter for a cleaner look
+          label: function(context) {
+            const xVal = context.parsed.x.toFixed(3);
+            const yVal = context.parsed.y.toFixed(3);
+            return `(${labels.xlabel.split(' ')[0]}: ${xVal}, ${labels.ylabel.split(' ')[0]}: ${yVal})`;
+          },
+          // We don't need a title for a single point, so hide it
+          title: function() {
+            return null;
+          }
         }
-    }, [objectIds, selectedObjectId]); // Re-run if the list of object IDs changes
+      },
+      // --- END OF TOOLTIP FIX ---
 
-    // Use useMemo to calculate the data points for plotting efficiently
-    const plotData = useMemo(() => {
-        // If no object is selected or no data for the selected object, return empty array
-        if (!selectedObjectId || !data[selectedObjectId]) {
-            return [];
-        }
+      zoom: {
+        pan: {
+          enabled: true,
+          mode: 'xy',
+          onPanStart: () => { setIsLive(false); return true; },
+        },
+        zoom: {
+          wheel: { enabled: true },
+          pinch: { enabled: true },
+          mode: 'xy',
+          onZoomStart: () => { setIsLive(false); return true; },
+        },
+      },
+    },
+  }), [labels.xlabel, labels.ylabel]); // Only depends on labels now
 
-        const history = data[selectedObjectId]; // Get the history array for the selected object
-
-        // Determine which data points to use based on the initialType prop
-        switch (initialType) {
-            case 'yvt': // Y Position vs Time
-                return history.map(p => ({ x: p.t, y: p.y }));
-            case 'xvt': // X Position vs Time
-                return history.map(p => ({ x: p.t, y: p.x }));
-            case 'zvt': // Z Position vs Time
-                return history.map(p => ({ x: p.t, y: p.z }));
-            case 'yvx': // Y Position vs X Position (for the same object)
-                 // Filter out points where x or y might be undefined if needed
-                return history.filter(p => p.x !== undefined && p.y !== undefined).map(p => ({ x: p.x, y: p.y }));
-            // Add cases for other graph types (velocity, acceleration, etc.) here if needed later
-            default:
-                return []; // Return empty array for unknown types
-        }
-    }, [selectedObjectId, data, initialType]); // Recalculate if selected object, data, or type changes
-
-    // Determine the labels and title for the graph based on initialType and selected object
-    const getLabels = useMemo(() => {
-        const objectLabel = selectedObjectId ? `Object ${selectedObjectId}` : 'Select Object';
-        switch (initialType) {
-            case 'yvt': return { title: `Y Position vs Time (${objectLabel})`, xlabel: 'Time (s)', ylabel: 'Y Position' };
-            case 'xvt': return { title: `X Position vs Time (${objectLabel})`, xlabel: 'Time (s)', ylabel: 'X Position' };
-            case 'zvt': return { title: `Z Position vs Time (${objectLabel})`, xlabel: 'Time (s)', ylabel: 'Z Position' };
-            case 'yvx': return { title: `Y Position vs X Position (${objectLabel})`, xlabel: 'X Position', ylabel: 'Y Position' };
-            default: return { title: 'Position Graph', xlabel: '', ylabel: '' }; // Default labels
-        }
-    }, [selectedObjectId, initialType]); // Recalculate if selected object or type changes
+  // --- CHART DATA (Static structure) ---
+  const initialChartData = useMemo(() => ({
+    datasets: [{
+      data: [],
+      borderColor: '#3b82f6',
+      pointBackgroundColor: '#3b82f6',
+      pointBorderColor: '#3b82f6',
+      pointRadius: 2,
+      pointHoverRadius: 5,
+    }],
+  }), []);
+  
+  const handleGoLive = () => {
+    setIsLive(true);
+    const chart = chartRef.current;
+    if (chart) {
+      chart.options.scales.y.min = null;
+      chart.options.scales.y.max = null;
+    }
+  };
 
 
-    return (
-        <Rnd
-            size={defaultOverlaySize}
-            default={{ ...defaultOverlaySize, ...defaultOverlayPosition }}
-            minWidth={250} // Minimum size
-            minHeight={200} // Minimum size
-            bounds=".visualizer" // Restrict dragging within the visualizer container
-            className="overlay" // Apply base overlay styles
-            dragHandleClassName="overlay-header" // Define the drag handle area
-            enableResizing={{ top:false, right: true, bottom: true, left:false, topRight:false, bottomRight: true, bottomLeft:false, topLeft:false }} // Enable specific resizing handles
-            // Optional: Add a zIndex style if needed to control stacking of multiple overlays
-            // style={{ zIndex: 100 }}
-        >
-            <div className="overlay-header">
-                <span className="overlay-title">{getLabels.title}</span> {/* Display dynamic title */}
-                {/* Close button */}
-                <button className="overlay-close-button" onClick={() => onClose(id)}>×</button>
+  return (
+    <Rnd
+      default={{ x: 20, y: 80, width: 550, height: 380 }}
+      minWidth={380}
+      minHeight={300}
+      bounds="parent"
+      className="overlay-graph"
+      dragHandleClassName="graph-header"
+    >
+      <div className="graph-header">
+        <span className="title-text">{labels.title}</span>
+        <button onClick={() => onClose(id)} className="close-btn" aria-label="Close">×</button>
+      </div>
+
+      <div className="graph-content-wrapper">
+        <div className="graph-controls">
+          <select  value={selectedObjectId || ''} onChange={(e) => setSelectedObjectId(e.target.value)} disabled={objectIds.length === 0} aria-label="Select Object">
+            <option value="" disabled>{objectIds.length === 0 ? 'No objects' : 'Select Object'}</option>
+            {objectIds.map(objId => <option key={objId} value={objId}>{`Object ${objId}`}</option>)}
+          </select>
+          <label>
+            <input type="checkbox" checked={connectPoints} onChange={(e) => setConnectPoints(e.target.checked)} />
+            Connect Points
+          </label>
+          {initialType !== 'yvx' && (
+            <div className="live-controls">
+              <span className={`live-indicator ${isLive ? 'active' : ''}`} title={isLive ? 'Live' : 'Paused'}></span>
+              <button onClick={handleGoLive} disabled={isLive}>Go Live</button>
+              <select value={liveWindowSeconds} onChange={(e) => setLiveWindowSeconds(Number(e.target.value))} aria-label="Live Window Size">
+                <option value={5}>5s</option>
+                <option value={10}>10s</option>
+                <option value={30}>30s</option>
+                <option value={60}>60s</option>
+              </select>
             </div>
-            <div className="overlay-content graph-content"> {/* Add a class for specific graph content styling */}
-                <div className="graph-controls">
-                    {/* Dropdown to select the object */}
-                    <label htmlFor={`object-select-${id}`}>Object:</label>
-                    <select
-                        id={`object-select-${id}`} // Unique ID for accessibility
-                        value={selectedObjectId || ''} // Use selectedObjectId, default to '' if null
-                        onChange={(e) => setSelectedObjectId(e.target.value)} // Update state on change
-                        disabled={objectIds.length === 0} // Disable if no objects are available
-                    >
-                         {/* Show a default option if no objects or if no selection */}
-                         {!selectedObjectId && <option value="">Select Object</option>}
-                         {objectIds.length === 0 && <option value="">No objects available</option>}
+          )}
+        </div>
 
-                        {/* Map through the available object IDs to create dropdown options */}
-                        {objectIds.map(objId => (
-                            <option key={objId} value={objId}>{objId}</option>
-                        ))}
-                    </select>
-                    {/* You could add more controls here, e.g., for selecting axes if initialType is 'custom' */}
-                </div>
-
-                <div className="graph-plot-area">
-                    {/* This is where you would integrate your charting library (e.g., Chart.js, Plotly, Nivo) */}
-                    {/* Or your custom canvas/SVG drawing code to render the plotData */}
-
-                    {/* Example Placeholder Display */}
-                    {plotData.length > 0 ? (
-                        <div>
-                            Graph Area for {getLabels.title}
-                            <br/> Plotting {plotData.length} points.
-                             <br/> Latest Data Point:
-                             {/* Display the latest point's coordinates based on the plot type */}
-                             {initialType === 'yvt' && ` (t: ${plotData[plotData.length-1].x.toFixed(3)}, y: ${plotData[plotData.length-1].y.toFixed(3)})`}
-                             {initialType === 'xvt' && ` (t: ${plotData[plotData.length-1].x.toFixed(3)}, x: ${plotData[plotData.length-1].y.toFixed(3)})`}
-                             {initialType === 'zvt' && ` (t: ${plotData[plotData.length-1].x.toFixed(3)}, z: ${plotData[plotData.length-1].y.toFixed(3)})`}
-                             {initialType === 'yvx' && ` (x: ${plotData[plotData.length-1].x.toFixed(3)}, y: ${plotData[plotData.length-1].y.toFixed(3)})`}
-                        </div>
-                    ) : (
-                        <div>Select an object to view data.</div>
-                    )}
-
-                </div>
-            </div>
-        </Rnd>
-    );
+        <div className="chart-area-wrapper">
+          <Scatter ref={chartRef} data={initialChartData} options={chartOptions} />
+        </div>
+      </div>
+    </Rnd>
+  );
 }
 
 export default OverlayGraph;
