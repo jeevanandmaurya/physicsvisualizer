@@ -6,14 +6,6 @@ import { getAuth } from "firebase/auth"; // Import Auth service
 
 // Your web app's Firebase configuration
 const firebaseConfig = {
-  apiKey: "AIzaSyDDdkh8AQ0J9STZ93mCxiBebZBssgyDAyM",
-  authDomain: "physicsvisualizer.firebaseapp.com",
-  projectId: "physicsvisualizer",
-  storageBucket: "physicsvisualizer.firebasestorage.app",
-  messagingSenderId: "404618393085",
-  appId: "1:404618393085:web:1ddc35418dc2886ff09594",
-  measurementId: "G-NFG62PELZF"
-
   apiKey: import.meta.env.VITE_FIREBASE_API_KEY,
   authDomain: import.meta.env.VITE_FIREBASE_AUTH_DOMAIN,
   projectId: import.meta.env.VITE_FIREBASE_PROJECT_ID,
