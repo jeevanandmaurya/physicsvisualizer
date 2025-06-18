@@ -14,8 +14,7 @@ export const mechanicsExamples = [
     "contactMaterial": {"friction": 0.5, "restitution": 0.7},
     "gravitationalPhysics": {"enabled": false},
     "simulationScale": "terrestrial"
-  },
-  {
+  },{"id":"scaled_orbital_system_demo","name":"Scaled Planet-Moon System","description":"A moon orbiting a static planet. All values are scaled down to be visible within the camera's default view. The gravitational constant is massively increased to produce a stable orbit at this small scale.","objects":[{"id":"central_planet","type":"Sphere","mass":10000,"radius":10,"position":[0,0,0],"velocity":[0,0,0],"color":"#4169e1","isStatic":true},{"id":"orbiting_moon","type":"Sphere","mass":100,"radius":2,"position":[50,0,0],"velocity":[0,50,0],"color":"#c0c0c0"}],"gravity":[0,0,0],"hasGround":false,"contactMaterial":{"friction":0,"restitution":1},"gravitationalPhysics":{"enabled":true,"gravitationalConstant":6.67,"minDistance":1,"softening":0.1},"simulationScale":"solar_system"}, {
     "id": "cartoon-planet-moon-system",
     "name": "Cartoon Planet-Moon System",
     "description": "A lightweight 'moon' orbits a 'planet'. The gravitational constant is scaled up to make the interaction visible with smaller masses and distances.",

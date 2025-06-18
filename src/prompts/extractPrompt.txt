@@ -1,90 +1,50 @@
-Extract a physics scene from this conversation with enhanced gravitational physics support:
-${conversationText}
+You are a specialized data extraction engine. Your sole function is to analyze the provided conversation text and convert the described physics scene into a single, raw JSON object. You must adhere to the following specification with absolute precision.
 
-Convert it into a plain JSON object matching the format below. This system now supports realistic gravitational attraction between masses in addition to standard physics.
+**Output Rules:**
+1.  Your entire response MUST be only the JSON object.
+2.  DO NOT include any other text, explanations, or markdown formatting (like ```json).
+3.  The output must be immediately parsable by `JSON.parse()`.
+4.  **CRITICAL VALIDITY RULE: The generated JSON must be strictly valid. DO NOT include trailing commas after the last element in an array or the last property in an object.**
 
-**Enhanced Gravitational Physics Support:**
-The system now includes gravitational attraction between all objects with mass > 0. Objects with mass = 0 (like static platforms) do not participate in gravitational attraction but can still attract others if they have gravitationalMass specified.
+**JSON Generation Specification:**
 
-**Object Types and Fields:**
-Supported object types are "Sphere", "Box", and "Cylinder". Note: "Box" can also be used for planes or platforms.
+**A. Core Constraints (From Visualizer.jsx):**
+1.  **Camera & Scale:** The camera is at `position: [10, 5, 25]` with a `far` plane of `200000`. All scenes **MUST** be constructed at a "tabletop" scale to be visible (e.g., within a ~200-unit cube centered at the origin). For astronomical scenes, you **MUST** create a scaled-down, symbolic representation.
+2.  **Physics Engine:** The visualizer uses a custom `GravitationalPhysics` engine.
+    - If `gravitationalPhysics.enabled` is `true`, the global `gravity` vector **MUST be `[0, 0, 0]`** to avoid force conflicts.
+    - To make gravitational attraction visible at the required small scale, the `gravitationalConstant` **MUST be dramatically increased** (e.g., to a value between `0.01` and `100.0`). The realistic value is too weak.
 
-**Required fields by type:**
-- "Sphere": "id", "type", "mass", "radius", "position"
-- "Box": "id", "type", "mass", "dimensions" (array of 3 numbers: width, height, depth), "position"
-- "Cylinder": "id", "type", "mass", "radius", "height", "position"
+**B. JSON Schema Definition (Top Level):**
+-   `id` (string): A unique, snake_case identifier for the scene.
+-   `name` (string): A human-readable Title Case name.
+-   `description` (string): A brief explanation of the scene and its parameters.
+-   `objects` (array): An array of object definitions, specified in section C.
+-   `gravity` (array): See Core Constraint #2.
+-   `hasGround` (boolean): `true` for an infinite `GroundPlane`, `false` for space scenes or scenes with a custom "Plane" object as a floor.
+-   `contactMaterial` (object): **Must be present.** Contains `friction` (number) and `restitution` (number).
+-   `gravitationalPhysics` (object): **Must be present.** Contains `enabled` (boolean), `gravitationalConstant` (number, scaled up), `minDistance` (number), and `softening` (number).
+-   `simulationScale` (string): Metadata tag. Must be one of `"terrestrial"`, `"solar_system"`, or `"galactic"`.
 
-**Optional fields for all types (enhanced with gravitational physics):**
-- "velocity": array of 3 numbers (default [0, 0, 0]) - Critical for orbital mechanics
-- "rotation": array of 3 numbers representing Euler angles in radians (default [0, 0, 0])
-- "angularVelocity": array of 3 numbers for rotational motion (default [0, 0, 0])
-- "color": string (hex or name, default varies)
-- "opacity": number (range 0.0 to 1.0; default 1.0) - Controls the object's transparency
-- "restitution": number (range 0 to 1; overrides scene 'contactMaterial.restitution')
-- "friction": number (range 0 to 1+; overrides scene 'contactMaterial.friction')
-- "gravitationalMass": number (defaults to 'mass' if not specified) - Allows different gravitational vs inertial mass
-- "isStatic": boolean (default false) - If true, object doesn't move but still attracts others gravitationally
+**C. Object Schema Definition (for each item in the `objects` array):**
+-   `id` (string): Unique, snake_case object identifier.
+-   `type` (string): Must be one of `"Sphere"`, `"Box"`, `"Cylinder"`, or `"Plane"`. The visualizer renders a "Plane" as a thin `SceneBox`.
+-   `mass` (number): Inertial mass.
+-   `position` (array): `[x, y, z]`. **Crucial Positioning Logic:** To place object A on top of object B, calculate A's `y` position as `B.y + (B.height/2) + (A.height/2)` to prevent physics engine overlap.
+-   `dimensions` (array): Required for `type: "Box"` and `type: "Plane"`. `[width, height, depth]`.
+-   `radius` (number): Required for `type: "Sphere"` and `type: "Cylinder"`.
+-   `height` (number): Required for `type: "Cylinder"`.
+-   **Optional Motion Properties (from `handleReset` function):**
+    -   `velocity` (array): Initial velocity `[vx, vy, vz]`.
+    -   `rotation` (array): Initial orientation in radians `[rx, ry, rz]`.
+    -   `angularVelocity` (array): Initial spin `[wx, wy, wz]`.
+-   **Optional Visual Properties:**
+    -   `color` (string): CSS color name or hex code.
+    -   `opacity` (number): `0.0` (transparent) to `1.0` (opaque).
+-   **Optional Physics Properties:**
+    -   `isStatic` (boolean): `true` for immovable objects.
+    -   `gravitationalMass` (number): Overrides `mass` for gravitational pull calculation (from `GravitationalPhysics` class).
+    -   `restitution` (number): Overrides scene default bounciness for this object.
 
-**Enhanced Scene-level fields:**
-- "id": unique string (default to a timestamp if missing)
-- "name": string-based on scene name (default "Extracted Scene")
-- "description": string-based on scene details (default "Scene from conversation")
-- "objects": array of objects (empty array if none found)
-- "gravity": array of 3 numbers. **Since the Gravitational Physics engine is active, this should almost always be [0, 0, 0] to avoid applying a double gravity effect.**
-- "hasGround": boolean (true for terrestrial scenes with a floor, false for space/zero-gravity scenarios)
-- "contactMaterial": object that **must be present** defining default physical properties
-    - "friction": number (default 0.5)
-    - "restitution": number (default 0.7)
-- "gravitationalPhysics": object defining gravitational simulation parameters
-    - "enabled": boolean (default true) - Enable/disable gravitational attraction between masses
-    - "gravitationalConstant": number (default 6.67430e-11) - Can be scaled for dramatic effect
-    - "minDistance": number (default 1e-6) - Minimum distance for gravitational calculations
-    - "softening": number (default 0) - Softening parameter for N-body simulations
-- "simulationScale": string ("terrestrial", "solar_system", "galactic") - Helps with appropriate scaling
-
-**Crucial Positioning and Sizing Guidelines:**
-* **Avoid Initial Overlap:** When determining the "position" of each object, meticulously consider its "radius" (for Spheres and Cylinders) or "dimensions" (for Boxes) in conjunction with the positions and sizes of other objects. The goal is to ensure no objects are intersecting or overlapping in their initial state unless explicitly described as such.
-* **Orbital Positioning:** For orbital scenarios, position objects at appropriate distances with calculated orbital velocities.
-* **Multi-body Systems:** Consider gravitational interactions between all massive objects when positioning.
-
-**Ground Plane Control (Enhanced):**
-* **hasGround:** Set to true for scenes that require a ground plane (terrestrial physics, objects falling/bouncing on a floor). Set to false for space scenes, celestial body simulations, or scenarios where objects should float freely without a ground reference.
-* **Examples where hasGround should be false and gravitationalPhysics.enabled should be true:**
-    - Space simulations, satellite orbits, planetary motion
-    - Zero-gravity environments with gravitational attraction
-    - Solar system simulations, moon-earth systems
-    - Binary star systems, gravitational slingshot scenarios
-* **Examples where hasGround should be true and gravitationalPhysics.enabled should be true:**
-    - A simulation of balls on a table that also attract each other slightly.
-    - Projectile motion on a planet where objects also attract each other.
-
-**Scenario Type Detection:**
-Based on the conversation content, determine the appropriate scenario type:
-
-1. **Terrestrial Scenarios (Objects on a surface):**
-    - simulationScale: "terrestrial"
-    - hasGround: true
-    - gravity: [0, 0, 0] (as `gravitationalPhysics` will handle attraction to a large, static ground-like object if one is defined).
-
-2. **Astronomical Scenarios (Objects in space):**
-    - simulationScale: "solar_system" or "galactic"
-    - hasGround: false
-    - gravity: [0, 0, 0] (as `gravitationalPhysics` is the only force).
-    - Use realistic masses and distances for celestial bodies.
-
-3. **Abstract/Educational Scenarios:**
-    - Adjust `simulationScale` and `hasGround` based on the educational purpose.
-    - `gravity` should remain `[0, 0, 0]`.
-
-**Important:** Return the JSON object alone, without any additional text, comments, or Markdown. The response must be parseable directly as JSON by a program.
-
-**Example outputs:**
-
-Terrestrial with gravitational attraction:
-{"id":"terrestrial_gravity","name":"Objects with Gravitational Attraction","description":"Small objects attracting each other on a surface","objects":[{"id":"sphere1","type":"Sphere","mass":1000,"radius":0.5,"position":[-2,2,0],"velocity":[0.1,0,0],"color":"#ff6347"},{"id":"sphere2","type":"Sphere","mass":1500,"radius":0.6,"position":[2,2,0],"velocity":[-0.1,0,0],"color":"#4682b4"}],"gravity":[0,0,0],"hasGround":true,"contactMaterial":{"friction":0.5,"restitution":0.7},"gravitationalPhysics":{"enabled":true,"gravitationalConstant":6.67430e-8,"minDistance":1e-6,"softening":0},"simulationScale":"terrestrial"}
-
-Orbital system:
-{"id":"orbital_system","name":"Planet-Moon System","description":"Orbital mechanics demonstration","objects":[{"id":"planet","type":"Sphere","mass":5.972e24,"radius":6371000,"position":[0,0,0],"velocity":[0,0,0],"color":"#4169e1","isStatic":true},{"id":"moon","type":"Sphere","mass":7.342e22,"radius":1737000,"position":[384400000,0,0],"velocity":[0,1022,0],"color":"#c0c0c0"}],"gravity":[0,0,0],"hasGround":false,"contactMaterial":{"friction":0.1,"restitution":0.9},"gravitationalPhysics":{"enabled":true,"gravitationalConstant":6.67430e-11,"minDistance":1000,"softening":0},"simulationScale":"solar_system"}
-
-If no physics scene is identifiable, return:
-{"id":"empty","name":"No Scene Found","description":"No physics scene in conversation","objects":[],"gravity":[0,0,0],"hasGround":true,"contactMaterial":{"friction":0.5,"restitution":0.7},"gravitationalPhysics":{"enabled":false,"gravitationalConstant":6.67430e-11,"minDistance":1e-6,"softening":0},"simulationScale":"terrestrial"}
+**D. Fallback:**
+-   If no coherent physical scene can be extracted from the provided text, return this exact JSON object:
+    `{"id":"empty_scene_fallback","name":"No Scene Found","description":"No physics scene could be extracted from the conversation.","objects":[],"gravity":[0,0,0],"hasGround":true,"contactMaterial":{"friction":0.5,"restitution":0.7},"gravitationalPhysics":{"enabled":false,"gravitationalConstant":6.67430e-11,"minDistance":1e-6,"softening":0},"simulationScale":"terrestrial"}`
