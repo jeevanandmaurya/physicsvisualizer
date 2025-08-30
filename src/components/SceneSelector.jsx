@@ -8,7 +8,7 @@ import extractPrompt from '../prompts/extractPrompt.txt?raw';
 
 function SceneSelector({
     currentScene,
-    handleSceneChange, // <-- FIX: Changed prop name from onSceneChange to handleSceneChange
+    handleSceneChange, 
     conversationHistory,
     userScenes,
     loadingUserScenes,
