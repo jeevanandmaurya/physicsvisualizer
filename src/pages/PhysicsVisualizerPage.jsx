@@ -1,337 +1,423 @@
-import React, { useState, useCallback, useRef, useEffect } from "react";
-import {
-    PanelGroup,
-    Panel,
-    PanelResizeHandle,
-} from "react-resizable-panels";
-import { useNavigate, useLocation, useRoutes } from "react-router-dom";
+import React, { useState, useEffect, useCallback, useRef } from 'react';
+import { useLocation, useNavigate, Link } from 'react-router-dom';
+import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
+import { faSpinner, faExclamationTriangle } from '@fortawesome/free-solid-svg-icons';
+import { PanelGroup, Panel, PanelResizeHandle } from 'react-resizable-panels';
 
-// --- Component Imports ---
-import TopMenu from "../components/TopMenu";
-import Visualizer from "../components/Visualizer";
-import LeftPanel from "../components/LeftPanel";
-import RightPanel from "../components/RightPanel";
-import SceneSelector from "../components/SceneSelector";
-import Conversation from "../components/Conversation";
-import SceneDetails from "../components/SceneDetails";
-
-// --- Style and Context Imports ---
+import Visualizer from '../components/Visualizer';
+import SceneDetails from '../components/SceneDetails';
+import SceneSelector from '../components/SceneSelector';
+import Conversation from '../components/Conversation';
 import "./physicsvisualizer.css";
-import { useAuth } from "../contexts/AuthContext";
 import { useDatabase } from "../contexts/DatabaseContext";
 
-/**
- * The main application page, orchestrating all panels and components.
- */
+// Helper to generate a default new scene
+const createNewScene = () => ({
+  id: `new-${Date.now()}`,
+  name: 'New Scene',
+  description: 'A new physics simulation.',
+  isTemporary: true, // Flag to indicate it's not saved yet
+  gravity: [0, -9.81, 0],
+  hasGround: true,
+  simulationScale: 'terrestrial',
+  gravitationalPhysics: { enabled: false },
+  objects: [
+    { id: 'obj-1', type: 'Sphere', name: 'Bouncing Ball', mass: 1, radius: 0.5, position: [0, 5, 0], velocity: [1, 0, 0], color: '#ff8800' },
+    { id: 'obj-2', type: 'Box', name: 'Static Block', isStatic: true, dimensions: [5, 0.5, 2], position: [5, 2, -2], rotation: [0, -0.2, 0.1], color: '#cccccc' }
+  ]
+});
+
 function PhysicsVisualizerPage() {
-    // --- Hooks ---
-    const navigate = useNavigate();
-    const location = useLocation();
-    const { currentUser } = useAuth();
-    const dataManager = useDatabase();
+  const dataManager = useDatabase();
+  const location = useLocation();
+  const navigate = useNavigate();
 
-    // --- Core State ---
-    const [currentScene, setCurrentScene] = useState(null);
-    const [isLoadingScene, setIsLoadingScene] = useState(true);
+  const [scene, setScene] = useState(null);
+  const [loading, setLoading] = useState(true);
+  const [sceneSwitching, setSceneSwitching] = useState(false);
+  const [error, setError] = useState(null);
+  const [conversationHistory, setConversationHistory] = useState([]);
+  const [extractedScenes, setExtractedScenes] = useState([]);
+  const [rightPanelView, setRightPanelView] = useState('chat'); // 'chat' or 'details'
+  const [currentChatId, setCurrentChatId] = useState(null);
+  const [currentChat, setCurrentChat] = useState(null);
 
-    // --- UI Panel State ---
-    const [activeLeftPanel, setActiveLeftPanel] = useState(null); // 'scene-examples' or null
-    const [activeRightPanel, setActiveRightPanel] = useState(null); // 'chat' or 'properties'
+  // Ref to hold the most up-to-date scene state for saving
+  const sceneRef = useRef(null);
+  useEffect(() => {
+    sceneRef.current = scene;
+  }, [scene]);
 
-    // --- Data State ---
-    const [userScenes, setUserScenes] = useState([]);
-    const [loadingUserScenes, setLoadingUserScenes] = useState(false);
-    const [extractedScenes, setExtractedScenes] = useState([]);
-    const [conversationHistory, setConversationHistory] = useState([
-        { role: "ai", content: "Hello! How can I help you with physics today?" },
-    ]);
-    const [motionData, setMotionData] = useState({}); // Note: Unused variables, might need cleanup
-    const [activeGraphs, setActiveGraphs] = useState([]); // Note: Unused variables, might need cleanup
-    const visualizerRef = useRef(null); // Note: Unused variables, might need cleanup
+  // --- EFFECT: Load Scene Data ---
+  useEffect(() => {
+    let isMounted = true;
+    const sceneIdToLoad = location.state?.sceneToLoad;
+    const isPublic = location.state?.isPublic || false;
 
-    // Panel refs for imperative control
-    const leftPanelRef = useRef(null);
-    const rightPanelRef = useRef(null);
-
-    // --- Effects for Data Loading ---
-
-    // Effect to load the initial scene on page mount or from navigation state
-    useEffect(() => {
-        const loadScene = async () => {
-            setIsLoadingScene(true);
-            let sceneToLoad;
-            try {
-                const sceneState = location.state;
-                if (sceneState?.sceneToLoad) {
-                    navigate(location.pathname, { replace: true, state: {} });
-                    if (sceneState.sceneToLoad === "new_empty_scene") {
-                        sceneToLoad = {
-                            id: `new-${Date.now()}`,
-                            name: "New Empty Scene",
-                            description: "A blank canvas.",
-                            objects: [],
-                            gravity: [0, -9.81, 0],
-                            hasGround: true,
-                            isTemporary: true,
-                        };
-                    } else {
-                        sceneToLoad = await dataManager.getSceneById(
-                            sceneState.sceneToLoad,
-                            sceneState.isPublic || false
-                        );
-                    }
-                }
-                if (!sceneToLoad) {
-                    const [defaultScene] = await dataManager.getScenes("examples");
-                    sceneToLoad = defaultScene;
-                }
-                setCurrentScene(sceneToLoad);
-            } catch (error) {
-                console.error("Error loading scene:", error);
-                setCurrentScene({
-                    id: "error-scene",
-                    name: "Error Loading Scene",
-                    objects: [],
-                });
-            } finally {
-                setIsLoadingScene(false);
+    const loadScene = async () => {
+      setLoading(true);
+      setError(null);
+      try {
+        let loadedScene = null;
+        if (sceneIdToLoad === 'new_empty_scene') {
+          loadedScene = createNewScene();
+        } else if (sceneIdToLoad) {
+          // The new getSceneById handles both local and example scenes
+          loadedScene = await dataManager.getSceneById(sceneIdToLoad);
+          if (loadedScene) {
+            // Log that this scene was viewed
+            dataManager.logSceneView(loadedScene.id, loadedScene.name, isPublic);
+            // If it's a public scene, mark it for "forking" on save
+            if (isPublic) {
+              loadedScene.isExtracted = true;
             }
-        };
-        loadScene();
-    }, [location.state, navigate, dataManager]);
-
-    // Effect to fetch the user's saved scenes when they log in
-    useEffect(() => {
-        if (currentUser && dataManager) {
-            setLoadingUserScenes(true);
-            dataManager
-                .getScenes("user", {
-                    orderBy: { field: "updatedAt", direction: "desc" },
-                })
-                .then(setUserScenes)
-                .catch((error) => console.error("Error fetching user scenes:", error))
-                .finally(() => setLoadingUserScenes(false));
+          }
         } else {
-            setUserScenes([]);
-            setExtractedScenes([]);
+          // No scene specified - load the first example scene as default
+          const exampleScenes = await dataManager.getScenes('examples');
+          if (exampleScenes && exampleScenes.length > 0) {
+            loadedScene = exampleScenes[0]; // Load the first example scene
+          } else {
+            // Fallback to new empty scene if no examples available
+            loadedScene = createNewScene();
+          }
         }
-    }, [currentUser, dataManager]);
 
-    // --- Callback Handlers ---
-
-    const handleSceneChange = useCallback((newScene) => {
-        setCurrentScene(newScene);
-        // Reset simulation-specific state if needed
-        // setMotionData({});
-        // setActiveGraphs([]);
-    }, []);
-
-    const handleExtractedScene = useCallback((extractedScene) => {
-        // Normalize the scene object and mark it as temporary
-        const normalizedScene = {
-            ...extractedScene,
-            id: extractedScene.id || `extracted-${Date.now()}`,
-            isExtracted: true,
-            isTemporary: true,
-        };
-        setExtractedScenes((prev) => [normalizedScene, ...prev]);
-        setCurrentScene(normalizedScene);
-    }, []);
-
-    const handleSaveScene = useCallback(async () => {
-        if (!currentUser) return alert("You must be logged in to save a scene.");
-        if (!currentScene) return alert("No active scene to save.");
-
-        try {
-            const savedId = await dataManager.saveScene(currentScene);
-            const savedScene = await dataManager.getSceneById(savedId);
-            alert(`Scene "${savedScene.name}" saved successfully!`);
-
-            setCurrentScene(savedScene);
-            if (currentScene.isExtracted) {
-                setExtractedScenes((prev) =>
-                    prev.filter((s) => s.id !== currentScene.id)
-                );
-            }
-            setUserScenes((prev) => [
-                savedScene,
-                ...prev.filter((s) => s.id !== savedId),
-            ]);
-        } catch (error) {
-            console.error("Error saving scene:", error);
-            alert(`Failed to save scene: ${error.message}`);
+        if (isMounted) {
+          if (loadedScene) {
+            setScene(loadedScene);
+          } else {
+            setError(`Scene with ID "${sceneIdToLoad}" not found.`);
+          }
         }
-    }, [currentScene, currentUser, dataManager]);
+      } catch (err) {
+        console.error("Error loading scene:", err);
+        if (isMounted) setError("An unexpected error occurred while loading the scene.");
+      } finally {
+        if (isMounted) setLoading(false);
+      }
+    };
 
-    const handleNewScene = useCallback(() => {
-        const newScene = {
-            id: `new-${Date.now()}`,
-            name: "New Empty Scene",
-            description: "A blank canvas.",
-            objects: [],
-            gravity: [0, -9.81, 0],
-            hasGround: true,
-            isTemporary: true,
-        };
-        handleSceneChange(newScene);
-    }, [handleSceneChange]);
-
-    // These functions will be passed as props to TopMenu.
-    const handleOpenDashboard = useCallback(() => {
-        navigate('/');
-    }, [navigate]);
-
-    const handleOpenSceneCollection = useCallback(() => {
-        navigate('/collection');
-    }, [navigate]);
-
-
-    const toggleLeftPanel = useCallback(
-        (panelName) => {
-            const newActivePanel = activeLeftPanel === panelName ? null : panelName;
-            setActiveLeftPanel(newActivePanel);
-
-            // Control panel size imperatively
-            if (leftPanelRef.current) {
-                if (newActivePanel === "scene-examples") {
-                    leftPanelRef.current.resize(25);
-                } else {
-                    leftPanelRef.current.collapse();
-                }
-            }
-        },
-        [activeLeftPanel]
-    );
-
-    const toggleRightPanel = useCallback(
-        (panelName) => {
-            const newActivePanel = activeRightPanel === panelName ? null : panelName;
-            setActiveRightPanel(newActivePanel);
-
-            // Control panel size imperatively
-            if (rightPanelRef.current) {
-                if (newActivePanel) {
-                    const size = newActivePanel === "chat" ? 30 : 25;
-                    rightPanelRef.current.resize(size);
-                } else {
-                    rightPanelRef.current.collapse();
-                }
-            }
-        },
-        [activeRightPanel]
-    );
-
-    // --- Render Logic ---
-
-    if (isLoadingScene || !currentScene) {
-        return (
-            <div className="loading-fullscreen">Loading Physics Visualizer...</div>
-        );
+    if (dataManager) {
+      loadScene();
     }
 
-    // Determine default size for the right panel based on its content
-    const rightPanelDefaultSize = activeRightPanel === "chat" ? 30 : 25;
+    return () => { isMounted = false; };
+  }, [location.state, dataManager, navigate]);
 
+  // --- Scene Manipulation Handlers ---
+  const handleSceneUpdate = useCallback((updatedScene) => {
+    setScene(prevScene => ({ ...prevScene, ...updatedScene }));
+  }, []);
+
+  const handleSceneChange = useCallback((newScene) => {
+    setScene(newScene);
+  }, []);
+
+  const handleExtractedScene = useCallback((extractedScene) => {
+    setExtractedScenes(prev => [...prev, extractedScene]);
+  }, []);
+
+  const handleDeleteScene = useCallback(async (scene) => {
+    if (!scene || scene.isTemporary || scene.isExtracted) return;
+
+    if (window.confirm(`Are you sure you want to delete "${scene.name}"? This cannot be undone.`)) {
+      try {
+        await dataManager.deleteScene(scene.id);
+        // Refresh the scene list or navigate to dashboard
+        navigate('/dashboard');
+      } catch (err) {
+        console.error("Failed to delete scene:", err);
+        alert("Error: Could not delete the scene.");
+      }
+    }
+  }, [dataManager, navigate]);
+
+  const handleSaveScene = useCallback(async (sceneToSave = null) => {
+    const targetScene = sceneToSave || sceneRef.current;
+    if (!targetScene) return;
+
+    let sceneToSaveData = { ...targetScene };
+
+    // If it's a temporary new scene or a forked public scene, create a new ID
+    if (sceneToSaveData.isTemporary || sceneToSaveData.isExtracted) {
+      delete sceneToSaveData.id; // Remove old/temporary ID to generate a new one
+    }
+
+    try {
+      const savedId = await dataManager.saveScene(sceneToSaveData);
+      
+      // If it was a new scene, update the URL to reflect the new ID
+      if (sceneToSaveData.isTemporary || sceneToSaveData.isExtracted) {
+        navigate('/visualizer', { state: { sceneToLoad: savedId }, replace: true });
+      } else {
+        // For existing scenes, just refetch to get the latest `updatedAt` timestamp
+        const updatedScene = await dataManager.getSceneById(savedId);
+        setScene(updatedScene);
+      }
+    } catch (err) {
+      console.error("Failed to save scene:", err);
+      alert("Error: Could not save the scene.");
+    }
+  }, [dataManager, navigate]);
+
+  const handleUpdateScene = useCallback(async (sceneToUpdate) => {
+    if (!sceneToUpdate) return;
+    
+    try {
+      await dataManager.saveScene(sceneToUpdate);
+      // Refresh the current scene
+      const updatedScene = await dataManager.getSceneById(sceneToUpdate.id);
+      setScene(updatedScene);
+    } catch (err) {
+      console.error("Failed to update scene:", err);
+      alert("Error: Could not update the scene.");
+    }
+  }, [dataManager]);
+
+  const handleShareToPublic = useCallback(async (sceneToShare) => {
+    if (!sceneToShare) return;
+    
+    if (window.confirm(`Are you sure you want to share "${sceneToShare.name}" to the public collection? This will make it available to all users.`)) {
+      try {
+        // Mark scene as public and save
+        const publicScene = { ...sceneToShare, isPublic: true };
+        await dataManager.saveScene(publicScene);
+        alert("Scene shared to public collection successfully!");
+      } catch (err) {
+        console.error("Failed to share scene:", err);
+        alert("Error: Could not share the scene.");
+      }
+    }
+  }, [dataManager]);
+
+  const handleOpenProperties = useCallback((sceneToEdit) => {
+    if (!sceneToEdit) return;
+
+    // For now, we'll just set it as the current scene
+    // In the future, you could open a properties panel or modal
+    setScene(sceneToEdit);
+  }, []);
+
+  // --- Chat Management Handlers ---
+  const handleChatSelect = useCallback(async (chat) => {
+    setCurrentChatId(chat.id);
+    setCurrentChat(chat);
+
+    // Load the chat's conversation history
+    if (chat.messages) {
+      setConversationHistory(chat.messages);
+    } else {
+      setConversationHistory([]);
+    }
+
+    // If the chat has an associated scene, load it
+    if (chat.sceneId) {
+      try {
+        const chatScene = await dataManager.getSceneById(chat.sceneId);
+        if (chatScene) {
+          setScene(chatScene);
+        }
+      } catch (err) {
+        console.error("Error loading chat scene:", err);
+      }
+    }
+  }, [dataManager]);
+
+  const handleNewChat = useCallback(async () => {
+    // Create a new empty scene for the chat
+    const newScene = createNewScene();
+    setScene(newScene);
+
+    // Create a new chat
+    const newChatData = {
+      title: `Chat ${new Date().toLocaleString()}`,
+      sceneId: newScene.id,
+      messages: []
+    };
+
+    try {
+      const chatId = await dataManager.saveChat(newChatData);
+      setCurrentChatId(chatId);
+      setCurrentChat({ ...newChatData, id: chatId });
+      setConversationHistory([]);
+    } catch (err) {
+      console.error("Error creating new chat:", err);
+      alert("Error: Could not create new chat.");
+    }
+  }, [dataManager]);
+
+  const handleSceneSwitch = useCallback(async (newSceneId) => {
+    try {
+      const newSceneData = await dataManager.getSceneById(newSceneId);
+      if (newSceneData) {
+        setScene(newSceneData);
+
+        // Update the current chat with the new scene
+        if (currentChatId && currentChat) {
+          const updatedChat = {
+            ...currentChat,
+            sceneId: newSceneId,
+            messages: conversationHistory
+          };
+          await dataManager.saveChat(updatedChat);
+          setCurrentChat(updatedChat);
+        }
+      }
+    } catch (err) {
+      console.error("Error switching scene:", err);
+      alert("Error: Could not switch scene.");
+    }
+  }, [dataManager, currentChatId, currentChat, conversationHistory]);
+
+  // --- Scene Button Click Handler ---
+  const handleSceneButtonClick = useCallback(async (chat, sceneIndex) => {
+    try {
+      setSceneSwitching(true);
+
+      // Get the scene data from the chat's scenes array
+      const sceneData = chat.scenes?.[sceneIndex];
+      if (!sceneData) {
+        console.warn(`No scene data found at index ${sceneIndex} for chat ${chat.id}`);
+        setSceneSwitching(false);
+        return;
+      }
+
+      // Load the scene by ID
+      const sceneToLoad = await dataManager.getSceneById(sceneData.id);
+      if (sceneToLoad) {
+        setScene(sceneToLoad);
+
+        // Update the current chat with the new scene
+        if (currentChatId && currentChat) {
+          const updatedChat = {
+            ...currentChat,
+            sceneId: sceneData.id,
+            messages: conversationHistory
+          };
+          await dataManager.saveChat(updatedChat);
+          setCurrentChat(updatedChat);
+        }
+
+        // Don't switch right panel view - preserve current tab
+      } else {
+        console.error(`Scene ${sceneData.id} not found`);
+        alert(`Scene "${sceneData.name}" could not be loaded.`);
+      }
+    } catch (err) {
+      console.error("Error loading scene from chat:", err);
+      alert("Error: Could not load scene from chat.");
+    } finally {
+      setSceneSwitching(false);
+    }
+  }, [dataManager, currentChatId, currentChat, conversationHistory]);
+
+  // --- Update Conversation Handler ---
+  const handleUpdateConversation = useCallback(async (newMessages) => {
+    setConversationHistory(newMessages);
+
+    // Update the current chat with the new messages
+    if (currentChatId && currentChat) {
+      const updatedChat = {
+        ...currentChat,
+        messages: newMessages,
+        updatedAt: new Date().toISOString()
+      };
+      await dataManager.saveChat(updatedChat);
+      setCurrentChat(updatedChat);
+    }
+  }, [currentChatId, currentChat, dataManager]);
+
+  // --- UI Rendering ---
+
+  if (loading) {
+    return <div className="page-loading-container"><FontAwesomeIcon icon={faSpinner} spin size="3x" /><span>Loading Scene...</span></div>;
+  }
+
+  if (error) {
     return (
-        <div className="main">
-            <TopMenu
-                onSaveScene={handleSaveScene}
-
-                isCurrentSceneUnsaved={!!currentScene.isTemporary}
-                {...{ handleNewScene }}
-
-                onOpenDashboard={handleOpenDashboard}
-                onOpenSceneCollection={handleOpenSceneCollection}
-
-            />
-            <PanelGroup direction="vertical" className="flex-grow">
-                <Panel className="main-panel">
-                    <PanelGroup direction="horizontal">
-                        {/* --- LEFT TOOLBAR --- */}
-                        <div className="left-section">
-                            <LeftPanel
-                                onSceneExamples={() => toggleLeftPanel("scene-examples")}
-                            />
-                        </div>
-
-                        {/* --- (Conditional) LEFT PANEL (Scene Selector) --- */}
-                        {activeLeftPanel === "scene-examples" && (
-                            <>
-                                <Panel
-                                    ref={leftPanelRef}
-                                    order={1}
-                                    collapsible={true}
-                                    collapsedSize={0}
-                                    minSize={15}
-                                    className="component-section examples-panel"
-                                    defaultSize={25}
-                                >
-                                    <SceneSelector
-                                        {...{
-                                            currentScene,
-                                            handleSceneChange,
-                                            conversationHistory,
-                                            userScenes,
-                                            loadingUserScenes,
-                                            extractedScenes,
-                                            onExtractedScene:handleExtractedScene,
-                                            currentUser,
-                                        }}
-                                    />
-                                </Panel>
-                                <PanelResizeHandle className="resize-handle" />
-                            </>
-                        )}
-
-                        {/* --- CENTER VISUALIZATION --- */}
-                        <Panel order={2} className="visualization-section" minSize={30}>
-                            <Visualizer key={currentScene.id} scene={currentScene} />
-                        </Panel>
-
-                        {/* --- (Conditional) RIGHT PANEL (DYNAMIC CONTENT) --- */}
-                        {activeRightPanel && (
-                            <>
-                                <PanelResizeHandle className="resize-handle" />
-                                <Panel
-                                    ref={rightPanelRef}
-                                    order={3}
-                                    collapsible={true}
-                                    collapsedSize={0}
-                                    minSize={15}
-                                    className={
-                                        activeRightPanel === "properties"
-                                            ? "properties-section"
-                                            : "solution-section"
-                                    }
-                                    defaultSize={rightPanelDefaultSize}
-                                >
-                                    {activeRightPanel === "chat" && (
-                                        <Conversation
-                                            {...{
-                                                conversationHistory,
-                                                updateConversation: setConversationHistory,
-                                            }}
-                                        />
-                                    )}
-                                    {activeRightPanel === "properties" && (
-                                        <SceneDetails scene={currentScene} />
-                                    )}
-                                </Panel>
-                            </>
-                        )}
-
-                        {/* --- RIGHT TOOLBAR --- */}
-                        <div className="right-section">
-                            <RightPanel
-                                onChat={() => toggleRightPanel("chat")}
-                                onProperties={() => toggleRightPanel("properties")}
-                            />
-                        </div>
-                    </PanelGroup>
-                </Panel>
-            </PanelGroup>
-        </div>
+      <div className="page-loading-container error-state">
+        <FontAwesomeIcon icon={faExclamationTriangle} size="3x" />
+        <h2>Error</h2>
+        <p>{error}</p>
+        <Link to="/dashboard" className="button-primary">Go to Dashboard</Link>
+      </div>
     );
+  }
+
+  if (!scene) {
+    return null; // Should be handled by loading/error states
+  }
+
+  return (
+    <div className="physics-visualizer-page">
+      <div className="visualizer-main-content">
+        <PanelGroup direction="horizontal" className="visualizer-panels">
+          {/* Left Panel - Scene Selector */}
+          <Panel defaultSize={20} minSize={15} maxSize={30} className="left-panel">
+            <div className="panel-content">
+              <SceneSelector
+                currentScene={scene}
+                handleSceneChange={handleSceneChange}
+                conversationHistory={conversationHistory}
+                userScenes={[]}
+                loadingUserScenes={false}
+                extractedScenes={extractedScenes}
+                onExtractedScene={handleExtractedScene}
+                onDeleteScene={handleDeleteScene}
+                onSaveScene={handleSaveScene}
+                onUpdateScene={handleUpdateScene}
+                onShareToPublic={handleShareToPublic}
+                onOpenProperties={handleOpenProperties}
+                currentChatId={currentChatId}
+                onChatSelect={handleChatSelect}
+                onNewChat={handleNewChat}
+                onSceneButtonClick={handleSceneButtonClick}
+              />
+            </div>
+          </Panel>
+
+          <PanelResizeHandle className="resize-handle" />
+
+          {/* Center Panel - 3D Visualizer */}
+          <Panel defaultSize={60} minSize={40} className="center-panel">
+            <div className="panel-content">
+              <Visualizer key={scene.id} scene={scene} />
+              {/* Toggle Buttons */}
+              <div className="panel-toggle-buttons">
+                <button
+                  className={`toggle-button ${rightPanelView === 'chat' ? 'active' : ''}`}
+                  onClick={() => setRightPanelView('chat')}
+                >
+                  💬 Chat
+                </button>
+                <button
+                  className={`toggle-button ${rightPanelView === 'details' ? 'active' : ''}`}
+                  onClick={() => setRightPanelView('details')}
+                >
+                  📋 Details
+                </button>
+              </div>
+
+              {/* Conditional Content */}
+              {rightPanelView === 'chat' ? (
+                <Conversation
+                  updateConversation={handleUpdateConversation}
+                  conversationHistory={conversationHistory}
+                  initialMessage="Hello! I'm a Physics AI Agent. I can help you with physics questions and also discuss how to represent described scenes in a 3D visualizer JSON format. How can I assist you with physics today?"
+                  currentScene={scene}
+                  onSceneSwitch={handleSceneSwitch}
+                  onNewChat={handleNewChat}
+                />
+              ) : (
+                <SceneDetails scene={scene} />
+              )}
+            </div>
+          </Panel>
+        </PanelGroup>
+      </div>
+    </div>
+  );
 }
 
 export default PhysicsVisualizerPage;

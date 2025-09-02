@@ -1,279 +1,163 @@
-import React, { useState, useEffect, useRef } from 'react';
-import { Send } from 'lucide-react';
+import React, { useState, useRef, useEffect } from 'react';
+import { Send, Plus } from 'lucide-react';
 import './Conversation.css';
-import agentPrompt from '../prompts/agentPrompt.txt?raw'; // Import raw text
-
-const MessageContent = ({ content }) => {
-  return <span>{content}</span>;
-};
 
 function Conversation({
   updateConversation,
-  conversationHistory = [],
-  initialMessage = "Hello! I'm a Physics AI Agent. I can help you with physics questions and also discuss how to represent described scenes Jarvis and the Jolly Green Giant in a 3D visualizer JSON format. How can I assist you with physics today?"
+  conversationHistory,
+  initialMessage,
+  currentScene,
+  onSceneSwitch,
+  onNewChat
 }) {
-  const [input, setInput] = useState("");
-  const [isProcessing, setIsProcessing] = useState(false);
-  const [selectedModel, setSelectedModel] = useState("gemini");
-  const GEMINI_API_KEY = import.meta.env.VITE_GEMINI_API_KEY;
-  const hasInitialized = useRef(false);
-  const conversationBoxRef = useRef(null);
+  const [messages, setMessages] = useState([
+    {
+      id: 1,
+      text: initialMessage || "Hello! I'm a Physics AI Agent. I can help you with physics questions and also discuss how to represent described scenes in a 3D visualizer JSON format. How can I assist you with physics today?",
+      isUser: false,
+      timestamp: new Date(),
+      sceneId: currentScene?.id
+    }
+  ]);
+  const [input, setInput] = useState('');
+  const [isLoading, setIsLoading] = useState(false);
+  const messagesEndRef = useRef(null);
+
+  const scrollToBottom = () => {
+    messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+  };
 
   useEffect(() => {
-    if (!hasInitialized.current && conversationHistory.length === 0) {
-      updateConversation([{ role: 'ai', content: initialMessage }]);
-      hasInitialized.current = true;
-    }
-  }, [initialMessage, updateConversation, conversationHistory.length]);
+    scrollToBottom();
+  }, [messages]);
 
-  // Auto-scroll to bottom when new messages are added or content streams in. This works well.
+  // Update messages when conversationHistory changes (but not when scene changes)
   useEffect(() => {
-    if (conversationBoxRef.current) {
-      conversationBoxRef.current.scrollTop = conversationBoxRef.current.scrollHeight;
+    if (conversationHistory && conversationHistory.length > 0) {
+      // Show all messages from the chat, regardless of scene
+      setMessages(conversationHistory);
+    } else {
+      // If no conversation history, show initial message
+      setMessages([{
+        id: 1,
+        text: initialMessage || "Hello! I'm a Physics AI Agent. I can help you with physics questions and also discuss how to represent described scenes in a 3D visualizer JSON format. How can I assist you with physics today?",
+        isUser: false,
+        timestamp: new Date(),
+        sceneId: currentScene?.id
+      }]);
     }
-  }, [conversationHistory]);
+  }, [conversationHistory, initialMessage]);
 
-  const maxContextLength = 10;
+  const handleSend = async () => {
+    if (!input.trim() || isLoading) return;
 
-  const handleGeminiStream = async (historyForAPI) => {
-    const geminiContents = historyForAPI.map(msg => ({
-      role: msg.role === 'ai' ? 'model' : 'user',
-      parts: [{ text: msg.content }],
-    }));
-
-    const requestBody = {
-      contents: geminiContents,
-      systemInstruction: { parts: [{ text: agentPrompt }] },
+    const userMessage = {
+      id: Date.now(),
+      text: input.trim(),
+      isUser: true,
+      timestamp: new Date(),
+      sceneId: currentScene?.id
     };
-    
-    // FIX: Using a valid and recent model name. 'gemini-1.5-flash-latest' is great for chat.
-    const response = await fetch(
-      `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash-latest:streamGenerateContent?alt=sse&key=${GEMINI_API_KEY}`,
-      {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(requestBody),
-      }
-    );
 
-    if (!response.ok) {
-      const errorText = await response.text();
-      throw new Error(`Gemini HTTP error! Status: ${response.status} - ${errorText}`);
+    const newMessages = [...messages, userMessage];
+    setMessages(newMessages);
+    setInput('');
+    setIsLoading(true);
+
+    // Update parent component
+    if (updateConversation) {
+      updateConversation(newMessages);
     }
 
-    const reader = response.body.getReader();
-    const decoder = new TextDecoder();
-    let accumulatedContent = "";
-    let buffer = ""; // FIX: Buffer for robust stream parsing
+    // Simulate AI response
+    setTimeout(() => {
+      const aiMessage = {
+        id: Date.now() + 1,
+        text: `I understand you're asking about: "${userMessage.text}". This is a placeholder response. In a real implementation, you would connect this to your AI service.`,
+        isUser: false,
+        timestamp: new Date(),
+        sceneId: currentScene?.id
+      };
+      const updatedMessages = [...newMessages, aiMessage];
+      setMessages(updatedMessages);
 
-    while (true) {
-      const { done, value } = await reader.read();
-      if (done) break;
-
-      // Add the new chunk to the buffer
-      buffer += decoder.decode(value, { stream: true });
-      // Split buffer by newlines, but keep the last (potentially incomplete) line
-      const lines = buffer.split('\n');
-      buffer = lines.pop() || "";
-
-      for (const line of lines) {
-        if (line.startsWith('data: ')) {
-          const jsonStr = line.substring(6).trim();
-          if (!jsonStr || jsonStr === '[DONE]') continue;
-          
-          try {
-            const jsonData = JSON.parse(jsonStr);
-            const newText = jsonData.candidates?.[0]?.content?.parts?.[0]?.text;
-            if (newText) {
-              accumulatedContent += newText;
-              // Update the last message in the conversation array
-              updateConversation(prev => {
-                const updated = [...prev];
-                updated[updated.length - 1] = { role: 'ai', content: accumulatedContent, isStreaming: true };
-                return updated;
-              });
-            }
-          } catch (e) {
-            console.warn('⚠️ Failed to parse Gemini streaming chunk:', jsonStr, e);
-          }
-        }
+      if (updateConversation) {
+        updateConversation(updatedMessages);
       }
-    }
+
+      setIsLoading(false);
+    }, 1000);
   };
 
-  const handleOllamaStream = async (historyForAPI) => {
-    // FIX: Convert conversation history to the format Ollama's /api/chat expects
-    const ollamaMessages = historyForAPI.map(msg => ({
-      role: msg.role === 'ai' ? 'assistant' : 'user',
-      content: msg.content,
-    }));
-
-    const models = ['gemma2', 'llama3']; // Recommended models
-    let success = false;
-    
-    for (const model of models) {
-      try {
-        console.log(`🔁 Trying Ollama model: ${model}`);
-        // FIX: Using the correct '/api/chat' endpoint to maintain conversation context
-        const response = await fetch('http://localhost:11434/api/chat', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            model,
-            messages: ollamaMessages,
-            stream: true,
-            system: agentPrompt, // Pass system prompt directly
-          }),
-        });
-
-        if (!response.ok) throw new Error(`Ollama responded with status ${response.status}`);
-
-        const reader = response.body.getReader();
-        const decoder = new TextDecoder();
-        let accumulatedContent = "";
-        let buffer = ""; // FIX: Buffer for robust stream parsing
-
-        while (true) {
-          const { done, value } = await reader.read();
-          if (done) break;
-
-          buffer += decoder.decode(value, { stream: true });
-          const lines = buffer.split('\n');
-          buffer = lines.pop() || "";
-
-          for (const line of lines) {
-            if (!line.trim()) continue;
-            try {
-              const jsonData = JSON.parse(line);
-              // FIX: The /api/chat response format is different
-              const newText = jsonData.message?.content;
-              if (newText) {
-                accumulatedContent += newText;
-                updateConversation(prev => {
-                  const updated = [...prev];
-                  updated[updated.length - 1] = { role: 'ai', content: accumulatedContent, isStreaming: true };
-                  return updated;
-                });
-              }
-            } catch (e) {
-              console.warn('⚠️ Failed to parse Ollama streaming chunk:', line, e);
-            }
-          }
-        }
-        success = true;
-        break; // Success, so exit the model-trying loop
-      } catch (error) {
-        console.warn(`❌ Failed with Ollama ${model}: ${error.message}`);
-      }
-    }
-    if (!success) {
-      throw new Error("All Ollama models failed. Is Ollama running with 'gemma2' or 'llama3' installed?");
+  const handleKeyPress = (e) => {
+    if (e.key === 'Enter' && !e.shiftKey) {
+      e.preventDefault();
+      handleSend();
     }
   };
-
-  const handleProcess = async (e) => {
-    e.preventDefault();
-    const trimmedInput = input.trim();
-    if (!trimmedInput) return;
-
-    const userMessage = { role: 'user', content: trimmedInput };
-    // This is the full history that will be sent to the API
-    const historyForAPI = [...conversationHistory.slice(-maxContextLength), userMessage];
-
-    // Update UI with user message and an empty AI placeholder for the stream
-    updateConversation(prev => [...prev, userMessage, { role: 'ai', content: "", isStreaming: true }]);
-    
-    setInput("");
-    setIsProcessing(true);
-
-    try {
-      if (selectedModel === "ollama") {
-        // FIX: Pass the full history, not just the last prompt
-        await handleOllamaStream(historyForAPI);
-      } else if (selectedModel === "gemini") {
-        if (!GEMINI_API_KEY) {
-          throw new Error("Gemini API key is missing. Please set VITE_GEMINI_API_KEY in your .env file.");
-        }
-        await handleGeminiStream(historyForAPI);
-      }
-    } catch (error) {
-      console.error(`❌ ${selectedModel} failed:`, error);
-      // FIX: Better error handling. Update the placeholder with the error message.
-      updateConversation(prev => {
-        const updated = [...prev];
-        const lastMessage = updated[updated.length - 1];
-        if (lastMessage && lastMessage.role === 'ai') {
-          lastMessage.content = `Error: ${error.message}`;
-          lastMessage.isStreaming = false; // Stop the blinking cursor
-        }
-        return updated;
-      });
-    } finally {
-      // Finalize the message: remove the streaming indicator from the last message
-      updateConversation(prev => {
-        const updated = [...prev];
-        const lastMessage = updated[updated.length - 1];
-        if (lastMessage && lastMessage.role === 'ai') {
-          lastMessage.isStreaming = false;
-        }
-        return updated;
-      });
-      setIsProcessing(false);
-    }
-  };
-
-  const displayConversation = conversationHistory.map((msg, index) => (
-    <div key={index} className={msg.role === 'ai' ? 'ai-message' : 'user-message'}>
-      <strong>{msg.role === 'ai' ? 'AI:' : 'You:'}</strong>
-      {' '}
-      <MessageContent content={msg.content} />
-      {msg.isStreaming && <span className="streaming-indicator">▋</span>}
-    </div>
-  ));
 
   return (
-    <div className="conversation-container">
-      <div className="conversation-header">
-        <label htmlFor="model-select">Model:</label>
-        <select
-          id="model-select"
-          value={selectedModel}
-          onChange={(e) => setSelectedModel(e.target.value)}
-          disabled={isProcessing}
-          className="model-selector"
-        >
-          <option value="gemini">Gemini</option>
-          <option value="ollama">Ollama</option>
-        </select>
+    <div className="chat-container">
+      {/* Header */}
+      <div className="chat-header">
+        <h3>Chat</h3>
+        {onNewChat && (
+          <button
+            onClick={onNewChat}
+            className="new-chat-btn"
+            title="Start New Chat"
+          >
+            <Plus size={16} />
+            New Chat
+          </button>
+        )}
       </div>
-      
-      <div className="conversation-box" ref={conversationBoxRef}>
-        {displayConversation}
+
+      {/* Messages */}
+      <div className="chat-messages">
+        {messages.map((message) => (
+          <div
+            key={message.id}
+            className={`message ${message.isUser ? 'user' : 'ai'}`}
+          >
+            <div className="message-content">
+              <div className="message-text">{message.text}</div>
+            </div>
+          </div>
+        ))}
+        {isLoading && (
+          <div className="message ai">
+            <div className="message-content">
+              <div className="typing-indicator">
+                <span></span>
+                <span></span>
+                <span></span>
+              </div>
+            </div>
+          </div>
+        )}
+        <div ref={messagesEndRef} />
       </div>
-      
-      <div className="input-section">
-        <textarea
-          value={input}
-          onChange={(e) => setInput(e.target.value)}
-          placeholder="Enter your physics question..."
-          disabled={isProcessing}
-          onKeyPress={(e) => {
-            if (e.key === 'Enter' && !e.shiftKey) {
-              e.preventDefault();
-              handleProcess(e);
-            }
-          }}
-          className="input-textarea"
-          rows={1}
-        />
-        <button
-          onClick={handleProcess}
-          disabled={isProcessing || !input.trim()}
-          className="process-button"
-          title={isProcessing ? "Processing..." : "Send message"}
-        >
-          <Send size={18} />
-        </button>
+
+      {/* Input */}
+      <div className="chat-input">
+        <div className="input-container">
+          <textarea
+            value={input}
+            onChange={(e) => setInput(e.target.value)}
+            onKeyDown={handleKeyPress}
+            placeholder="Ask anything..."
+            disabled={isLoading}
+            rows={1}
+          />
+          <button
+            onClick={handleSend}
+            disabled={!input.trim() || isLoading}
+            className="send-btn"
+          >
+            <Send size={18} />
+          </button>
+        </div>
       </div>
     </div>
   );

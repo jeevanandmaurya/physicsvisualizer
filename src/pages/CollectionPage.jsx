@@ -1,11 +1,10 @@
 import React, { useState, useEffect, useCallback } from 'react';
-import { Link, useLocation } from 'react-router-dom';
+import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { faUserCircle, faSignInAlt, faSignOutAlt, faSpinner } from '@fortawesome/free-solid-svg-icons';
 import logoFull from '../assets/physicsvisualizer.svg';
 import './collection.css';
 
-import { useAuth } from '../contexts/AuthContext';
 import { useDatabase } from '../contexts/DatabaseContext'; // Use our DataManager
 
 // --- Reusable UI Components ---
@@ -26,12 +25,17 @@ function SceneSkeleton() {
   );
 }
 
-function SceneCard({ scene, isPublic = false }) {
+function SceneCard({ scene, isPublic = false, navigate }) {
   // Use scene.name as it's more consistent across the app
   const sceneName = scene.name || scene.title || 'Untitled Scene';
-  
+
+  const handleSceneClick = () => {
+    // Use React Router navigate instead of window.location
+    navigate('/visualizer', { state: { sceneToLoad: scene.id, isPublic } });
+  };
+
   return (
-    <div className="scene-card">
+    <div className="scene-card" onClick={handleSceneClick} style={{ cursor: 'pointer' }}>
       <img
         src={scene.thumbnailUrl || 'https://placehold.co/350x180/2c2c2c/ffffff?text=Scene'}
         alt={sceneName}
@@ -43,15 +47,15 @@ function SceneCard({ scene, isPublic = false }) {
         {!isPublic && scene.updatedAt && (
           <div className="scene-meta">
             <span className="scene-meta-item">
-              Updated: {scene.updatedAt.toDate().toLocaleDateString()}
+              Updated: {new Date(scene.updatedAt).toLocaleDateString()}
             </span>
           </div>
         )}
       </div>
       <div className="scene-actions">
-        <Link to="/visualizer" state={{ sceneToLoad: scene.id, isPublic }} className="scene-action-button">
+        <button className="scene-action-button">
           View Scene
-        </Link>
+        </button>
       </div>
     </div>
   );
@@ -61,7 +65,7 @@ function SceneCard({ scene, isPublic = false }) {
 
 function CollectionPage() {
   const location = useLocation();
-  const { currentUser, loading: authLoading, googleSignIn, logout } = useAuth();
+  const navigate = useNavigate();
   const dataManager = useDatabase(); // Get the entire DataManager
 
   const [publicScenes, setPublicScenes] = useState([]);
@@ -72,20 +76,20 @@ function CollectionPage() {
 
   const [activeTab, setActiveTab] = useState(location.state?.activeTab || 'publicScenes');
 
-  // --- MODIFIED: Effect to fetch public scenes using DataManager ---
+  // --- MODIFIED: Effect to fetch example scenes using DataManager ---
   useEffect(() => {
     let isMounted = true;
     if (!dataManager) return;
 
     setLoadingPublic(true);
     setError(null);
-    dataManager.getScenes('public')
+    dataManager.getScenes('examples')
       .then(scenes => {
         if (isMounted) setPublicScenes(scenes);
       })
       .catch(err => {
-        console.error("Error fetching public scenes:", err);
-        if (isMounted) setError("Failed to load public scenes.");
+        console.error("Error fetching example scenes:", err);
+        if (isMounted) setError("Failed to load example scenes.");
       })
       .finally(() => {
         if (isMounted) setLoadingPublic(false);
@@ -97,40 +101,25 @@ function CollectionPage() {
   // --- MODIFIED: Effect to fetch user scenes using DataManager ---
   useEffect(() => {
     let isMounted = true;
-    if (!dataManager || authLoading) return;
+    if (!dataManager) return;
 
-    if (currentUser) {
-      setLoadingUser(true);
-      setError(null);
-      dataManager.getScenes('user', { orderBy: { field: 'updatedAt', direction: 'desc' } })
-        .then(scenes => {
-          if (isMounted) setUserScenes(scenes);
-        })
-        .catch(err => {
-          console.error("Error fetching user scenes:", err);
-          if (isMounted) setError("Failed to load your scenes.");
-        })
-        .finally(() => {
-          if (isMounted) setLoadingUser(false);
-        });
-    } else {
-      setUserScenes([]);
-      setLoadingUser(false);
-    }
+    setLoadingUser(true);
+    setError(null);
+    dataManager.getScenes('user', { orderBy: { field: 'updatedAt', direction: 'desc' } })
+      .then(scenes => {
+        if (isMounted) setUserScenes(scenes);
+      })
+      .catch(err => {
+        console.error("Error fetching user scenes:", err);
+        if (isMounted) setError("Failed to load your scenes.");
+      })
+      .finally(() => {
+        if (isMounted) setLoadingUser(false);
+      });
     
     return () => { isMounted = false; };
-  }, [currentUser, authLoading, dataManager]);
+  }, [dataManager]);
   
-  const handleSignInOut = useCallback(async () => {
-    if (currentUser) {
-      await logout();
-    } else {
-      await googleSignIn().catch(err => {
-        if (err.code !== 'auth/popup-closed-by-user') console.error(err);
-      });
-    }
-  }, [currentUser, logout, googleSignIn]);
-
   // Renders the scene grid with appropriate loading, empty, and error states
   const renderSceneGrid = (scenes, isLoading, isUserTab = false) => {
     if (isLoading) {
@@ -154,47 +143,26 @@ function CollectionPage() {
 
     return (
       <div className="scene-grid">
-        {scenes.map(scene => <SceneCard key={scene.id} scene={scene} isPublic={!isUserTab} />)}
+        {scenes.map(scene => <SceneCard key={scene.id} scene={scene} isPublic={!isUserTab} navigate={navigate} />)}
       </div>
     );
   };
 
   return (
     <div className="collection-page-container">
-      <header className="dashboard-header">
-        <div style={{ display: 'flex', alignItems: 'center', gap: '15px' }}>
-          <Link to="/"><img src={logoFull} alt="Physics Visualizer Logo" height="45px" /></Link>
-          <span className="dashboard-title-text">Explore Scenes</span>
-        </div>
-        <div className="user-section">
-          {authLoading ? (
-            <div className="user-info loading"><FontAwesomeIcon icon={faSpinner} spin /></div>
-          ) : currentUser ? (
-            <div className="user-info" onClick={handleSignInOut} title="Click to Sign Out">
-              <img src={currentUser.photoURL} alt={currentUser.displayName} className="user-avatar" />
-              <span>{currentUser.displayName}</span>
-            </div>
-          ) : (
-            <button className="sign-in-button" onClick={handleSignInOut}>
-              <FontAwesomeIcon icon={faSignInAlt} /> Sign In
-            </button>
-          )}
-        </div>
-      </header>
-      
       <nav className="collection-page-nav-tabs">
         <button className={`tab-button ${activeTab === 'publicScenes' ? 'active-tab' : ''}`} onClick={() => setActiveTab('publicScenes')}>
-          Public Scenes
+          Example Scenes
         </button>
-        <button className={`tab-button ${activeTab === 'myScenes' ? 'active-tab' : ''}`} onClick={() => setActiveTab('myScenes')} disabled={!currentUser && !authLoading}>
-          Your Scenes {(!currentUser && !authLoading) && '(Sign in required)'}
+        <button className={`tab-button ${activeTab === 'myScenes' ? 'active-tab' : ''}`} onClick={() => setActiveTab('myScenes')}>
+          Your Scenes
         </button>
       </nav>
 
       <main className="collection-page-main-content">
         {activeTab === 'publicScenes' && (
           <section className="content-section">
-            <h2 className="section-title">Public Scenes</h2>
+            <h2 className="section-title">Example Scenes</h2>
             <p className="section-description">Explore simulations created by educators and the community.</p>
             {renderSceneGrid(publicScenes, loadingPublic)}
           </section>
@@ -203,10 +171,7 @@ function CollectionPage() {
           <section className="content-section">
             <h2 className="section-title">Your Scenes</h2>
             <p className="section-description">Your personal collection of physics simulations.</p>
-            {currentUser ?
-              renderSceneGrid(userScenes, loadingUser, true) :
-              <p className="empty-state-message">Please sign in to view your personal collection. ✨</p>
-            }
+            {renderSceneGrid(userScenes, loadingUser, true)}
           </section>
         )}
       </main>

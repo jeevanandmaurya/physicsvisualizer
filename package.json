@@ -19,7 +19,6 @@
     "cannon": "^0.6.2",
     "chart.js": "^4.4.9",
     "chartjs-plugin-zoom": "^2.2.0",
-    "firebase": "^11.8.1",
     "jsxgraph": "^1.11.1",
     "katex": "^0.16.22",
     "leva": "^0.10.0",

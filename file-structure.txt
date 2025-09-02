@@ -32,3 +32,71 @@
     │   ├── extractPrompt.txt  # New file containing the extractPrompt content
     │   └── agentPrompt.txt    # New file containing the agentPrompt content
     └── scenes.js
+
+    📱 DOM Root (index.html)
+└── 🎯 React Root (main.jsx)
+    └── �� StrictMode
+        └── 🌐 BrowserRouter (React Router)
+            └── 🗄️ DatabaseProvider (Context)
+                └── 🏠 App.jsx (Main App Component)
+                    ├── 🧭 GlobalNav (Navigation Bar)
+                    │   ├── 🏠 Logo (Home Link)
+                    │   ├── 🏠 Dashboard Link
+                    │   ├── �� 3D Visualizer Link  
+                    │   └── 📚 Collection Link
+                    │
+                    └── 📄 Routes (Page Content)
+                        ├── �� DashboardPage (/)
+                        ├── 🎲 PhysicsVisualizerPage (/visualizer) ← MAIN PAGE
+                        │   └── 📐 PanelGroup (Resizable Panels)
+                        │       ├── 📁 Left Panel (20% - Scene Selector)
+                        │       │   └── 🎯 SceneSelector Component
+                        │       │       ├── 🔍 Extract Scene Button
+                        │       │       ├── 📑 Tab Navigation
+                        │       │       │   ├── 📖 Examples Tab
+                        │       │       │   ├── 👤 My Scenes Tab
+                        │       │       │   └── 🌍 Public Tab
+                        │       │       ├── 📋 Scene List
+                        │       │       │   └── 🎯 Scene Items
+                        │       │       │       ├── 📝 Scene Name
+                        │       │       │       ├── 👤 Author Info
+                        │       │       │       ├── ⚠️ Unsaved Badge
+                        │       │       │       └── ⋯ Three-Dot Menu
+                        │       │       │           └── 📋 Dropdown Options
+                        │       │       │               ├── ⚙️ Properties
+                        │       │       │               ├── 💾 Save/Update
+                        │       │       │               ├── 🌍 Share to Public
+                        │       │       │               └── 🗑️ Delete
+                        │       │       └── �� Scene Description
+                        │       │
+                        │       ├── 🔧 Center Panel (60% - 3D Visualizer)
+                        │       │   └── 🎯 Visualizer Component
+                        │       │       ├── 🎮 Three.js Canvas
+                        │       │       ├── 🎲 Physics Objects
+                        │       │       └── 🎨 Scene Rendering
+                        │       │
+                        │       └── �� Right Panel (20% - Chat UI)
+                        │           └── 🎯 Conversation Component
+                        │               ├── 📋 Chat Header
+                        │               │   └── 💬 "Chat" Title
+                        │               ├── �� Conversation Box (80%)
+                        │               │   ├── 🤖 AI Messages
+                        │               │   └── 👤 User Messages
+                        │               └── ⌨️ Input Section (20%)
+                        │                   ├── 📝 Textarea
+                        │                   └── 📤 Send Button
+                        │
+                        └── 📚 CollectionPage (/collection)
+
+┌─────────────────────────────────────────────────────────┐
+│ 🏠 Dashboard | �� 3D Visualizer | 📚 Collection        │ ← GlobalNav (same)
+├─────────────────────────────────────────────────────────┤
+│                                                         │
+│                PhysicsVisualizerPage                    │ ← Route content (changed!)
+│                                                         │
+│  ┌─────────┬─────────────────────┬─────────────────────┐ │
+│  │ Scene   │                     │                     │ │
+│  │Selector │    3D Visualizer    │    Chat UI          │ │
+│  │         │                     │                     │ │
+│  └─────────┴─────────────────────┴─────────────────────┘ │
+└─────────────────────────────────────────────────────────┘
