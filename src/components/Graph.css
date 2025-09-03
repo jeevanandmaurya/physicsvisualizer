@@ -11,6 +11,7 @@
   display: flex;
   flex-direction: column;
   overflow: hidden;
+  z-index: 1000; /* ensure overlay sits above scene */
 }
 
 /* --- HEADER (Unchanged) --- */
@@ -24,6 +25,7 @@
   user-select: none;
   flex-shrink: 0;
 }
+.graph-header:active { cursor: grabbing; }
 .title-text {
   font-weight: 600; font-size: 14px; white-space: nowrap;
   overflow: hidden; text-overflow: ellipsis;
@@ -43,11 +45,27 @@
   flex: 1 1 auto; position: relative; min-height: 0;
 }
 
+/* Make the chart fill available space reliably */
+.chart-area-wrapper > canvas,
+.chart-area-wrapper canvas {
+  width: 100% !important;
+  height: 100% !important;
+  display: block;
+}
+
+/* Sometimes react-chartjs-2 wraps canvas in a div; make it stretch */
+.chart-area-wrapper > div {
+  position: absolute;
+  inset: 0;
+}
+
 /* --- CONTROLS (Unchanged) --- */
 .graph-controls {
   flex-shrink: 0; display: flex; gap: 10px; align-items: center;
   flex-wrap: wrap; font-size: 13px;
 }
+.graph-controls > * { flex: 0 0 auto; }
+.graph-controls select { max-width: 220px; }
 .graph-controls select, .graph-controls input {
   background-color: rgba(0, 0, 0, 0.3); color: #e0e0e0;
   border: 1px solid rgba(255, 255, 255, 0.2); border-radius: 5px;
@@ -56,6 +74,7 @@
 .graph-controls select:focus, .graph-controls input:focus {
   outline: none; border-color: #3b82f6;
   background: #3d3d3d;
+  box-shadow: 0 0 0 2px rgba(59, 130, 246, 0.25);
 }
 .graph-controls label {
   display: flex; align-items: center; gap: 6px; cursor: pointer;
@@ -80,3 +99,29 @@
 }
 .live-controls button:disabled { opacity: 0.5; cursor: not-allowed; }
 
+/* Visible resize handles for react-rnd */
+.react-rnd-resizable-handle {
+  width: 12px; height: 12px; opacity: 0.7;
+}
+.react-rnd-resizable-handle:hover { opacity: 1; }
+.react-rnd-resizable-handle-se,
+.react-rnd-resizable-handle-sw,
+.react-rnd-resizable-handle-ne,
+.react-rnd-resizable-handle-nw {
+  background: linear-gradient(135deg, rgba(255,255,255,0.6), rgba(255,255,255,0.1));
+  border: 1px solid rgba(255,255,255,0.25);
+  border-radius: 3px;
+}
+
+/* Subtle hover highlight for the whole overlay */
+.overlay-graph:hover {
+  border-color: rgba(255, 255, 255, 0.25);
+}
+
+/* Compact mode for small widths */
+@media (max-width: 520px) {
+  .graph-header { padding: 6px 10px; }
+  .title-text { font-size: 13px; }
+  .graph-controls { gap: 8px; }
+  .graph-controls select, .graph-controls input, .live-controls button { font-size: 12px; padding: 4px 8px; }
+}

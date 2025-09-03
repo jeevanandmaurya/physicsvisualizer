@@ -1,31 +1,23 @@
+// Import prompt files as raw text using Vite's ?raw import
+import agentPromptRaw from '../prompts/agentPrompt.txt?raw';
+import extractPromptRaw from '../prompts/extractPrompt.txt?raw';
+
 // Gemini AI Manager for Physics Chat Integration
 class GeminiAIManager {
   constructor() {
     this.apiKey = import.meta.env.VITE_GEMINI_API_KEY;
-    this.agentPrompt = null;
-    this.extractPrompt = null;
+    this.agentPrompt = agentPromptRaw;
+    this.extractPrompt = extractPromptRaw;
     this.isInitialized = false;
   }
 
-  // Initialize prompts
+  // Initialize prompts (no longer async since we import directly)
   async initialize() {
     if (this.isInitialized) return;
 
-    try {
-      // Load agent prompt
-      const agentResponse = await fetch('/src/prompts/agentPrompt.txt');
-      this.agentPrompt = await agentResponse.text();
-
-      // Load extract prompt
-      const extractResponse = await fetch('/src/prompts/extractPrompt.txt');
-      this.extractPrompt = await extractResponse.text();
-
-      this.isInitialized = true;
-      console.log('Gemini AI Manager initialized successfully');
-    } catch (error) {
-      console.error('Failed to initialize Gemini AI Manager:', error);
-      throw error;
-    }
+    // Prompts are already loaded via imports, just mark as initialized
+    this.isInitialized = true;
+    console.log('Gemini AI Manager initialized successfully');
   }
 
 
