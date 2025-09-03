@@ -1,15 +1,25 @@
-import React, { useState, useEffect, useCallback, useRef } from 'react';
+import React, { useState, useEffect, useCallback, useRef, Suspense } from 'react';
 import { useLocation, useNavigate, Link } from 'react-router-dom';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { faSpinner, faExclamationTriangle } from '@fortawesome/free-solid-svg-icons';
 import { PanelGroup, Panel, PanelResizeHandle } from 'react-resizable-panels';
 
 import Visualizer from '../components/Visualizer';
-import SceneDetails from '../components/SceneDetails';
 import SceneSelector from '../components/SceneSelector';
-import Conversation from '../components/Conversation';
 import "./physicsvisualizer.css";
 import { useDatabase } from "../contexts/DatabaseContext";
+
+// Lazy load non-critical components
+const SceneDetails = React.lazy(() => import('../components/SceneDetails'));
+const Conversation = React.lazy(() => import('../components/Conversation'));
+
+// Loading component for lazy-loaded components
+const ComponentLoader = () => (
+  <div className="component-loading">
+    <FontAwesomeIcon icon={faSpinner} spin />
+    <span>Loading...</span>
+  </div>
+);
 
 // Helper to generate a default new scene
 const createNewScene = () => ({
@@ -18,13 +28,10 @@ const createNewScene = () => ({
   description: 'A new physics simulation.',
   isTemporary: true, // Flag to indicate it's not saved yet
   gravity: [0, -9.81, 0],
-  hasGround: true,
+  hasGround: true, // GroundPlane component handles ground rendering
   simulationScale: 'terrestrial',
   gravitationalPhysics: { enabled: false },
-  objects: [
-    { id: 'obj-1', type: 'Sphere', name: 'Bouncing Ball', mass: 1, radius: 0.5, position: [0, 5, 0], velocity: [1, 0, 0], color: '#ff8800' },
-    { id: 'obj-2', type: 'Box', name: 'Static Block', isStatic: true, dimensions: [5, 0.5, 2], position: [5, 2, -2], rotation: [0, -0.2, 0.1], color: '#cccccc' }
-  ]
+  objects: [] // No default ground box - GroundPlane handles ground
 });
 
 function PhysicsVisualizerPage() {
@@ -41,6 +48,11 @@ function PhysicsVisualizerPage() {
   const [rightPanelView, setRightPanelView] = useState('chat'); // 'chat' or 'details'
   const [currentChatId, setCurrentChatId] = useState(null);
   const [currentChat, setCurrentChat] = useState(null);
+  const [chatRefreshTrigger, setChatRefreshTrigger] = useState(0);
+  const [pendingChanges, setPendingChanges] = useState(null);
+  const [isPreviewMode, setIsPreviewMode] = useState(false);
+  const [sceneSelectorTab, setSceneSelectorTab] = useState('examples'); // Track SceneSelector tab
+  const [capturedThumbnail, setCapturedThumbnail] = useState(null);
 
   // Ref to hold the most up-to-date scene state for saving
   const sceneRef = useRef(null);
@@ -70,22 +82,40 @@ function PhysicsVisualizerPage() {
             // If it's a public scene, mark it for "forking" on save
             if (isPublic) {
               loadedScene.isExtracted = true;
+
+              // Create empty chat for example scene if it doesn't exist
+              try {
+                const exampleChat = await dataManager.getOrCreateExampleChat(loadedScene.id, loadedScene.name);
+                console.log('📝 Example chat ready:', exampleChat.id);
+
+                // Set this as the current chat
+                setCurrentChatId(exampleChat.id);
+                setCurrentChat(exampleChat);
+                setConversationHistory(exampleChat.messages || []);
+              } catch (error) {
+                console.error('❌ Failed to create example chat:', error);
+              }
             }
           }
         } else {
-          // No scene specified - load the first example scene as default
-          const exampleScenes = await dataManager.getScenes('examples');
-          if (exampleScenes && exampleScenes.length > 0) {
-            loadedScene = exampleScenes[0]; // Load the first example scene
-          } else {
-            // Fallback to new empty scene if no examples available
-            loadedScene = createNewScene();
-          }
+          // No scene specified - don't load a default scene if we have chats
+          // Let the chat selection handle scene loading
+          console.log('📝 No specific scene requested, will load based on chat selection');
+          loadedScene = null;
         }
 
         if (isMounted) {
           if (loadedScene) {
             setScene(loadedScene);
+            // Initialize property manager with the loaded scene (safely)
+            try {
+              dataManager.initializePropertiesFromScene?.(loadedScene);
+            } catch (error) {
+              console.warn('Property manager initialization failed:', error);
+            }
+          } else if (!sceneIdToLoad) {
+            // If no scene was requested and none was loaded, wait for chat selection
+            console.log('⏳ Waiting for chat selection to determine scene');
           } else {
             setError(`Scene with ID "${sceneIdToLoad}" not found.`);
           }
@@ -139,6 +169,13 @@ function PhysicsVisualizerPage() {
 
     let sceneToSaveData = { ...targetScene };
 
+    // Include captured thumbnail if available
+    if (capturedThumbnail) {
+      sceneToSaveData.thumbnailUrl = capturedThumbnail;
+      console.log('📸 Including captured thumbnail in scene save');
+      setCapturedThumbnail(null); // Clear after use
+    }
+
     // If it's a temporary new scene or a forked public scene, create a new ID
     if (sceneToSaveData.isTemporary || sceneToSaveData.isExtracted) {
       delete sceneToSaveData.id; // Remove old/temporary ID to generate a new one
@@ -146,7 +183,7 @@ function PhysicsVisualizerPage() {
 
     try {
       const savedId = await dataManager.saveScene(sceneToSaveData);
-      
+
       // If it was a new scene, update the URL to reflect the new ID
       if (sceneToSaveData.isTemporary || sceneToSaveData.isExtracted) {
         navigate('/visualizer', { state: { sceneToLoad: savedId }, replace: true });
@@ -154,12 +191,17 @@ function PhysicsVisualizerPage() {
         // For existing scenes, just refetch to get the latest `updatedAt` timestamp
         const updatedScene = await dataManager.getSceneById(savedId);
         setScene(updatedScene);
+
+        // If user came from collection page, navigate back with refresh flag
+        if (location.state?.fromCollection) {
+          navigate('/collection', { state: { refreshScenes: true, activeTab: 'myScenes' }, replace: true });
+        }
       }
     } catch (err) {
       console.error("Failed to save scene:", err);
       alert("Error: Could not save the scene.");
     }
-  }, [dataManager, navigate]);
+  }, [dataManager, navigate, capturedThumbnail]);
 
   const handleUpdateScene = useCallback(async (sceneToUpdate) => {
     if (!sceneToUpdate) return;
@@ -201,6 +243,16 @@ function PhysicsVisualizerPage() {
 
   // --- Chat Management Handlers ---
   const handleChatSelect = useCallback(async (chat) => {
+    if (chat === null) {
+      // Clear the current chat selection
+      setCurrentChatId(null);
+      setCurrentChat(null);
+      setConversationHistory([]);
+      return;
+    }
+
+    console.log('🎯 Selecting chat:', chat.id, 'sceneId:', chat.sceneId);
+
     setCurrentChatId(chat.id);
     setCurrentChat(chat);
 
@@ -214,13 +266,44 @@ function PhysicsVisualizerPage() {
     // If the chat has an associated scene, load it
     if (chat.sceneId) {
       try {
+        console.log('🔍 Loading scene for chat:', chat.sceneId);
         const chatScene = await dataManager.getSceneById(chat.sceneId);
         if (chatScene) {
+          console.log('✅ Loaded scene for chat:', chatScene.name);
           setScene(chatScene);
+        } else {
+          console.log('⚠️ Scene not found for chat, creating new scene');
+          // If scene doesn't exist, create a new one for this chat
+          const newScene = createNewScene();
+          setScene(newScene);
+
+          // Update the chat with the new scene ID
+          const updatedChat = { ...chat, sceneId: newScene.id };
+          await dataManager.saveChat(updatedChat);
+          setCurrentChat(updatedChat);
         }
       } catch (err) {
-        console.error("Error loading chat scene:", err);
+        console.error("❌ Error loading chat scene:", err);
+        // If there's an error loading the scene, create a new one
+        console.log('🔄 Creating new scene due to error');
+        const newScene = createNewScene();
+        setScene(newScene);
+
+        // Update the chat with the new scene ID
+        const updatedChat = { ...chat, sceneId: newScene.id };
+        await dataManager.saveChat(updatedChat);
+        setCurrentChat(updatedChat);
       }
+    } else {
+      console.log('📝 Chat has no sceneId, creating new scene');
+      // If chat doesn't have a sceneId, create a new scene
+      const newScene = createNewScene();
+      setScene(newScene);
+
+      // Update the chat with the new scene ID
+      const updatedChat = { ...chat, sceneId: newScene.id };
+      await dataManager.saveChat(updatedChat);
+      setCurrentChat(updatedChat);
     }
   }, [dataManager]);
 
@@ -241,6 +324,8 @@ function PhysicsVisualizerPage() {
       setCurrentChatId(chatId);
       setCurrentChat({ ...newChatData, id: chatId });
       setConversationHistory([]);
+      // Trigger refresh of chat history in SceneSelector
+      setChatRefreshTrigger(prev => prev + 1);
     } catch (err) {
       console.error("Error creating new chat:", err);
       alert("Error: Could not create new chat.");
@@ -275,6 +360,8 @@ function PhysicsVisualizerPage() {
     try {
       setSceneSwitching(true);
 
+      console.log('🎯 Scene button clicked:', chat.id, 'sceneIndex:', sceneIndex);
+
       // Get the scene data from the chat's scenes array
       const sceneData = chat.scenes?.[sceneIndex];
       if (!sceneData) {
@@ -283,9 +370,12 @@ function PhysicsVisualizerPage() {
         return;
       }
 
+      console.log('🔍 Loading scene:', sceneData.id, sceneData.name);
+
       // Load the scene by ID
       const sceneToLoad = await dataManager.getSceneById(sceneData.id);
       if (sceneToLoad) {
+        console.log('✅ Scene loaded successfully:', sceneToLoad.name);
         setScene(sceneToLoad);
 
         // Update the current chat with the new scene
@@ -301,12 +391,35 @@ function PhysicsVisualizerPage() {
 
         // Don't switch right panel view - preserve current tab
       } else {
-        console.error(`Scene ${sceneData.id} not found`);
-        alert(`Scene "${sceneData.name}" could not be loaded.`);
+        console.error(`❌ Scene ${sceneData.id} not found, creating new scene`);
+        // If scene doesn't exist, create a new one
+        const newScene = createNewScene();
+        setScene(newScene);
+
+        // Update the chat with the new scene ID
+        const updatedChat = { ...chat, sceneId: newScene.id };
+        await dataManager.saveChat(updatedChat);
+
+        // If this is the current chat, update it
+        if (currentChatId === chat.id) {
+          setCurrentChat(updatedChat);
+        }
       }
     } catch (err) {
-      console.error("Error loading scene from chat:", err);
-      alert("Error: Could not load scene from chat.");
+      console.error("❌ Error loading scene from chat:", err);
+      // If there's an error, create a new scene
+      console.log('🔄 Creating new scene due to error');
+      const newScene = createNewScene();
+      setScene(newScene);
+
+      // Update the chat with the new scene ID
+      const updatedChat = { ...chat, sceneId: newScene.id };
+      await dataManager.saveChat(updatedChat);
+
+      // If this is the current chat, update it
+      if (currentChatId === chat.id) {
+        setCurrentChat(updatedChat);
+      }
     } finally {
       setSceneSwitching(false);
     }
@@ -315,6 +428,20 @@ function PhysicsVisualizerPage() {
   // --- Update Conversation Handler ---
   const handleUpdateConversation = useCallback(async (newMessages) => {
     setConversationHistory(newMessages);
+
+    // Check if user just started chatting on an example scene
+    const userMessages = newMessages.filter(msg => msg.isUser);
+    const aiMessages = newMessages.filter(msg => !msg.isUser);
+    const isExampleScene = scene && !scene.isTemporary && !scene.isExtracted;
+    const isExampleChat = currentChat && currentChat.id && currentChat.id.startsWith('example-');
+
+    // If user sends first message on example scene and we're on examples tab, switch to chats
+    if (userMessages.length === 1 && aiMessages.length >= 1 && isExampleScene && isExampleChat && sceneSelectorTab === 'examples') {
+      console.log('🔄 User started chatting on example scene, switching to chats tab');
+      setSceneSelectorTab('chats');
+      // Trigger refresh to show the new chat in the chats list
+      setChatRefreshTrigger(prev => prev + 1);
+    }
 
     // Update the current chat with the new messages
     if (currentChatId && currentChat) {
@@ -326,7 +453,165 @@ function PhysicsVisualizerPage() {
       await dataManager.saveChat(updatedChat);
       setCurrentChat(updatedChat);
     }
-  }, [currentChatId, currentChat, dataManager]);
+  }, [currentChatId, currentChat, dataManager, scene, sceneSelectorTab]);
+
+  // --- AI Scene Update Handler ---
+  const handleAISceneUpdate = useCallback(async (propertyPath, value, reason) => {
+    try {
+      // Handle new JSON patch system
+      if (propertyPath === 'scene.fullUpdate') {
+        console.log('🔄 Applying full scene update from AI');
+        // Value is the complete updated scene
+        const updatedScene = { ...scene, ...value };
+        setScene(updatedScene);
+        console.log('✅ Scene updated successfully');
+        return;
+      }
+
+      // Fallback to old property-based system for backward compatibility
+      if (dataManager?.setProperty && dataManager?.getSceneFromProperties && scene?.id) {
+        // Only clear objects if this is explicitly creating a fresh scene
+        // Check the reason to see if this is a "create new scene" type command
+        const isCreatingFreshScene = reason?.toLowerCase().includes('create') ||
+                                   reason?.toLowerCase().includes('new scene') ||
+                                   reason?.toLowerCase().includes('fresh scene');
+
+        if (isCreatingFreshScene && propertyPath.startsWith('object.') && propertyPath.includes('.type')) {
+          dataManager.clearObjectProperties?.();
+        }
+
+        await dataManager.setProperty(propertyPath, value, reason);
+
+        // Get updated scene data
+        const updatedScene = dataManager.getSceneFromProperties(scene.id);
+
+        if (updatedScene) {
+          setScene(updatedScene);
+        } else {
+          console.error('❌ No updated scene returned from getSceneFromProperties');
+        }
+      } else {
+        console.error('❌ Missing required dependencies:', {
+          hasSetProperty: !!dataManager?.setProperty,
+          hasGetSceneFromProperties: !!dataManager?.getSceneFromProperties,
+          hasSceneId: !!scene?.id
+        });
+      }
+    } catch (error) {
+      console.error('💥 Failed to apply AI scene modification:', error);
+      // Don't throw error to prevent chat from breaking
+    }
+  }, [dataManager, scene?.id, scene]);
+
+  // --- Accept/Reject Changes Handlers ---
+  const handleAcceptChanges = useCallback(async () => {
+    if (!pendingChanges || !scene) return;
+
+    try {
+      console.log('✅ Accepting AI changes...');
+      // Apply the changes permanently
+      const updatedScene = await dataManager.applyScenePatches(scene, pendingChanges);
+
+      // Include captured thumbnail if available
+      if (capturedThumbnail) {
+        updatedScene.thumbnailUrl = capturedThumbnail;
+        console.log('📸 Including captured thumbnail in AI changes save');
+        setCapturedThumbnail(null); // Clear after use
+      }
+
+      // Save the updated scene to persist changes
+      const savedSceneId = await dataManager.saveScene(updatedScene);
+      console.log('💾 Scene saved with ID:', savedSceneId);
+
+      // Update the current chat with the new scene ID and scenes array
+      if (currentChatId && currentChat) {
+        // Ensure the chat has a scenes array
+        const currentScenes = currentChat.scenes || [];
+
+        // Check if this scene is already in the chat's scenes array
+        const existingSceneIndex = currentScenes.findIndex(s => s.id === savedSceneId);
+
+        let updatedScenes;
+        if (existingSceneIndex !== -1) {
+          // Update existing scene entry
+          updatedScenes = [...currentScenes];
+          updatedScenes[existingSceneIndex] = {
+            ...updatedScenes[existingSceneIndex],
+            name: updatedScene.name,
+            timestamp: new Date().toISOString()
+          };
+        } else {
+          // Add new scene entry
+          updatedScenes = [...currentScenes, {
+            id: savedSceneId,
+            name: updatedScene.name,
+            timestamp: new Date().toISOString()
+          }];
+        }
+
+        const updatedChat = {
+          ...currentChat,
+          sceneId: savedSceneId,
+          scenes: updatedScenes,
+          messages: conversationHistory
+        };
+
+        await dataManager.saveChat(updatedChat);
+        setCurrentChat(updatedChat);
+        console.log('🔄 Chat updated with new scene ID and scenes array:', savedSceneId);
+      }
+
+      // Update local state
+      setScene(updatedScene);
+
+      // Clear preview state
+      setPendingChanges(null);
+      setIsPreviewMode(false);
+
+      // Trigger refresh of chat history in SceneSelector to show updated scenes
+      setChatRefreshTrigger(prev => prev + 1);
+
+      console.log('✅ Changes accepted and applied successfully');
+    } catch (error) {
+      console.error('❌ Failed to accept changes:', error);
+      alert('Failed to apply changes. Please try again.');
+    }
+  }, [pendingChanges, scene, dataManager, currentChatId, currentChat, conversationHistory, capturedThumbnail]);
+
+  const handleRejectChanges = useCallback(() => {
+    console.log('❌ Rejecting AI changes...');
+    // Clear preview state - scene will revert to original state
+    setPendingChanges(null);
+    setIsPreviewMode(false);
+    console.log('✅ Changes rejected - reverted to previous state');
+  }, []);
+
+  // --- Thumbnail Capture Handler ---
+  const handleThumbnailCapture = useCallback((thumbnailDataUrl) => {
+    try {
+      const sizeKb = Math.round((thumbnailDataUrl.length * 3 / 4) / 1024);
+      console.log(`📸 Thumbnail captured, storing for next save (approx ${sizeKb} KB)`);
+    } catch (e) {
+      console.log('📸 Thumbnail captured, storing for next save');
+    }
+    setCapturedThumbnail(thumbnailDataUrl);
+
+    // Auto-save the current scene immediately with the captured thumbnail so it appears in the collection
+    try {
+      const currentScene = sceneRef.current || scene;
+      if (currentScene) {
+        const sceneWithThumb = { ...currentScene, thumbnailUrl: thumbnailDataUrl };
+        // Fire-and-forget save; handleSaveScene will navigate or refresh as appropriate
+        handleSaveScene(sceneWithThumb).catch(err => console.warn('Auto-save thumbnail failed:', err));
+      } else {
+        console.log('No active scene to attach thumbnail to');
+      }
+    } catch (e) {
+      console.warn('Failed to auto-save thumbnail:', e);
+    }
+  }, []);
+
+
 
   // --- UI Rendering ---
 
@@ -345,8 +630,95 @@ function PhysicsVisualizerPage() {
     );
   }
 
+  // If no scene is loaded yet, show a loading state
   if (!scene) {
-    return null; // Should be handled by loading/error states
+    return (
+      <div className="physics-visualizer-page">
+        <div className="visualizer-main-content">
+          <PanelGroup direction="horizontal" className="visualizer-panels">
+            {/* Left Panel - Scene Selector */}
+            <Panel defaultSize={20} minSize={15} maxSize={30} className="left-panel">
+              <div className="panel-content">
+                <SceneSelector
+                  currentScene={null}
+                  handleSceneChange={handleSceneChange}
+                  conversationHistory={conversationHistory}
+                  userScenes={[]}
+                  loadingUserScenes={false}
+                  extractedScenes={extractedScenes}
+                  onExtractedScene={handleExtractedScene}
+                  onDeleteScene={handleDeleteScene}
+                  onSaveScene={handleSaveScene}
+                  onUpdateScene={handleUpdateScene}
+                  onShareToPublic={handleShareToPublic}
+                  onOpenProperties={handleOpenProperties}
+                  currentChatId={currentChatId}
+                  onChatSelect={handleChatSelect}
+                  onNewChat={handleNewChat}
+                  onSceneButtonClick={handleSceneButtonClick}
+                  refreshTrigger={chatRefreshTrigger}
+                />
+              </div>
+            </Panel>
+
+            <PanelResizeHandle className="resize-handle" />
+
+            {/* Center Panel - 3D Visualizer */}
+            <Panel defaultSize={60} minSize={40} className="center-panel">
+              <div className="panel-content">
+                <div className="scene-loading-overlay">
+                  <div className="scene-loading-content">
+                    <span>Please select a chat or scene to begin</span>
+                  </div>
+                </div>
+              </div>
+            </Panel>
+
+            <PanelResizeHandle className="resize-handle" />
+
+            {/* Right Panel - Toggle between Chat and Scene Details */}
+            <Panel defaultSize={20} minSize={15} maxSize={30} className="right-panel">
+              <div className="panel-content">
+                {/* Toggle Buttons */}
+                <div className="panel-toggle-buttons">
+                  <button
+                    className={`toggle-button ${rightPanelView === 'chat' ? 'active' : ''}`}
+                    onClick={() => setRightPanelView('chat')}
+                  >
+                    💬 Chat
+                  </button>
+                  <button
+                    className={`toggle-button ${rightPanelView === 'details' ? 'active' : ''}`}
+                    onClick={() => setRightPanelView('details')}
+                  >
+                    📋 Details
+                  </button>
+                </div>
+
+                {/* Conditional Content */}
+                <Suspense fallback={<ComponentLoader />}>
+                  {rightPanelView === 'chat' ? (
+                    <Conversation
+                      updateConversation={handleUpdateConversation}
+                      conversationHistory={conversationHistory}
+                      initialMessage="Hello! I'm a Physics AI Agent. I can help you with physics questions and also discuss how to represent described scenes in a 3D visualizer JSON format. How can I assist you with physics today?"
+                      currentScene={null}
+                      onSceneSwitch={handleSceneSwitch}
+                      onNewChat={handleNewChat}
+                      onSceneUpdate={handleAISceneUpdate}
+                      onPendingChanges={setPendingChanges}
+                      onPreviewMode={setIsPreviewMode}
+                    />
+                  ) : (
+                    <SceneDetails scene={null} />
+                  )}
+                </Suspense>
+              </div>
+            </Panel>
+          </PanelGroup>
+        </div>
+      </div>
+    );
   }
 
   return (
@@ -356,24 +728,27 @@ function PhysicsVisualizerPage() {
           {/* Left Panel - Scene Selector */}
           <Panel defaultSize={20} minSize={15} maxSize={30} className="left-panel">
             <div className="panel-content">
-              <SceneSelector
-                currentScene={scene}
-                handleSceneChange={handleSceneChange}
-                conversationHistory={conversationHistory}
-                userScenes={[]}
-                loadingUserScenes={false}
-                extractedScenes={extractedScenes}
-                onExtractedScene={handleExtractedScene}
-                onDeleteScene={handleDeleteScene}
-                onSaveScene={handleSaveScene}
-                onUpdateScene={handleUpdateScene}
-                onShareToPublic={handleShareToPublic}
-                onOpenProperties={handleOpenProperties}
-                currentChatId={currentChatId}
-                onChatSelect={handleChatSelect}
-                onNewChat={handleNewChat}
-                onSceneButtonClick={handleSceneButtonClick}
-              />
+                <SceneSelector
+                  currentScene={scene}
+                  handleSceneChange={handleSceneChange}
+                  conversationHistory={conversationHistory}
+                  userScenes={[]}
+                  loadingUserScenes={false}
+                  extractedScenes={extractedScenes}
+                  onExtractedScene={handleExtractedScene}
+                  onDeleteScene={handleDeleteScene}
+                  onSaveScene={handleSaveScene}
+                  onUpdateScene={handleUpdateScene}
+                  onShareToPublic={handleShareToPublic}
+                  onOpenProperties={handleOpenProperties}
+                  currentChatId={currentChatId}
+                  onChatSelect={handleChatSelect}
+                  onNewChat={handleNewChat}
+                  onSceneButtonClick={handleSceneButtonClick}
+                  refreshTrigger={chatRefreshTrigger}
+                  activeTab={sceneSelectorTab}
+                  onTabChange={setSceneSelectorTab}
+                />
             </div>
           </Panel>
 
@@ -382,7 +757,31 @@ function PhysicsVisualizerPage() {
           {/* Center Panel - 3D Visualizer */}
           <Panel defaultSize={60} minSize={40} className="center-panel">
             <div className="panel-content">
-              <Visualizer key={scene.id} scene={scene} />
+              <Visualizer
+                key={`visualizer-${scene.id}`}
+                scene={scene}
+                pendingChanges={pendingChanges}
+                isPreviewMode={isPreviewMode}
+                onAcceptChanges={handleAcceptChanges}
+                onRejectChanges={handleRejectChanges}
+                onThumbnailCapture={handleThumbnailCapture}
+              />
+              {sceneSwitching && (
+                <div className="scene-loading-overlay">
+                  <div className="scene-loading-content">
+                    <FontAwesomeIcon icon={faSpinner} spin size="2x" />
+                    <span>Loading Scene...</span>
+                  </div>
+                </div>
+              )}
+            </div>
+          </Panel>
+
+          <PanelResizeHandle className="resize-handle" />
+
+          {/* Right Panel - Toggle between Chat and Scene Details */}
+          <Panel defaultSize={20} minSize={15} maxSize={30} className="right-panel">
+            <div className="panel-content">
               {/* Toggle Buttons */}
               <div className="panel-toggle-buttons">
                 <button
@@ -400,18 +799,23 @@ function PhysicsVisualizerPage() {
               </div>
 
               {/* Conditional Content */}
-              {rightPanelView === 'chat' ? (
-                <Conversation
-                  updateConversation={handleUpdateConversation}
-                  conversationHistory={conversationHistory}
-                  initialMessage="Hello! I'm a Physics AI Agent. I can help you with physics questions and also discuss how to represent described scenes in a 3D visualizer JSON format. How can I assist you with physics today?"
-                  currentScene={scene}
-                  onSceneSwitch={handleSceneSwitch}
-                  onNewChat={handleNewChat}
-                />
-              ) : (
-                <SceneDetails scene={scene} />
-              )}
+              <Suspense fallback={<ComponentLoader />}>
+                {rightPanelView === 'chat' ? (
+                  <Conversation
+                    updateConversation={handleUpdateConversation}
+                    conversationHistory={conversationHistory}
+                    initialMessage="Hello! I'm a Physics AI Agent. I can help you with physics questions and also discuss how to represent described scenes in a 3D visualizer JSON format. How can I assist you with physics today?"
+                    currentScene={scene}
+                    onSceneSwitch={handleSceneSwitch}
+                    onNewChat={handleNewChat}
+                    onSceneUpdate={handleAISceneUpdate}
+                    onPendingChanges={setPendingChanges}
+                    onPreviewMode={setIsPreviewMode}
+                  />
+                ) : (
+                  <SceneDetails scene={scene} />
+                )}
+              </Suspense>
             </div>
           </Panel>
         </PanelGroup>

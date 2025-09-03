@@ -46,20 +46,9 @@ function SceneDetails({ scene }) {
                         {/* Scene title above description */}
                         <div className="scene-title-section">
                             <h4 className="scene-title">{scene.name}</h4>
-                            {(scene.isTemporary || scene.isExtracted) && (
-                                <span className="unsaved-indicator" title="This scene is unsaved">
-                                    <FontAwesomeIcon icon={faExclamationTriangle} /> Unsaved
-                                </span>
-                            )}
                         </div>
 
                         <p className="scene-description-text"><strong>Description:</strong> {scene.description || 'No description.'}</p>
-                        {(scene.isTemporary || scene.isExtracted) && (
-                            <div className="extraction-notice">
-                                <FontAwesomeIcon icon={faExclamationTriangle} />
-                                <span>This scene has unsaved changes. Save it to keep it permanently.</span>
-                            </div>
-                        )}
 
                         {/* --- Scene Properties Section --- */}
                         <div className="properties-section">

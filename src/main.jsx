@@ -15,3 +15,19 @@ createRoot(document.getElementById('root')).render(
     </BrowserRouter>
   </StrictMode>
 );
+
+// Register Service Worker for caching
+if ('serviceWorker' in navigator) {
+  window.addEventListener('load', () => {
+    navigator.serviceWorker.register('/sw.js')
+      .then((registration) => {
+        console.log('Service Worker registered successfully:', registration.scope);
+      })
+      .catch((error) => {
+        console.log('Service Worker registration failed:', error);
+      });
+  });
+}
+
+/* ===== VIEWPORT HEIGHT FIXING REMOVED ===== */
+/* Removed viewport height fixing code to prevent WebGL context loss */

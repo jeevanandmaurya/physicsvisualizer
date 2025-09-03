@@ -116,19 +116,19 @@
     padding: 0 15px;
     height: 50px;
   }
-  
+
   .nav-title {
     display: none;
   }
-  
+
   .nav-link span {
     display: none;
   }
-  
+
   .nav-link {
     padding: 8px 12px;
   }
-  
+
   .nav-center {
     gap: 4px;
   }
@@ -138,11 +138,11 @@
   .nav-container {
     padding: 0 10px;
   }
-  
+
   .nav-link {
     padding: 6px 8px;
   }
-  
+
   .nav-center {
     gap: 2px;
   }

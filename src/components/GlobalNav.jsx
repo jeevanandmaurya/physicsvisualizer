@@ -20,7 +20,14 @@ function GlobalNav() {
       <div className="nav-container">
         <div className="nav-left">
           <Link to="/" className="nav-logo">
-            <img src={logoFull} alt="Physics Visualizer" height="40" />
+            <img
+              src={logoFull}
+              alt="Physics Visualizer"
+              width="160"
+              height="40"
+              loading="eager"
+              decoding="async"
+            />
           </Link>
         </div>
         

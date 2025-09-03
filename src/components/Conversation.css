@@ -256,6 +256,19 @@
   }
 }
 
+/* Small panels - hide "New Chat" text, show only icon */
+@media (max-width: 900px) {
+  .new-chat-btn span:not(.sr-only) {
+    display: none;
+  }
+
+  .new-chat-btn {
+    padding: 6px;
+    min-width: 32px;
+    justify-content: center;
+  }
+}
+
 /* Scene Context Modal */
 .scene-context-modal {
   position: absolute;

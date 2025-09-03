@@ -7,9 +7,10 @@ import './Visualizer.css';
 
 // Import the separate, self-contained graph component
 import OverlayGraph from './OverlayGraph';
+import SceneConsole from './SceneConsole';
 
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
-import { faPlay, faPause, faRedo, faChartLine, faChevronDown, faChevronUp, faEye, faEyeSlash } from '@fortawesome/free-solid-svg-icons';
+import { faPlay, faPause, faRedo, faChartLine, faChevronDown, faChevronUp, faEye, faEyeSlash, faCube, faCamera } from '@fortawesome/free-solid-svg-icons';
 
 const MAX_HISTORY_POINTS = 2000;
 
@@ -104,14 +105,81 @@ function GravitationalForceUpdater({ scene, objectApis, gravitationalPhysics, is
     return null;
 }
 function TimeUpdater({ isPlaying, setCurrentTime }) { useFrame((state, delta) => { if (isPlaying) setCurrentTime(prevTime => prevTime + delta); }); return null; }
-function ObjectComponent({ usePhysicsHook, config, id, setApi, onPhysicsUpdate, gravitationalPhysics, isPlaying, children, args }) { const { mass, position, velocity, rotation = [0, 0, 0], restitution = 0.7, isStatic = false } = config; const [ref, api] = usePhysicsHook(() => ({ mass: isStatic ? 0 : mass, position, velocity, rotation, args, material: { restitution }, type: isStatic ? 'Static' : 'Dynamic' })); const posRef = useRef(position || [0, 0, 0]); useEffect(() => { if (api) { setApi(id, api); const unsubPos = api.position.subscribe(p => { posRef.current = [...p]; gravitationalPhysics.current?.updatePosition(id, p); }); const unsubVel = api.velocity.subscribe(v => { gravitationalPhysics.current?.updateVelocity(id, v); }); return () => { unsubPos(); unsubVel(); }; } }, [id, api, setApi, gravitationalPhysics]); useFrame((state) => { if (isPlaying) onPhysicsUpdate({ id, time: state.clock.elapsedTime, position: posRef.current }); }); return (<mesh ref={ref} castShadow>{children}<meshStandardMaterial color={config.color} opacity={config.opacity || 1.0} transparent={(config.opacity || 1.0) < 1.0} /></mesh>); }
+function ObjectComponent({ usePhysicsHook, config, id, setApi, onPhysicsUpdate, gravitationalPhysics, isPlaying, children, args }) {
+  const { mass, position, velocity, rotation = [0, 0, 0], restitution = 0.7, isStatic = false } = config;
+  const [ref, api] = usePhysicsHook(() => ({
+    mass: isStatic ? 0 : mass,
+    position,
+    velocity,
+    rotation,
+    args,
+    material: { restitution },
+    type: isStatic ? 'Static' : 'Dynamic'
+  }));
+
+  const posRef = useRef(position || [0, 0, 0]);
+  const velRef = useRef(velocity || [0, 0, 0]);
+
+  useEffect(() => {
+    if (api) {
+      setApi(id, api);
+      const unsubPos = api.position.subscribe(p => {
+        posRef.current = [...p];
+        gravitationalPhysics.current?.updatePosition(id, p);
+      });
+      const unsubVel = api.velocity.subscribe(v => {
+        velRef.current = [...v];
+        gravitationalPhysics.current?.updateVelocity(id, v);
+      });
+
+      // Apply initial velocity if provided
+      if (velocity && velocity.some(v => v !== 0)) {
+        api.velocity.set(...velocity);
+      }
+
+      return () => { unsubPos(); unsubVel(); };
+    }
+  }, [id, api, setApi, gravitationalPhysics]);
+
+  // Update velocity when config changes
+  useEffect(() => {
+    if (api && velocity) {
+      const currentVel = velRef.current;
+      const newVel = velocity;
+
+      // Check if velocity actually changed
+      const hasChanged = !currentVel || currentVel.some((v, i) => Math.abs(v - newVel[i]) > 0.001);
+
+      if (hasChanged) {
+        api.velocity.set(...newVel);
+        velRef.current = [...newVel];
+        gravitationalPhysics.current?.updateVelocity(id, newVel);
+      }
+    }
+  }, [velocity, api, id, gravitationalPhysics]);
+
+  useFrame((state) => {
+    if (isPlaying) onPhysicsUpdate({ id, time: state.clock.elapsedTime, position: posRef.current });
+  });
+
+  return (
+    <mesh ref={ref} castShadow>
+      {children}
+      <meshStandardMaterial
+        color={config.color}
+        opacity={config.opacity || 1.0}
+        transparent={(config.opacity || 1.0) < 1.0}
+      />
+    </mesh>
+  );
+}
 function Sphere(props) { return (<ObjectComponent {...props} usePhysicsHook={useSphere} args={[props.config.radius]}><sphereGeometry args={[props.config.radius, 32, 32]} /></ObjectComponent>); }
 function Box(props) { return (<ObjectComponent {...props} usePhysicsHook={useBox} args={props.config.dimensions || [1, 1, 1]}><boxGeometry args={props.config.dimensions || [1, 1, 1]} /></ObjectComponent>); }
 function Cylinder(props) { return (<ObjectComponent {...props} usePhysicsHook={useCylinder} args={[props.config.radius, props.config.radius, props.config.height, 16]}><cylinderGeometry args={[props.config.radius, props.config.radius, props.config.height, 16]} /></ObjectComponent>); }
 function SceneBox({ config, id, setApi }) { const { mass = 0, dimensions = [10, 0.2, 10], position = [0, 0, 0], velocity = [0, 0, 0], rotation = [0, 0, 0], color = "#88aa88", restitution = 0.3, opacity = 1.0 } = config; const [ref, api] = useBox(() => ({ mass, position, velocity, rotation, args: dimensions, material: { friction: 0.5, restitution } })); useEffect(() => { if (api) { setApi(id, api); } }, [id, api, setApi]); return (<mesh ref={ref} receiveShadow castShadow><boxGeometry args={dimensions} /><meshStandardMaterial color={color} opacity={opacity} transparent={opacity < 1.0} /></mesh>); }
-function GroundPlane() { const [ref] = usePlane(() => ({ mass: 0, rotation: [-Math.PI / 2, 0, 0], position: [0, 0, 0], material: { friction: 0.5, restitution: 0.3 } })); return (<mesh ref={ref} receiveShadow><planeGeometry args={[1000, 1000]} /><meshStandardMaterial color="#000000ff" side={THREE.DoubleSide} /></mesh>); }
+function GroundPlane() { const [ref] = usePlane(() => ({ mass: 0, rotation: [-Math.PI / 2, 0, 0], position: [0, 0, 0], material: { friction: 0.5, restitution: 0.3 } })); return (<mesh ref={ref} receiveShadow><planeGeometry args={[1000, 1000]} /><meshStandardMaterial color="#ffffff" side={THREE.DoubleSide} /></mesh>); }
 function FpsCounter({ setFps }) { const lastTimeRef = useRef(performance.now()); const frameCountRef = useRef(0); useFrame(() => { const now = performance.now(); frameCountRef.current += 1; const delta = now - lastTimeRef.current; if (delta >= 1000) { setFps(Math.round((frameCountRef.current * 1000) / delta)); frameCountRef.current = 0; lastTimeRef.current = now; } }); return null; }
-function SimpleGrid({ show }) { if (!show) return null; return (<Grid position={[0, 0.01, 0]} args={[1000, 1000]} cellColor="#aaaaaa" sectionColor="#000000ff" sectionSize={10} cellSize={1} fadeDistance={200} fadeStrength={1} infiniteGrid={false} />); }
+function SimpleGrid({ show }) { if (!show) return null; return (<Grid position={[0, 0.01, 0]} args={[1000, 1000]} cellColor="#aaaaaa" sectionColor="#000000" sectionSize={10} cellSize={1} fadeDistance={200} fadeStrength={1} infiniteGrid={false} />); }
 function LabeledAxesHelper({ size = 5 }) { const textProps = { fontSize: 0.5, anchorX: 'center', anchorY: 'middle' }; return (<group><axesHelper args={[size]} /><Text color="red" position={[size * 1.1, 0, 0]} {...textProps}>X</Text><Text color="green" position={[0, size * 1.1, 0]} {...textProps}>Y</Text><Text color="blue" position={[0, 0, size * 1.1]} {...textProps}>Z</Text></group>); }
 function Arrow({ vec, color }) { const groupRef = useRef(); const shaftRef = useRef(); const coneRef = useRef(); const geometries = useMemo(() => ({ shaft: new THREE.CylinderGeometry(1, 1, 1, 8), cone: new THREE.ConeGeometry(1, 1, 8) }), []); useEffect(() => { return () => { geometries.shaft.dispose(); geometries.cone.dispose(); }; }, [geometries]); useEffect(() => { const group = groupRef.current; const shaft = shaftRef.current; const cone = coneRef.current; if (!group || !shaft || !cone) return; const length = vec.length(); if (length < 1e-4) { group.visible = false; return; } group.visible = true; const start = new THREE.Vector3(0, 1, 0); const end = vec.clone().normalize(); const quaternion = new THREE.Quaternion(); quaternion.setFromUnitVectors(start, end); group.quaternion.copy(quaternion); const headHeight = Math.max(length * 0.25, 0.1); const headRadius = Math.max(length * 0.1, 0.05); const shaftRadius = Math.max(length * 0.03, 0.02); const shaftLength = Math.max(length - headHeight, 0.1); shaft.scale.set(shaftRadius, shaftLength, shaftRadius); shaft.position.set(0, shaftLength / 2, 0); cone.scale.set(headRadius, headHeight, headRadius); cone.position.set(0, shaftLength + headHeight / 2, 0); }, [vec, geometries]); return (<group ref={groupRef}><mesh ref={shaftRef} geometry={geometries.shaft}><meshStandardMaterial color={color} /></mesh><mesh ref={coneRef} geometry={geometries.cone}><meshStandardMaterial color={color} /></mesh></group>); }
 function VelocityVector({ api, velocityData, velocityScale }) { const groupRef = useRef(); const positionRef = useRef([0, 0, 0]); useEffect(() => { if (api) { const unsubscribe = api.position.subscribe(p => { positionRef.current = [...p]; }); return unsubscribe; } }, [api]); useFrame(() => { if (groupRef.current && positionRef.current) { const [x, y, z] = positionRef.current; groupRef.current.position.set(x, y, z); } }); if (!velocityData || !Array.isArray(velocityData)) return null; const velocityVector = new THREE.Vector3().fromArray(velocityData); const scaledVelocityVec = velocityVector.multiplyScalar(velocityScale); if (scaledVelocityVec.length() < 0.01) return null; return (<group ref={groupRef}><Arrow vec={scaledVelocityVec} color="white" /></group>); }
@@ -119,7 +187,7 @@ function VelocityVectorVisuals({ show, velocities, objectApis, velocityScale }) 
 
 
 // --- Main Visualizer Component ---
-function Visualizer({ scene, onAddGraph: onExternalAddGraph }) {
+function Visualizer({ scene, onAddGraph: onExternalAddGraph, pendingChanges, isPreviewMode, onAcceptChanges, onRejectChanges, onThumbnailCapture }) {
     const [fps, setFps] = useState(0);
     const [isPlaying, setIsPlaying] = useState(false);
     const [currentTime, setCurrentTime] = useState(0);
@@ -133,9 +201,74 @@ function Visualizer({ scene, onAddGraph: onExternalAddGraph }) {
     const [showGraphDropdown, setShowGraphDropdown] = useState(false);
     const [showVelocityVectors, setShowVelocityVectors] = useState(false);
     const [physicsData, setPhysicsData] = useState({ velocities: {} });
+    const [canvasError, setCanvasError] = useState(false);
+    const [thumbnailPreview, setThumbnailPreview] = useState(null);
+    const [showThumbnailPreview, setShowThumbnailPreview] = useState(false);
+    const r3fCanvasRef = useRef(null);
 
-    const { gravity = [0, -9.81, 0], contactMaterial = {}, hasGround = true } = scene || {};
-    const objectsToRender = scene?.objects || [];
+    // Apply pending changes to scene for preview
+    const effectiveScene = useMemo(() => {
+      if (!isPreviewMode || !pendingChanges || !scene) return scene;
+
+      try {
+        // Create a deep copy of the scene
+        const sceneCopy = JSON.parse(JSON.stringify(scene));
+
+        // Apply the pending changes
+        pendingChanges.forEach(change => {
+          const pathParts = change.path.split('/').filter(p => p);
+          let current = sceneCopy;
+
+          // Navigate to the parent of the target property
+          for (let i = 0; i < pathParts.length - 1; i++) {
+            const part = pathParts[i];
+            if (part === 'objects' && !isNaN(pathParts[i + 1])) {
+              // Handle array indices for objects
+              const index = parseInt(pathParts[i + 1]);
+              if (!current[part]) current[part] = [];
+              if (!current[part][index]) current[part][index] = {};
+              current = current[part][index];
+              i++; // Skip the next part since we handled it
+            } else {
+              if (!current[part]) current[part] = {};
+              current = current[part];
+            }
+          }
+
+          // Apply the change
+          const lastPart = pathParts[pathParts.length - 1];
+          if (change.op === 'replace') {
+            current[lastPart] = change.value;
+          } else if (change.op === 'add') {
+            if (Array.isArray(current)) {
+              if (lastPart === '-') {
+                current.push(change.value);
+              } else {
+                current.splice(parseInt(lastPart), 0, change.value);
+              }
+            } else {
+              current[lastPart] = change.value;
+            }
+          } else if (change.op === 'remove') {
+            if (Array.isArray(current)) {
+              current.splice(parseInt(lastPart), 1);
+            } else {
+              delete current[lastPart];
+            }
+          }
+        });
+
+        return sceneCopy;
+      } catch (error) {
+        console.error('Error applying preview changes:', error);
+        return scene;
+      }
+    }, [scene, pendingChanges, isPreviewMode]);
+
+    const { gravity = [0, -9.81, 0], contactMaterial = {}, hasGround = true } = effectiveScene || {};
+    const objectsToRender = effectiveScene?.objects || [];
+
+
     const defaultContactMaterial = {
         friction: contactMaterial.friction || 0.5,
         restitution: contactMaterial.restitution || 0.7
@@ -189,6 +322,67 @@ function Visualizer({ scene, onAddGraph: onExternalAddGraph }) {
     const handleCloseGraph = useCallback((id) => setOpenGraphs(prev => prev.filter(g => g.id !== id)), []);
     const handlePhysicsDataCalculated = useCallback((data) => { setPhysicsData(data); }, []);
 
+    // Thumbnail capture functionality
+    const handleThumbnailCapture = useCallback(() => {
+        // Find the React Three Fiber canvas specifically
+        const canvas = document.querySelector('canvas[data-engine="three.js"]') ||
+                      document.querySelector('.visualizer-container canvas') ||
+                      document.querySelector('canvas');
+        if (!canvas) {
+            console.error('❌ No canvas found for thumbnail capture');
+            return;
+        }
+
+        try {
+            // Create a low-resolution thumbnail (350x180 to match collection card size)
+            const thumbnailCanvas = document.createElement('canvas');
+            const ctx = thumbnailCanvas.getContext('2d');
+
+            // Set thumbnail dimensions (maintain aspect ratio)
+            const aspectRatio = canvas.width / canvas.height;
+            const thumbnailWidth = 350;
+            const thumbnailHeight = Math.round(thumbnailWidth / aspectRatio);
+
+            thumbnailCanvas.width = thumbnailWidth;
+            thumbnailCanvas.height = thumbnailHeight;
+
+            // Draw and resize the canvas content
+            // Fill with white first so transparent areas in the WebGL canvas don't become black when
+            // exporting to JPEG (JPEG doesn't support alpha and browsers render transparent as black).
+            ctx.fillStyle = '#ffffff';
+            ctx.fillRect(0, 0, thumbnailCanvas.width, thumbnailCanvas.height);
+            ctx.drawImage(canvas, 0, 0, thumbnailWidth, thumbnailHeight);
+
+            // Convert to data URL
+            const thumbnailDataUrl = thumbnailCanvas.toDataURL('image/jpeg', 0.8);
+
+            // Show preview instead of directly saving
+            setThumbnailPreview(thumbnailDataUrl);
+            setShowThumbnailPreview(true);
+
+            console.log('📸 Thumbnail captured successfully - showing preview');
+        } catch (error) {
+            console.error('❌ Failed to capture thumbnail:', error);
+        }
+    }, []);
+
+    // Handle thumbnail confirmation
+    const handleThumbnailConfirm = useCallback(() => {
+        if (thumbnailPreview && onThumbnailCapture) {
+            onThumbnailCapture(thumbnailPreview);
+            console.log('✅ Thumbnail confirmed and saved');
+        }
+        setShowThumbnailPreview(false);
+        setThumbnailPreview(null);
+    }, [thumbnailPreview, onThumbnailCapture]);
+
+    // Handle thumbnail rejection
+    const handleThumbnailReject = useCallback(() => {
+        console.log('❌ Thumbnail rejected');
+        setShowThumbnailPreview(false);
+        setThumbnailPreview(null);
+    }, []);
+
     useEffect(() => {
         initialSceneObjects.current = scene?.objects?.map((obj, i) => ({
             ...obj,
@@ -203,6 +397,21 @@ function Visualizer({ scene, onAddGraph: onExternalAddGraph }) {
             if (Object.keys(historyRef.current).length) setObjectHistory({ ...historyRef.current });
         }, 200);
         return () => clearInterval(i);
+    }, []);
+
+    // Handle WebGL context loss
+    useEffect(() => {
+        const handleContextLoss = (event) => {
+            console.log('WebGL context lost, preventing default behavior');
+            event.preventDefault();
+            setCanvasError(true);
+        };
+
+        const canvas = document.querySelector('canvas');
+        if (canvas) {
+            canvas.addEventListener('webglcontextlost', handleContextLoss);
+            return () => canvas.removeEventListener('webglcontextlost', handleContextLoss);
+        }
     }, []);
 
     return (
@@ -221,6 +430,10 @@ function Visualizer({ scene, onAddGraph: onExternalAddGraph }) {
                         <FontAwesomeIcon icon={faChevronUp} />
                     </button>
                 </div>
+                <button onClick={handleThumbnailCapture} title="Capture Thumbnail">
+                    <FontAwesomeIcon icon={faCamera} style={{ marginRight: '8px' }} />
+                    Capture Thumbnail
+                </button>
                 <div className="graphs-dropdown-container">
                     <button onClick={() => setShowGraphDropdown(prev => !prev)}>
                         <FontAwesomeIcon icon={faChartLine} style={{ marginRight: '5px' }} />
@@ -245,38 +458,84 @@ function Visualizer({ scene, onAddGraph: onExternalAddGraph }) {
             </div>
 
             <div className="main-content">
-                <Canvas
-                    style={{ position: 'absolute', top: 0, left: 0, width: '100%', height: '100%' }}
-                    shadows
-                    gl={{ logLevel: 'errors' }}
-                    camera={{ position: [10, 5, 25], fov: 50, near: 0.1, far: 200000 }}
-                >
-                    <TimeUpdater isPlaying={isPlaying} setCurrentTime={setCurrentTime} />
-                    <ambientLight intensity={0.6} />
-                    <directionalLight position={[8, 10, 5]} intensity={1.0} castShadow shadow-mapSize-width={1024} shadow-mapSize-height={1024} />
-                    <Physics gravity={gravity} defaultContactMaterial={defaultContactMaterial} isPaused={!isPlaying}>
-                        <GravitationalForceUpdater scene={scene} objectApis={objectApis} gravitationalPhysics={gravitationalPhysics} isPlaying={isPlaying} onPhysicsDataCalculated={handlePhysicsDataCalculated} />
-                        {hasGround && <GroundPlane />}
-                        {objectsToRender.map((obj, index) => {
-                            const objectId = obj.id ?? `${obj.type?.toLowerCase() || 'obj'}-${index}`;
-                            const configWithId = { ...obj, id: objectId };
-                            const commonProps = { config: configWithId, id: objectId, setApi, onPhysicsUpdate, gravitationalPhysics, isPlaying };
-                            switch (configWithId.type) {
-                                case "Sphere": return <Sphere key={objectId} {...commonProps} />;
-                                case "Box": return <Box key={objectId} {...commonProps} />;
-                                case "Cylinder": return <Cylinder key={objectId} {...commonProps} />;
-                                case "Plane": return <SceneBox key={objectId} config={{ ...configWithId, mass: configWithId.mass ?? 0 }} id={objectId} setApi={setApi} />;
-                                default: return null;
+                {canvasError ? (
+                    <div className="canvas-fallback">
+                        <div className="fallback-content">
+                            <FontAwesomeIcon icon={faCube} size="3x" style={{ color: '#666', marginBottom: '20px' }} />
+                            <h3>3D Visualizer Unavailable</h3>
+                            <p>
+                                WebGL context lost. Please refresh the page.
+                            </p>
+                            <button
+                                onClick={() => window.location.reload()}
+                                style={{
+                                    padding: '10px 20px',
+                                    backgroundColor: '#007acc',
+                                    color: 'white',
+                                    border: 'none',
+                                    borderRadius: '5px',
+                                    cursor: 'pointer',
+                                    marginTop: '15px'
+                                }}
+                            >
+                                Refresh Page
+                            </button>
+                        </div>
+                    </div>
+                ) : (
+                    <Canvas
+                        style={{ position: 'absolute', top: 0, left: 0, width: '100%', height: '100%' }}
+                        shadows
+                        // preserveDrawingBuffer allows readback (toDataURL/drawImage) of the rendered frame.
+                        // Without this the canvas content may be cleared and produce a black image when captured.
+                        gl={{ logLevel: 'errors', preserveDrawingBuffer: true }}
+                        camera={{ position: [10, 5, 25], fov: 50, near: 0.1, far: 200000 }}
+                        onError={() => setCanvasError(true)}
+                        onCreated={({ gl }) => {
+                            // Store WebGL context for cleanup
+                            window._webglContext = gl;
+                            try {
+                                // Save a direct reference to the renderer's canvas for reliable capture
+                                r3fCanvasRef.current = gl.domElement;
+                                if (r3fCanvasRef.current) r3fCanvasRef.current.dataset.engine = 'three.js';
+                            } catch (e) {
+                                console.warn('Could not set r3fCanvasRef:', e);
                             }
-                        })}
-                    </Physics>
-                    <VelocityVectorVisuals show={showVelocityVectors} velocities={physicsData.velocities} objectApis={objectApis} velocityScale={vectorScale} />
-                    <OrbitControls />
-                    <LabeledAxesHelper size={5} />
-                    <SimpleGrid show={hasGround} />
-                    <FpsCounter setFps={setFps} />
-                </Canvas>
-                
+                        }}
+                    >
+                        <TimeUpdater isPlaying={isPlaying} setCurrentTime={setCurrentTime} />
+                        <ambientLight intensity={0.6} />
+                        <directionalLight position={[8, 10, 5]} intensity={1.0} castShadow shadow-mapSize-width={1024} shadow-mapSize-height={1024} />
+                        <Physics gravity={gravity} defaultContactMaterial={defaultContactMaterial} isPaused={!isPlaying}>
+                            <GravitationalForceUpdater scene={scene} objectApis={objectApis} gravitationalPhysics={gravitationalPhysics} isPlaying={isPlaying} onPhysicsDataCalculated={handlePhysicsDataCalculated} />
+                            {hasGround && <GroundPlane />}
+                            {objectsToRender.map((obj, index) => {
+                                const objectId = obj.id ?? `${obj.type?.toLowerCase() || 'obj'}-${index}`;
+                                const configWithId = { ...obj, id: objectId };
+                                const commonProps = { config: configWithId, id: objectId, setApi, onPhysicsUpdate, gravitationalPhysics, isPlaying };
+
+                                switch (configWithId.type) {
+                                    case "Sphere":
+                                        return <Sphere key={objectId} {...commonProps} />;
+                                    case "Box":
+                                        return <Box key={objectId} {...commonProps} />;
+                                    case "Cylinder":
+                                        return <Cylinder key={objectId} {...commonProps} />;
+                                    case "Plane":
+                                        return <SceneBox key={objectId} config={{ ...configWithId, mass: configWithId.mass ?? 0 }} id={objectId} setApi={setApi} />;
+                                    default:
+                                        return null;
+                                }
+                            })}
+                        </Physics>
+                        <VelocityVectorVisuals show={showVelocityVectors} velocities={physicsData.velocities} objectApis={objectApis} velocityScale={vectorScale} />
+                        <OrbitControls />
+                        <LabeledAxesHelper size={5} />
+                        <SimpleGrid show={hasGround} />
+                        <FpsCounter setFps={setFps} />
+                    </Canvas>
+                )}
+
                 {/* The graphs are now rendered inside the main content area */}
                 {openGraphs.map((graphConfig, index) => (
                     <OverlayGraph
@@ -290,13 +549,97 @@ function Visualizer({ scene, onAddGraph: onExternalAddGraph }) {
                 ))}
 
                 <div className="fps-counter">FPS: {fps}</div>
+
+                {/* Scene Console for AI Changes Preview */}
+                <SceneConsole
+                    changes={pendingChanges}
+                    isVisible={isPreviewMode && pendingChanges && pendingChanges.length > 0}
+                    onAccept={onAcceptChanges}
+                    onReject={onRejectChanges}
+                />
             </div>
-            
+
             <div className="timeControllbar">
                 <button onClick={() => setIsPlaying(p => !p)}><FontAwesomeIcon icon={isPlaying ? faPause : faPlay} /></button>
                 <button onClick={handleReset}><FontAwesomeIcon icon={faRedo} /></button>
                 <span className="time-display">Time: {currentTime.toFixed(3)}s</span>
             </div>
+
+            {/* Thumbnail Preview Modal */}
+            {showThumbnailPreview && thumbnailPreview && (
+                <div className="thumbnail-preview-modal" style={{
+                    position: 'fixed',
+                    top: 0,
+                    left: 0,
+                    right: 0,
+                    bottom: 0,
+                    backgroundColor: 'rgba(0, 0, 0, 0.8)',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    zIndex: 10000
+                }}>
+                    <div className="thumbnail-preview-content" style={{
+                        backgroundColor: '#2c2c2c',
+                        borderRadius: '8px',
+                        padding: '20px',
+                        maxWidth: '400px',
+                        width: '90%',
+                        textAlign: 'center'
+                    }}>
+                        <h3 style={{ color: '#ffffff', marginBottom: '15px' }}>📸 Confirm Thumbnail</h3>
+                        <div style={{
+                            border: '2px solid #007acc',
+                            borderRadius: '4px',
+                            overflow: 'hidden',
+                            marginBottom: '20px'
+                        }}>
+                            <img
+                                src={thumbnailPreview}
+                                alt="Scene thumbnail preview"
+                                style={{
+                                    width: '100%',
+                                    height: 'auto',
+                                    display: 'block'
+                                }}
+                            />
+                        </div>
+                        <p style={{ color: '#cccccc', marginBottom: '20px', fontSize: '14px' }}>
+                            This thumbnail will be used in your scene collection. You can always capture a new one later.
+                        </p>
+                        <div style={{ display: 'flex', gap: '10px', justifyContent: 'center' }}>
+                            <button
+                                onClick={handleThumbnailConfirm}
+                                style={{
+                                    backgroundColor: '#28a745',
+                                    color: 'white',
+                                    border: 'none',
+                                    padding: '10px 20px',
+                                    borderRadius: '4px',
+                                    cursor: 'pointer',
+                                    fontSize: '14px'
+                                }}
+                            >
+                                ✅ Accept
+                            </button>
+                            <button
+                                onClick={handleThumbnailReject}
+                                style={{
+                                    backgroundColor: '#dc3545',
+                                    color: 'white',
+                                    border: 'none',
+                                    padding: '10px 20px',
+                                    borderRadius: '4px',
+                                    cursor: 'pointer',
+                                    fontSize: '14px'
+                                }}
+                            >
+                                ❌ Reject
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            )}
         </div>
     );
 }

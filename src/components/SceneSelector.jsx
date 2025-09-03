@@ -21,10 +21,17 @@ function SceneSelector({
     currentChatId,
     onChatSelect,
     onNewChat,
-    onSceneButtonClick
+    onSceneButtonClick,
+    refreshTrigger,
+    activeTab: externalActiveTab,
+    onTabChange: externalOnTabChange
 }) {
-    const [activeTab, setActiveTab] = useState('examples');
+    // Use external tab state if provided, otherwise use internal state
+    const [internalActiveTab, setInternalActiveTab] = useState('examples');
+    const activeTab = externalActiveTab !== undefined ? externalActiveTab : internalActiveTab;
+    const setActiveTab = externalOnTabChange || setInternalActiveTab;
     const [exampleScenes, setExampleScenes] = useState([]);
+    const [fetchedUserScenes, setFetchedUserScenes] = useState([]);
     const [chatHistory, setChatHistory] = useState([]);
     const [loading, setLoading] = useState(false);
     const [isExtracting, setIsExtracting] = useState(false);
@@ -59,6 +66,11 @@ function SceneSelector({
                     if (isMounted) {
                         setChatHistory(chats);
                     }
+                } else if (activeTab === 'user') {
+                    const scenes = await dataManager.getScenes('user', { orderBy: { field: 'updatedAt', direction: 'desc' } });
+                    if (isMounted) {
+                        setFetchedUserScenes(scenes);
+                    }
                 }
             } catch (err) {
                 console.error(`Error fetching ${activeTab} data:`, err);
@@ -69,6 +81,36 @@ function SceneSelector({
         };
         fetchData();
         return () => { isMounted = false; };
+    }, [activeTab, dataManager]);
+
+    // Refresh chat history when refreshTrigger changes
+    useEffect(() => {
+        if (refreshTrigger && activeTab === 'chats') {
+            const refreshChats = async () => {
+                try {
+                    const chats = await dataManager.getChatHistory();
+                    setChatHistory(chats);
+                } catch (err) {
+                    console.error('Error refreshing chat history:', err);
+                }
+            };
+            refreshChats();
+        }
+    }, [refreshTrigger, activeTab, dataManager]);
+
+    // Refresh user scenes when needed (after save/update operations)
+    useEffect(() => {
+        if (activeTab === 'user') {
+            const refreshUserScenes = async () => {
+                try {
+                    const scenes = await dataManager.getScenes('user', { orderBy: { field: 'updatedAt', direction: 'desc' } });
+                    setFetchedUserScenes(scenes);
+                } catch (err) {
+                    console.error('Error refreshing user scenes:', err);
+                }
+            };
+            refreshUserScenes();
+        }
     }, [activeTab, dataManager]);
     
     // --- Handlers ---
@@ -106,7 +148,7 @@ function SceneSelector({
     
     const getCombinedUserScenes = () => {
         // Show newly extracted (unsaved) scenes at the top of the user's saved list
-        return [...extractedScenes, ...userScenes];
+        return [...extractedScenes, ...fetchedUserScenes];
     };
 
     // This function now correctly calls the prop passed from the parent.
@@ -119,17 +161,38 @@ function SceneSelector({
         setOpenMenuId(openMenuId === sceneId ? null : sceneId);
     };
 
-    const handleMenuAction = (action, scene) => {
+    const handleMenuAction = async (action, scene) => {
         setOpenMenuId(null);
         switch (action) {
             case 'delete':
-                if (onDeleteScene) onDeleteScene(scene);
+                if (onDeleteScene) {
+                    await onDeleteScene(scene);
+                    // Refresh user scenes after deletion
+                    if (activeTab === 'user') {
+                        const scenes = await dataManager.getScenes('user', { orderBy: { field: 'updatedAt', direction: 'desc' } });
+                        setFetchedUserScenes(scenes);
+                    }
+                }
                 break;
             case 'save':
-                if (onSaveScene) onSaveScene(scene);
+                if (onSaveScene) {
+                    await onSaveScene(scene);
+                    // Refresh user scenes after save
+                    if (activeTab === 'user') {
+                        const scenes = await dataManager.getScenes('user', { orderBy: { field: 'updatedAt', direction: 'desc' } });
+                        setFetchedUserScenes(scenes);
+                    }
+                }
                 break;
             case 'update':
-                if (onUpdateScene) onUpdateScene(scene);
+                if (onUpdateScene) {
+                    await onUpdateScene(scene);
+                    // Refresh user scenes after update
+                    if (activeTab === 'user') {
+                        const scenes = await dataManager.getScenes('user', { orderBy: { field: 'updatedAt', direction: 'desc' } });
+                        setFetchedUserScenes(scenes);
+                    }
+                }
                 break;
             case 'share':
                 if (onShareToPublic) onShareToPublic(scene);
@@ -138,7 +201,14 @@ function SceneSelector({
                 if (onOpenProperties) onOpenProperties(scene);
                 break;
             case 'load':
-                if (onSaveScene) onSaveScene(scene); // Assuming onSaveScene handles loading to local
+                if (onSaveScene) {
+                    await onSaveScene(scene);
+                    // Refresh user scenes after loading to local
+                    if (activeTab === 'user') {
+                        const scenes = await dataManager.getScenes('user', { orderBy: { field: 'updatedAt', direction: 'desc' } });
+                        setFetchedUserScenes(scenes);
+                    }
+                }
                 break;
         }
     };
@@ -148,6 +218,16 @@ function SceneSelector({
         if (window.confirm('Are you sure you want to delete this chat? This action cannot be undone.')) {
             try {
                 await dataManager.deleteChat(chatId);
+
+                // If the deleted chat is currently selected, clear the selection
+                if (currentChatId === chatId) {
+                    console.log('🗑️ Deleted chat was currently selected, clearing selection');
+                    // Clear the current chat selection by calling onChatSelect with null
+                    if (onChatSelect) {
+                        onChatSelect(null);
+                    }
+                }
+
                 // Refresh the chat list
                 const updatedChats = await dataManager.getChatHistory();
                 setChatHistory(updatedChats);
@@ -263,7 +343,7 @@ function SceneSelector({
                     <li
                         key={scene.id}
                         onClick={() => handleSceneItemClick(scene)}
-                        className={`scene-item ${currentScene.id === scene.id ? 'selected' : ''}`}
+                        className={`scene-item ${currentScene && currentScene.id === scene.id ? 'selected' : ''}`}
                         title={scene.description}
                     >
                         <div className="scene-content">
@@ -284,15 +364,8 @@ function SceneSelector({
                                 {openMenuId === scene.id && (
                                     <div className="scene-menu-dropdown" onClick={(e) => e.stopPropagation()}>
                                         {isLocalSection ? (
-                                            // Local scenes - full editing options
+                                            // Local scenes - essential options only
                                             <>
-                                                <button
-                                                    className="menu-item"
-                                                    onClick={() => handleMenuAction('properties', scene)}
-                                                >
-                                                    <FontAwesomeIcon icon={faCog} />
-                                                    <span>Properties</span>
-                                                </button>
                                                 {!scene.isTemporary && (
                                                     <button
                                                         className="menu-item"
@@ -311,15 +384,6 @@ function SceneSelector({
                                                         <span>Save</span>
                                                     </button>
                                                 )}
-                                                {!scene.isPublic && (
-                                                    <button
-                                                        className="menu-item"
-                                                        onClick={() => handleMenuAction('share', scene)}
-                                                    >
-                                                        <FontAwesomeIcon icon={faShare} />
-                                                        <span>Share to Public</span>
-                                                    </button>
-                                                )}
                                                 {!scene.isTemporary && (
                                                     <button
                                                         className="menu-item danger"
@@ -331,15 +395,8 @@ function SceneSelector({
                                                 )}
                                             </>
                                         ) : (
-                                            // Public/Example scenes - limited options
+                                            // Public/Example scenes - essential options only
                                             <>
-                                                <button
-                                                    className="menu-item"
-                                                    onClick={() => handleMenuAction('properties', scene)}
-                                                >
-                                                    <FontAwesomeIcon icon={faCog} />
-                                                    <span>View Properties</span>
-                                                </button>
                                                 <button
                                                     className="menu-item"
                                                     onClick={() => handleMenuAction('load', scene)}
@@ -381,7 +438,7 @@ function SceneSelector({
                 <div className="scene-list-panel">
                     {activeTab === 'examples' && renderSceneList(exampleScenes, loading, "No examples found.", false)}
                     {activeTab === 'chats' && renderChatList(chatHistory, loading, "No chat history yet. Start a new chat!")}
-                    {activeTab === 'user' && renderSceneList(getCombinedUserScenes(), loadingUserScenes, "No saved scenes yet.", true)}
+                    {activeTab === 'user' && renderSceneList(getCombinedUserScenes(), loading, "No saved scenes yet.", true)}
                 </div>
             </div>
         </div>

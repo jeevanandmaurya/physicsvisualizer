@@ -31,7 +31,7 @@ function SceneCard({ scene, isPublic = false, navigate }) {
 
   const handleSceneClick = () => {
     // Use React Router navigate instead of window.location
-    navigate('/visualizer', { state: { sceneToLoad: scene.id, isPublic } });
+    navigate('/visualizer', { state: { sceneToLoad: scene.id, isPublic, fromCollection: true } });
   };
 
   return (
@@ -103,22 +103,49 @@ function CollectionPage() {
     let isMounted = true;
     if (!dataManager) return;
 
-    setLoadingUser(true);
-    setError(null);
-    dataManager.getScenes('user', { orderBy: { field: 'updatedAt', direction: 'desc' } })
-      .then(scenes => {
-        if (isMounted) setUserScenes(scenes);
-      })
-      .catch(err => {
+    const fetchUserScenes = async () => {
+      setLoadingUser(true);
+      setError(null);
+      try {
+        const scenes = await dataManager.getScenes('user', { orderBy: { field: 'updatedAt', direction: 'desc' } });
+        if (isMounted) {
+          setUserScenes(scenes);
+          console.log('📚 Fetched user scenes:', scenes.length);
+          scenes.forEach(scene => {
+            if (scene.thumbnailUrl) {
+              console.log(`🖼️ Scene "${scene.name}" has thumbnail:`, scene.thumbnailUrl.substring(0, 50) + '...');
+            }
+          });
+        }
+      } catch (err) {
         console.error("Error fetching user scenes:", err);
         if (isMounted) setError("Failed to load your scenes.");
-      })
-      .finally(() => {
+      } finally {
         if (isMounted) setLoadingUser(false);
-      });
-    
+      }
+    };
+
+    fetchUserScenes();
+
     return () => { isMounted = false; };
   }, [dataManager]);
+
+  // Refresh user scenes when location state changes (e.g., after saving a scene)
+  useEffect(() => {
+    if (location.state?.refreshScenes) {
+      console.log('🔄 Refreshing scenes due to location state change');
+      const refreshScenes = async () => {
+        try {
+          const scenes = await dataManager.getScenes('user', { orderBy: { field: 'updatedAt', direction: 'desc' } });
+          setUserScenes(scenes);
+          console.log('📚 Refreshed user scenes:', scenes.length);
+        } catch (err) {
+          console.error("Error refreshing user scenes:", err);
+        }
+      };
+      refreshScenes();
+    }
+  }, [location.state, dataManager]);
   
   // Renders the scene grid with appropriate loading, empty, and error states
   const renderSceneGrid = (scenes, isLoading, isUserTab = false) => {

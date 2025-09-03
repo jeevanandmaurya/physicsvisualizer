@@ -1,5 +1,7 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { Send, Plus } from 'lucide-react';
+import GeminiAIManager from '../utils/GeminiAIManager';
+import ScenePatcher from '../utils/ScenePatcher';
 import './Conversation.css';
 
 function Conversation({
@@ -8,7 +10,10 @@ function Conversation({
   initialMessage,
   currentScene,
   onSceneSwitch,
-  onNewChat
+  onNewChat,
+  onSceneUpdate, // New prop for AI scene modifications
+  onPendingChanges, // Callback to set pending changes in parent
+  onPreviewMode // Callback to set preview mode in parent
 }) {
   const [messages, setMessages] = useState([
     {
@@ -22,6 +27,8 @@ function Conversation({
   const [input, setInput] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const messagesEndRef = useRef(null);
+  const aiManager = useRef(new GeminiAIManager());
+  const scenePatcher = useRef(new ScenePatcher());
 
   const scrollToBottom = () => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
@@ -39,14 +46,14 @@ function Conversation({
     } else {
       // If no conversation history, show initial message
       setMessages([{
-        id: 1,
+        id: Date.now(), // Use timestamp to ensure unique key
         text: initialMessage || "Hello! I'm a Physics AI Agent. I can help you with physics questions and also discuss how to represent described scenes in a 3D visualizer JSON format. How can I assist you with physics today?",
         isUser: false,
         timestamp: new Date(),
         sceneId: currentScene?.id
       }]);
     }
-  }, [conversationHistory, initialMessage]);
+  }, [conversationHistory, initialMessage, currentScene?.id]);
 
   const handleSend = async () => {
     if (!input.trim() || isLoading) return;
@@ -69,15 +76,60 @@ function Conversation({
       updateConversation(newMessages);
     }
 
-    // Simulate AI response
-    setTimeout(() => {
+    try {
+      // Get AI response with full context
+      const chatContext = {
+        history: messages,
+        currentMessage: userMessage
+      };
+
+      const sceneContext = currentScene ? {
+        id: currentScene.id,
+        name: currentScene.name,
+        objects: currentScene.objects?.map(obj => ({
+          id: obj.id,
+          type: obj.type,
+          position: obj.position,
+          mass: obj.mass
+        })) || [],
+        gravity: currentScene.gravity,
+        hasGround: currentScene.hasGround
+      } : null;
+
+      const aiResponse = await aiManager.current.processUserMessage(
+        userMessage.text,
+        chatContext,
+        sceneContext
+      );
+
+      // Handle scene modifications if AI provided any
+      if (aiResponse.updatedScene && aiResponse.sceneModifications && aiResponse.sceneModifications.length > 0) {
+        console.log('AI Scene Update Detected');
+        console.log('Original scene objects:', currentScene?.objects?.length || 0);
+        console.log('Updated scene objects:', aiResponse.updatedScene.objects?.length || 0);
+
+        // Pass changes to parent for preview
+        if (onPendingChanges) {
+          onPendingChanges(aiResponse.sceneModifications);
+        }
+        if (onPreviewMode) {
+          onPreviewMode(true);
+        }
+        console.log(`📋 Showing preview for ${aiResponse.sceneModifications.length} changes`);
+      } else {
+        console.log('No scene modifications detected in AI response');
+      }
+
+      // Add AI response
       const aiMessage = {
         id: Date.now() + 1,
-        text: `I understand you're asking about: "${userMessage.text}". This is a placeholder response. In a real implementation, you would connect this to your AI service.`,
+        text: aiResponse.text,
         isUser: false,
         timestamp: new Date(),
-        sceneId: currentScene?.id
+        sceneId: currentScene?.id,
+        aiMetadata: aiResponse.metadata
       };
+
       const updatedMessages = [...newMessages, aiMessage];
       setMessages(updatedMessages);
 
@@ -85,8 +137,27 @@ function Conversation({
         updateConversation(updatedMessages);
       }
 
+    } catch (error) {
+      console.error('AI Error:', error);
+
+      // Fallback response
+      const fallbackMessage = {
+        id: Date.now() + 1,
+        text: "I'm sorry, I'm having trouble connecting to my AI service right now. Please try again in a moment.",
+        isUser: false,
+        timestamp: new Date(),
+        sceneId: currentScene?.id
+      };
+
+      const updatedMessages = [...newMessages, fallbackMessage];
+      setMessages(updatedMessages);
+
+      if (updateConversation) {
+        updateConversation(updatedMessages);
+      }
+    } finally {
       setIsLoading(false);
-    }, 1000);
+    }
   };
 
   const handleKeyPress = (e) => {
@@ -156,6 +227,7 @@ function Conversation({
             className="send-btn"
           >
             <Send size={18} />
+            Send
           </button>
         </div>
       </div>
