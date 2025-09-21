@@ -1,85 +1,116 @@
-└── src/
-    ├── App.jsx
-    ├── index.css
-    ├── main.jsx
-    ├── assets/
-    │   └── physicsvisualizer.svg
-    ├── components/
-    │   ├── Conversation.css
-    │   ├── Conversation.jsx  # Updated to import agentPrompt from ../prompts/agentPrompt.txt?raw
-    │   ├── graph.css
-    │   ├── LeftPanel.css
-    │   ├── LeftPanel.jsx
-    │   ├── OverlayGraph.jsx
-    │   ├── RightPanel.css
-    │   ├── RightPanel.jsx
-    │   ├── SceneSelector.css
-    │   ├── SceneSelector.jsx  # Updated to import extractPrompt from ../prompts/extractPrompt.txt?raw
-    │   ├── TopMenu.jsx
-    │   ├── Visualizer.css
-    │   └── Visualizer.jsx
-    ├── contexts/
-    │   ├── AuthContext.jsx
-    │   └── DatabaseContext.jsx
-    ├── pages/
-    │   ├── collection.css
-    │   ├── CollectionPage.jsx
-    │   ├── dashboard.css
-    │   ├── DashboardPage.jsx
-    │   ├── physicsvisualizer.css
-    │   └── PhysicsVisualizerPage.jsx
-    ├── prompts/
-    │   ├── extractPrompt.txt  # New file containing the extractPrompt content
-    │   └── agentPrompt.txt    # New file containing the agentPrompt content
-    └── scenes.js
+# PhysicsVisualizer - Feature-Based Architecture (Updated 2025)
 
-    📱 DOM Root (index.html)
+## 📁 Current Project Structure
+
+```
+physicsvisualizer/
+├── 📄 package.json & vite.config.js    # Build configuration
+├── 📄 README.md                        # Project documentation
+├── 🏗️ PhysicsVisualizerArchitecture.md # System architecture docs
+├── 📁 public/                          # Static assets
+│   ├── index.html
+│   ├── sw.js
+│   └── vite.svg
+├── 📁 src/                             # Source code (Feature-based)
+│   ├── 🏠 App.jsx & main.jsx           # React app entry points
+│   ├── 🎨 index.css                    # Global styles
+│   ├── 📊 scenes.js                    # Scene data & examples
+│   ├── 🗂️ assets/                      # Static assets (images, fonts)
+│   │   ├── physicsvisualizer.svg/png
+│   │   ├── UbuntuMono fonts
+│   │   └── thumbnails/ (scene previews)
+│   ├── 🔧 core/                        # Business logic & engines
+│   │   ├── 🤖 ai/                      # AI processing (Gemini)
+│   │   │   ├── gemini.js
+│   │   │   └── prompts/ (agentPrompt.txt, extractPrompt.txt)
+│   │   ├── ⚛️ physics/                 # Physics engines
+│   │   │   ├── engine.jsx              # Cannon.js integration
+│   │   │   ├── gravitation/calculations.js
+│   │   │   ├── electrostatic/calculations.js
+│   │   │   ├── fluid/calculations.js
+│   │   │   ├── constraints/calculations.js
+│   │   │   └── connections/calculations.js
+│   │   └── 🎬 scene/                   # Scene management
+│   │       ├── history.js
+│   │       └── patcher.js
+│   ├── 🎯 features/                    # Feature-based components
+│   │   ├── 🎲 visualizer/              # 3D visualization feature
+│   │   │   └── components/
+│   │   │       ├── Visualizer.jsx/css
+│   │   │       ├── OverlayGraph.jsx
+│   │   │       └── SceneConsole.jsx/css
+│   │   ├── 💬 chat/                    # AI chat feature
+│   │   │   └── components/
+│   │   │       └── Conversation.jsx/css
+│   │   └── 📚 collection/              # Scene management feature
+│   │       └── components/
+│   │           ├── SceneSelector.jsx/css
+│   │           ├── SceneDetails.jsx/css
+│   │           └── ChangePreview.jsx/css
+│   ├── 🎨 shared/ui/                   # Reusable UI components
+│   │   └── components/
+│   │       ├── GlobalNav.jsx/css      # Navigation
+│   │       ├── leftPanel.jsx/css      # Layout panels
+│   │       ├── rightPanel.jsx/css     # Layout panels
+│   │       ├── messagecontent.jsx     # Message display
+│   │       └── Graph.css              # Chart styling
+│   ├── 📄 pages/                       # Page-level components
+│   │   ├── DashboardPage.jsx/css
+│   │   ├── CollectionPage.jsx/css
+│   │   └── PhysicsVisualizerPage.jsx/css
+│   ├── ⚙️ contexts/                    # React contexts
+│   │   └── DatabaseContext.jsx
+│   └── 🛠️ utils/                       # Utility functions
+│       └── ScenePatcher.js
+└── 📁 backup/                          # Original components backup
+    └── components/ (all original files)
+```
+
+## 🌐 Application Flow
+
+```
+📱 DOM Root (index.html)
 └── 🎯 React Root (main.jsx)
-    └── �� StrictMode
-        └── 🌐 BrowserRouter (React Router)
-            └── 🗄️ DatabaseProvider (Context)
+    └── 🔄 StrictMode
+        └── 🧭 BrowserRouter (React Router)
+            └── 💾 DatabaseProvider (Context)
                 └── 🏠 App.jsx (Main App Component)
                     ├── 🧭 GlobalNav (Navigation Bar)
-                    │   ├── 🏠 Logo (Home Link)
                     │   ├── 🏠 Dashboard Link
-                    │   ├── �� 3D Visualizer Link  
+                    │   ├── 🎲 3D Visualizer Link
                     │   └── 📚 Collection Link
                     │
                     └── 📄 Routes (Page Content)
-                        ├── �� DashboardPage (/)
+                        ├── 📊 DashboardPage (/)
                         ├── 🎲 PhysicsVisualizerPage (/visualizer) ← MAIN PAGE
                         │   └── 📐 PanelGroup (Resizable Panels)
-                        │       ├── 📁 Left Panel (20% - Scene Selector)
+                        │       ├── 📁 Left Panel (25% - Scene Selector)
                         │       │   └── 🎯 SceneSelector Component
                         │       │       ├── 🔍 Extract Scene Button
                         │       │       ├── 📑 Tab Navigation
                         │       │       │   ├── 📖 Examples Tab
-                        │       │       │   ├── 👤 My Scenes Tab
-                        │       │       │   └── 🌍 Public Tab
+                        │       │       │   ├── 💬 Chat History Tab
+                        │       │       │   └── 👤 My Scenes Tab
                         │       │       ├── 📋 Scene List
                         │       │       │   └── 🎯 Scene Items
                         │       │       │       ├── 📝 Scene Name
                         │       │       │       ├── 👤 Author Info
                         │       │       │       ├── ⚠️ Unsaved Badge
                         │       │       │       └── ⋯ Three-Dot Menu
-                        │       │       │           └── 📋 Dropdown Options
-                        │       │       │               ├── ⚙️ Properties
-                        │       │       │               ├── 💾 Save/Update
-                        │       │       │               ├── 🌍 Share to Public
-                        │       │       │               └── 🗑️ Delete
-                        │       │       └── �� Scene Description
+                        │       │       └── 📝 Scene Description
                         │       │
-                        │       ├── 🔧 Center Panel (60% - 3D Visualizer)
+                        │       ├── 🔧 Center Panel (50% - 3D Visualizer)
                         │       │   └── 🎯 Visualizer Component
                         │       │       ├── 🎮 Three.js Canvas
                         │       │       ├── 🎲 Physics Objects
+                        │       │       ├── 📊 Real-time Graphs
                         │       │       └── 🎨 Scene Rendering
                         │       │
-                        │       └── �� Right Panel (20% - Chat UI)
+                        │       └── 💬 Right Panel (25% - Chat UI)
                         │           └── 🎯 Conversation Component
                         │               ├── 📋 Chat Header
                         │               │   └── 💬 "Chat" Title
-                        │               ├── �� Conversation Box (80%)
+                        │               ├── 💭 Conversation Box (80%)
                         │               │   ├── 🤖 AI Messages
                         │               │   └── 👤 User Messages
                         │               └── ⌨️ Input Section (20%)
@@ -87,16 +118,51 @@
                         │                   └── 📤 Send Button
                         │
                         └── 📚 CollectionPage (/collection)
+```
 
-┌─────────────────────────────────────────────────────────┐
-│ 🏠 Dashboard | �� 3D Visualizer | 📚 Collection        │ ← GlobalNav (same)
-├─────────────────────────────────────────────────────────┤
-│                                                         │
-│                PhysicsVisualizerPage                    │ ← Route content (changed!)
-│                                                         │
-│  ┌─────────┬─────────────────────┬─────────────────────┐ │
-│  │ Scene   │                     │                     │ │
-│  │Selector │    3D Visualizer    │    Chat UI          │ │
-│  │         │                     │                     │ │
-│  └─────────┴─────────────────────┴─────────────────────┘ │
-└─────────────────────────────────────────────────────────┘
+## 🎯 Architecture Benefits
+
+### ✅ **Feature Isolation**
+- Each feature (`visualizer`, `chat`, `collection`) is self-contained
+- Independent development and testing
+- Clear separation of concerns
+
+### ✅ **Scalable Structure**
+- Easy to add new features without affecting others
+- Modular design supports team collaboration
+- Future-proof for expansion
+
+### ✅ **Maintainable Code**
+- Related files grouped together
+- Clear import paths and dependencies
+- Professional folder organization
+
+### ✅ **Reusable Components**
+- Shared UI components in `shared/ui/`
+- Consistent design patterns
+- Reduced code duplication
+
+## 🚀 Development Workflow
+
+1. **New Feature**: Create folder in `src/features/`
+2. **Shared Component**: Add to `src/shared/ui/components/`
+3. **Business Logic**: Place in appropriate `src/core/` subfolder
+4. **Page**: Add to `src/pages/`
+5. **Utility**: Add to `src/utils/`
+
+## 📋 File Organization Legend
+
+- 🎯 **Features**: Business domain components
+- 🔧 **Core**: Business logic & engines
+- 🎨 **Shared**: Reusable UI components
+- 📄 **Pages**: Route-level components
+- ⚙️ **Contexts**: React state management
+- 🛠️ **Utils**: Helper functions
+- 📊 **Assets**: Static resources
+- 🗂️ **Backup**: Original files (safe to delete after testing)
+
+---
+
+**Last Updated**: September 2025
+**Architecture**: Feature-Based with Shared UI Components
+**Status**: ✅ Production Ready

@@ -1,7 +1,7 @@
 import React, { createContext, useContext, useCallback } from 'react';
 // NOTE: Path updated from scenes.js to data.js as per refactor plan
 import { mechanicsExamples } from '../scenes.js';
-import ScenePatcher from '../utils/ScenePatcher';
+import ScenePatcher from '../core/scene/patcher';
 
 const DatabaseContext = createContext();
 

@@ -1,17 +1,18 @@
 import React, { useState, useEffect, useCallback, useRef, Suspense } from 'react';
 import { useLocation, useNavigate, Link } from 'react-router-dom';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
-import { faSpinner, faExclamationTriangle } from '@fortawesome/free-solid-svg-icons';
+import { faSpinner, faExclamationTriangle, faChevronLeft, faChevronRight } from '@fortawesome/free-solid-svg-icons';
 import { PanelGroup, Panel, PanelResizeHandle } from 'react-resizable-panels';
 
-import Visualizer from '../components/Visualizer';
-import SceneSelector from '../components/SceneSelector';
+import Visualizer from '../features/visualizer/components/Visualizer';
+import SceneSelector from '../features/collection/components/SceneSelector';
 import "./physicsvisualizer.css";
 import { useDatabase } from "../contexts/DatabaseContext";
 
 // Lazy load non-critical components
-const SceneDetails = React.lazy(() => import('../components/SceneDetails'));
-const Conversation = React.lazy(() => import('../components/Conversation'));
+const SceneDetails = React.lazy(() => import('../features/collection/components/SceneDetails'));
+const Conversation = React.lazy(() => import('../features/chat/components/Conversation'));
+const IntegratedPanel = React.lazy(() => import('../features/chat/components/IntegratedPanel'));
 
 // Loading component for lazy-loaded components
 const ComponentLoader = () => (
@@ -45,7 +46,6 @@ function PhysicsVisualizerPage() {
   const [error, setError] = useState(null);
   const [conversationHistory, setConversationHistory] = useState([]);
   const [extractedScenes, setExtractedScenes] = useState([]);
-  const [rightPanelView, setRightPanelView] = useState('chat'); // 'chat' or 'details'
   const [currentChatId, setCurrentChatId] = useState(null);
   const [currentChat, setCurrentChat] = useState(null);
   const [chatRefreshTrigger, setChatRefreshTrigger] = useState(0);
@@ -53,6 +53,16 @@ function PhysicsVisualizerPage() {
   const [isPreviewMode, setIsPreviewMode] = useState(false);
   const [sceneSelectorTab, setSceneSelectorTab] = useState('examples'); // Track SceneSelector tab
   const [capturedThumbnail, setCapturedThumbnail] = useState(null);
+  const [uiMode, setUiMode] = useState('simple'); // 'simple' or 'advanced'
+  const [rightPanelView, setRightPanelView] = useState(uiMode === 'simple' ? 'integrated' : 'chat'); // 'chat', 'details', or 'integrated'
+
+  // Panel management states
+  const [leftSize, setLeftSize] = useState(20);
+  const [rightSize, setRightSize] = useState(20);
+  const [leftCollapsed, setLeftCollapsed] = useState(false);
+  const [rightCollapsed, setRightCollapsed] = useState(false);
+  const [leftExpandedSize, setLeftExpandedSize] = useState(20);
+  const [rightExpandedSize, setRightExpandedSize] = useState(20);
 
   // Ref to hold the most up-to-date scene state for saving
   const sceneRef = useRef(null);
@@ -611,6 +621,15 @@ function PhysicsVisualizerPage() {
     }
   }, []);
 
+  // Panel toggle handlers
+  const toggleLeftPanel = useCallback(() => {
+    setLeftCollapsed(!leftCollapsed);
+  }, [leftCollapsed]);
+
+  const toggleRightPanel = useCallback(() => {
+    setRightCollapsed(!rightCollapsed);
+  }, [rightCollapsed]);
+
 
 
   // --- UI Rendering ---
@@ -726,7 +745,24 @@ function PhysicsVisualizerPage() {
       <div className="visualizer-main-content">
         <PanelGroup direction="horizontal" className="visualizer-panels">
           {/* Left Panel - Scene Selector */}
-          <Panel defaultSize={20} minSize={15} maxSize={30} className="left-panel">
+          <Panel
+            size={leftCollapsed ? 0 : leftSize}
+            minSize={0}
+            maxSize={30}
+            collapsible={true}
+            collapsedSize={0}
+            onCollapse={() => {
+              setLeftExpandedSize(leftSize);
+              setLeftCollapsed(true);
+            }}
+            onExpand={() => setLeftCollapsed(false)}
+            onResize={(size) => {
+              if (!leftCollapsed) {
+                setLeftSize(size);
+              }
+            }}
+            className={`left-panel ${leftCollapsed ? 'collapsed' : ''}`}
+          >
             <div className="panel-content">
                 <SceneSelector
                   currentScene={scene}
@@ -748,6 +784,7 @@ function PhysicsVisualizerPage() {
                   refreshTrigger={chatRefreshTrigger}
                   activeTab={sceneSelectorTab}
                   onTabChange={setSceneSelectorTab}
+                  uiMode={uiMode}
                 />
             </div>
           </Panel>
@@ -765,6 +802,8 @@ function PhysicsVisualizerPage() {
                 onAcceptChanges={handleAcceptChanges}
                 onRejectChanges={handleRejectChanges}
                 onThumbnailCapture={handleThumbnailCapture}
+                uiMode={uiMode}
+                onModeChange={setUiMode}
               />
               {sceneSwitching && (
                 <div className="scene-loading-overlay">
@@ -779,29 +818,30 @@ function PhysicsVisualizerPage() {
 
           <PanelResizeHandle className="resize-handle" />
 
-          {/* Right Panel - Toggle between Chat and Scene Details */}
-          <Panel defaultSize={20} minSize={15} maxSize={30} className="right-panel">
+          {/* Right Panel - Mode-dependent content */}
+          <Panel
+            size={rightCollapsed ? 0 : rightSize}
+            minSize={0}
+            maxSize={30}
+            collapsible={true}
+            collapsedSize={0}
+            onCollapse={() => {
+              setRightExpandedSize(rightSize);
+              setRightCollapsed(true);
+            }}
+            onExpand={() => setRightCollapsed(false)}
+            onResize={(size) => {
+              if (!rightCollapsed) {
+                setRightSize(size);
+              }
+            }}
+            className={`right-panel ${rightCollapsed ? 'collapsed' : ''}`}
+          >
             <div className="panel-content">
-              {/* Toggle Buttons */}
-              <div className="panel-toggle-buttons">
-                <button
-                  className={`toggle-button ${rightPanelView === 'chat' ? 'active' : ''}`}
-                  onClick={() => setRightPanelView('chat')}
-                >
-                  💬 Chat
-                </button>
-                <button
-                  className={`toggle-button ${rightPanelView === 'details' ? 'active' : ''}`}
-                  onClick={() => setRightPanelView('details')}
-                >
-                  📋 Details
-                </button>
-              </div>
-
-              {/* Conditional Content */}
+              {/* Mode-dependent content */}
               <Suspense fallback={<ComponentLoader />}>
-                {rightPanelView === 'chat' ? (
-                  <Conversation
+                {uiMode === 'simple' ? (
+                  <IntegratedPanel
                     updateConversation={handleUpdateConversation}
                     conversationHistory={conversationHistory}
                     initialMessage="Hello! I'm a Physics AI Agent. I can help you with physics questions and also discuss how to represent described scenes in a 3D visualizer JSON format. How can I assist you with physics today?"
@@ -813,12 +853,59 @@ function PhysicsVisualizerPage() {
                     onPreviewMode={setIsPreviewMode}
                   />
                 ) : (
-                  <SceneDetails scene={scene} />
+                  <>
+                    {/* Toggle Buttons for Advanced Mode */}
+                    <div className="panel-toggle-buttons">
+                      <button
+                        className={`toggle-button ${rightPanelView === 'chat' ? 'active' : ''}`}
+                        onClick={() => setRightPanelView('chat')}
+                      >
+                        💬 Chat
+                      </button>
+                      <button
+                        className={`toggle-button ${rightPanelView === 'details' ? 'active' : ''}`}
+                        onClick={() => setRightPanelView('details')}
+                      >
+                        📋 Details
+                      </button>
+                    </div>
+
+                    {/* Conditional Content for Advanced Mode */}
+                    {rightPanelView === 'chat' ? (
+                      <Conversation
+                        updateConversation={handleUpdateConversation}
+                        conversationHistory={conversationHistory}
+                        initialMessage="Hello! I'm a Physics AI Agent. I can help you with physics questions and also discuss how to represent described scenes in a 3D visualizer JSON format. How can I assist you with physics today?"
+                        currentScene={scene}
+                        onSceneSwitch={handleSceneSwitch}
+                        onNewChat={handleNewChat}
+                        onSceneUpdate={handleAISceneUpdate}
+                        onPendingChanges={setPendingChanges}
+                        onPreviewMode={setIsPreviewMode}
+                      />
+                    ) : (
+                      <SceneDetails scene={scene} />
+                    )}
+                  </>
                 )}
               </Suspense>
             </div>
           </Panel>
         </PanelGroup>
+
+        {/* Panel Toggle Buttons */}
+        <button
+          className={`panel-toggle-button left-edge ${leftCollapsed ? '' : 'open'}`}
+          onClick={toggleLeftPanel}
+        >
+          <FontAwesomeIcon icon={faChevronRight} />
+        </button>
+        <button
+          className={`panel-toggle-button right-edge ${rightCollapsed ? '' : 'open'}`}
+          onClick={toggleRightPanel}
+        >
+          <FontAwesomeIcon icon={faChevronLeft} />
+        </button>
       </div>
     </div>
   );

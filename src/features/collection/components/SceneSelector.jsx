@@ -1,9 +1,9 @@
 import React, { useState, useEffect, useCallback } from 'react';
-import { useDatabase } from '../contexts/DatabaseContext';
+import { useDatabase } from '../../../contexts/DatabaseContext';
 import './SceneSelector.css';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { faUser, faBookOpen, faSpinner, faExclamationTriangle, faEllipsisV, faTrash, faSave, faEdit, faShare, faCog, faComments, faTimes, faCube } from '@fortawesome/free-solid-svg-icons';
-import extractPrompt from '../prompts/extractPrompt.txt?raw';
+import extractPrompt from '../../../core/ai/prompts/extractPrompt.txt?raw';
 
 function SceneSelector({
     currentScene,
@@ -24,7 +24,8 @@ function SceneSelector({
     onSceneButtonClick,
     refreshTrigger,
     activeTab: externalActiveTab,
-    onTabChange: externalOnTabChange
+    onTabChange: externalOnTabChange,
+    uiMode = 'simple' // 'simple' or 'advanced'
 }) {
     // Use external tab state if provided, otherwise use internal state
     const [internalActiveTab, setInternalActiveTab] = useState('examples');
@@ -429,7 +430,9 @@ function SceneSelector({
 
                 <div className="scene-tabs">
                     <button className={activeTab === 'examples' ? 'active' : ''} onClick={() => setActiveTab('examples')}><FontAwesomeIcon icon={faBookOpen} /> Examples</button>
-                    <button className={activeTab === 'chats' ? 'active' : ''} onClick={() => setActiveTab('chats')}><FontAwesomeIcon icon={faComments} /> Chat History</button>
+                    {uiMode === 'advanced' && (
+                        <button className={activeTab === 'chats' ? 'active' : ''} onClick={() => setActiveTab('chats')}><FontAwesomeIcon icon={faComments} /> Chat History</button>
+                    )}
                     <button className={activeTab === 'user' ? 'active' : ''} onClick={() => setActiveTab('user')}><FontAwesomeIcon icon={faUser} /> My Scenes
                         {extractedScenes.length > 0 && <span className="unsaved-count">({extractedScenes.length})</span>}
                     </button>

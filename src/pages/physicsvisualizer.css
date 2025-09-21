@@ -100,6 +100,12 @@
 .right-panel {
   background-color: var(--bg-panel);
   border-right: 1px solid var(--border-color-medium);
+  transition: width 0.3s ease-in-out;
+}
+
+.left-panel.collapsed,
+.right-panel.collapsed {
+  overflow: hidden;
 }
 
 .right-panel {

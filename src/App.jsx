@@ -4,7 +4,7 @@ import { Routes, Route } from 'react-router-dom';
 import DashboardPage from './pages/DashboardPage';
 import CollectionPage from './pages/CollectionPage';
 import PhysicsVisualizerPage from './pages/PhysicsVisualizerPage';
-import GlobalNav from './components/GlobalNav';
+import GlobalNav from './shared/ui/components/GlobalNav';
 
 function App() {
   return (

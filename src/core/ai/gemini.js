@@ -1,6 +1,6 @@
 // Import prompt files as raw text using Vite's ?raw import
-import agentPromptRaw from '../prompts/agentPrompt.txt?raw';
-import extractPromptRaw from '../prompts/extractPrompt.txt?raw';
+import agentPromptRaw from './prompts/agentPrompt.txt?raw';
+import extractPromptRaw from './prompts/extractPrompt.txt?raw';
 
 // Gemini AI Manager for Physics Chat Integration
 class GeminiAIManager {

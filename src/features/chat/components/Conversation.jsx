@@ -1,7 +1,7 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { Send, Plus } from 'lucide-react';
-import GeminiAIManager from '../utils/GeminiAIManager';
-import ScenePatcher from '../utils/ScenePatcher';
+import GeminiAIManager from '../../../core/ai/gemini';
+import ScenePatcher from '../../../core/scene/patcher';
 import './Conversation.css';
 
 function Conversation({

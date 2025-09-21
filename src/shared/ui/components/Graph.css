@@ -1,0 +1,127 @@
+/* --- MAIN OVERLAY CONTAINER (Unchanged) --- */
+.overlay-graph {
+  background-color: rgba(25, 35, 51, 0.05);
+  backdrop-filter: blur(1px);
+  -webkit-backdrop-filter: blur(1px);
+  border: 1px solid rgba(255, 255, 255, 0.15);
+  border-radius: 10px;
+  box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.37);
+  color: #e0e0e0;
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  z-index: 1000; /* ensure overlay sits above scene */
+}
+
+/* --- HEADER (Unchanged) --- */
+.graph-header {
+  padding: 8px 12px;
+  background-color: rgba(255, 255, 255, 0.1);
+  cursor: grab;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  user-select: none;
+  flex-shrink: 0;
+}
+.graph-header:active { cursor: grabbing; }
+.title-text {
+  font-weight: 600; font-size: 14px; white-space: nowrap;
+  overflow: hidden; text-overflow: ellipsis;
+}
+.close-btn {
+  background: none; border: none; color: #a0a0a0; font-size: 22px;
+  line-height: 1; cursor: pointer; padding: 0 4px; transition: color 0.2s ease;
+}
+.close-btn:hover { color: #ffffff; }
+
+/* --- LAYOUT WRAPPERS (Unchanged) --- */
+.graph-content-wrapper {
+  flex: 1 1 auto; display: flex; flex-direction: column;
+  padding: 12px; gap: 12px; min-height: 0;
+}
+.chart-area-wrapper {
+  flex: 1 1 auto; position: relative; min-height: 0;
+}
+
+/* Make the chart fill available space reliably */
+.chart-area-wrapper > canvas,
+.chart-area-wrapper canvas {
+  width: 100% !important;
+  height: 100% !important;
+  display: block;
+}
+
+/* Sometimes react-chartjs-2 wraps canvas in a div; make it stretch */
+.chart-area-wrapper > div {
+  position: absolute;
+  inset: 0;
+}
+
+/* --- CONTROLS (Unchanged) --- */
+.graph-controls {
+  flex-shrink: 0; display: flex; gap: 10px; align-items: center;
+  flex-wrap: wrap; font-size: 13px;
+}
+.graph-controls > * { flex: 0 0 auto; }
+.graph-controls select { max-width: 220px; }
+.graph-controls select, .graph-controls input {
+  background-color: rgba(0, 0, 0, 0.3); color: #e0e0e0;
+  border: 1px solid rgba(255, 255, 255, 0.2); border-radius: 5px;
+  padding: 5px 8px; font-size: 13px; transition: border-color 0.2s;
+}
+.graph-controls select:focus, .graph-controls input:focus {
+  outline: none; border-color: #3b82f6;
+  background: #3d3d3d;
+  box-shadow: 0 0 0 2px rgba(59, 130, 246, 0.25);
+}
+.graph-controls label {
+  display: flex; align-items: center; gap: 6px; cursor: pointer;
+}
+.live-controls {
+  display: flex; align-items: center; gap: 8px; margin-left: auto;
+}
+.live-indicator {
+  width: 10px; height: 10px; border-radius: 50%;
+  background-color: #6b7280; transition: background-color 0.3s ease;
+}
+.live-indicator.active {
+  background-color: #10b981; box-shadow: 0 0 8px #10b981;
+}
+.live-controls button {
+  background-color: #374151; color: #e5e7eb; border: 1px solid #4b5563;
+  border-radius: 5px; padding: 5px 10px; font-size: 13px; font-weight: 500;
+  cursor: pointer; transition: background-color 0.2s, border-color 0.2s;
+}
+.live-controls button:hover:not(:disabled) {
+  background-color: #4b5563; border-color: #6b7280;
+}
+.live-controls button:disabled { opacity: 0.5; cursor: not-allowed; }
+
+/* Visible resize handles for react-rnd */
+.react-rnd-resizable-handle {
+  width: 12px; height: 12px; opacity: 0.7;
+}
+.react-rnd-resizable-handle:hover { opacity: 1; }
+.react-rnd-resizable-handle-se,
+.react-rnd-resizable-handle-sw,
+.react-rnd-resizable-handle-ne,
+.react-rnd-resizable-handle-nw {
+  background: linear-gradient(135deg, rgba(255,255,255,0.6), rgba(255,255,255,0.1));
+  border: 1px solid rgba(255,255,255,0.25);
+  border-radius: 3px;
+}
+
+/* Subtle hover highlight for the whole overlay */
+.overlay-graph:hover {
+  border-color: rgba(255, 255, 255, 0.25);
+}
+
+/* Compact mode for small widths */
+@media (max-width: 520px) {
+  .graph-header { padding: 6px 10px; }
+  .title-text { font-size: 13px; }
+  .graph-controls { gap: 8px; }
+  .graph-controls select, .graph-controls input, .live-controls button { font-size: 12px; padding: 4px 8px; }
+}
