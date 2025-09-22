@@ -25,6 +25,7 @@ class Workspace {
         temperature: 0.7
       }
     };
+
     this.settings = {
       uiMode: 'simple', // 'simple' or 'advanced'
       showVectors: false,
@@ -38,6 +39,9 @@ class Workspace {
       isPublic: false,
       authorId: null
     };
+
+    // Track which chat last modified each scene
+    this.sceneChatLinks = new Map(); // sceneId -> chatId
   }
 
   createDefaultScene() {
@@ -47,7 +51,17 @@ class Workspace {
       gravity: [0, -9.81, 0],
       hasGround: true,
       contactMaterial: { friction: 0.5, restitution: 0.7 },
-      objects: [],
+      objects: [
+        {
+          id: 'test-box',
+          type: 'Box',
+          mass: 1,
+          dimensions: [2, 2, 2],
+          position: [0, 5, 0],
+          velocity: [0, 0, 0],
+          color: '#ff0000'
+        }
+      ],
       camera: { position: [10, 5, 25], fov: 50 }
     };
   }
@@ -78,9 +92,9 @@ class Workspace {
 
   // Update current scene
   updateCurrentScene(updates) {
-    const currentScene = this.getCurrentScene();
-    if (currentScene) {
-      Object.assign(currentScene, updates);
+    if (this.currentSceneIndex >= 0 && this.currentSceneIndex < this.scenes.length) {
+      // Replace the entire scene object to trigger React re-renders
+      this.scenes[this.currentSceneIndex] = { ...this.scenes[this.currentSceneIndex], ...updates };
       this.metadata.updatedAt = new Date().toISOString();
     }
     return this;
@@ -147,6 +161,29 @@ class Workspace {
     return true; // Simplified for now
   }
 
+  // Link a scene to a chat (when AI modifies a scene)
+  linkSceneToChat(sceneId, chatId) {
+    this.sceneChatLinks.set(sceneId, chatId);
+    this.metadata.updatedAt = new Date().toISOString();
+    return this;
+  }
+
+  // Get the chat ID that last modified a scene
+  getChatForScene(sceneId) {
+    return this.sceneChatLinks.get(sceneId);
+  }
+
+  // Get all scenes linked to a specific chat
+  getScenesForChat(chatId) {
+    const sceneIds = [];
+    for (const [sceneId, linkedChatId] of this.sceneChatLinks) {
+      if (linkedChatId === chatId) {
+        sceneIds.push(sceneId);
+      }
+    }
+    return sceneIds;
+  }
+
   // Export for saving
   toJSON() {
     return {
@@ -157,7 +194,8 @@ class Workspace {
       currentSceneIndex: this.currentSceneIndex,
       chat: this.chat,
       settings: this.settings,
-      metadata: this.metadata
+      metadata: this.metadata,
+      sceneChatLinks: Object.fromEntries(this.sceneChatLinks) // Convert Map to object
     };
   }
 
@@ -185,6 +223,11 @@ class Workspace {
       isPublic: false,
       authorId: null
     };
+
+    // Restore scene-chat links
+    if (data.sceneChatLinks) {
+      workspace.sceneChatLinks = new Map(Object.entries(data.sceneChatLinks));
+    }
 
     return workspace;
   }

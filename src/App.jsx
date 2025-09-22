@@ -1,24 +1,16 @@
 // src/App.jsx
 import React from 'react';
-import { Routes, Route } from 'react-router-dom';
-import DashboardPage from './pages/DashboardPage';
-import CollectionPage from './pages/CollectionPage';
-import PhysicsVisualizerPage from './pages/PhysicsVisualizerPage';
-import GlobalNav from './shared/ui/components/GlobalNav';
+import { WorkspaceProvider } from './contexts/WorkspaceContext';
+import { DatabaseProvider } from './contexts/DatabaseContext';
+import Workbench from './workbench/Workbench';
 
 function App() {
   return (
-    <>
-      <GlobalNav />
-      <div className="app-content">
-        <Routes>
-          <Route path="/" element={<DashboardPage />} />
-          <Route path="/visualizer" element={<PhysicsVisualizerPage />} />
-          <Route path="/collection" element={<CollectionPage />} />
-          {/* You can add more routes here, e.g., for specific scenes or user profiles */}
-        </Routes>
-      </div>
-    </>
+    <DatabaseProvider>
+      <WorkspaceProvider>
+        <Workbench />
+      </WorkspaceProvider>
+    </DatabaseProvider>
   );
 }
 

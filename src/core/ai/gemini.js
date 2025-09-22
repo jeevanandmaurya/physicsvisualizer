@@ -1,6 +1,7 @@
 // Import prompt files as raw text using Vite's ?raw import
 import agentPromptRaw from './prompts/agentPrompt.txt?raw';
 import extractPromptRaw from './prompts/extractPrompt.txt?raw';
+import ScenePatcher from '../scene/patcher';
 
 // Gemini AI Manager for Physics Chat Integration
 class GeminiAIManager {
@@ -380,86 +381,23 @@ class GeminiAIManager {
     return allPatches;
   }
 
-  // Apply JSON patches to scene
+  // Apply JSON patches to scene using the proper ScenePatcher
   applyScenePatches(scene, patches) {
-    console.log('🔧 Applying scene patches...');
+    console.log('🔧 GeminiAIManager: Applying scene patches using ScenePatcher...');
 
-    if (!patches || !Array.isArray(patches)) {
-      console.warn('⚠️ No valid patches to apply');
-      return scene;
+    if (!this.scenePatcher) {
+      this.scenePatcher = new ScenePatcher();
     }
 
-    let updatedScene = JSON.parse(JSON.stringify(scene)); // Deep clone
+    const result = this.scenePatcher.applyPatches(scene, patches);
 
-    for (let i = 0; i < patches.length; i++) {
-      const patch = patches[i];
-      console.log(`🔄 Applying patch ${i + 1}:`, patch);
-
-      try {
-        if (patch.op === 'add' && patch.path === '/objects/-') {
-          // Add new object to objects array
-          if (!updatedScene.objects) updatedScene.objects = [];
-          updatedScene.objects.push(patch.value);
-          console.log(`➕ Added new object: ${patch.value.id || 'unnamed'}`);
-        }
-        else if (patch.op === 'replace') {
-          // Replace property value
-          const pathParts = patch.path.substring(1).split('/');
-          let current = updatedScene;
-
-          for (let j = 0; j < pathParts.length - 1; j++) {
-            const part = pathParts[j];
-            if (part === 'objects' && !isNaN(pathParts[j + 1])) {
-              // Handle array indexing
-              const index = parseInt(pathParts[j + 1]);
-              if (!current[part]) current[part] = [];
-              if (!current[part][index]) current[part][index] = {};
-              current = current[part][index];
-              j++; // Skip next part as it's the index
-            } else {
-              if (!current[part]) current[part] = {};
-              current = current[part];
-            }
-          }
-
-          const lastPart = pathParts[pathParts.length - 1];
-          current[lastPart] = patch.value;
-          console.log(`🔄 Replaced ${patch.path} with:`, patch.value);
-        }
-        else if (patch.op === 'remove') {
-          // Remove property or object
-          const pathParts = patch.path.substring(1).split('/');
-          let current = updatedScene;
-
-          for (let j = 0; j < pathParts.length - 1; j++) {
-            const part = pathParts[j];
-            if (!current[part]) {
-              console.warn(`⚠️ Path not found: ${patch.path}`);
-              break;
-            }
-            current = current[part];
-          }
-
-          const lastPart = pathParts[pathParts.length - 1];
-          if (Array.isArray(current) && !isNaN(lastPart)) {
-            current.splice(parseInt(lastPart), 1);
-            console.log(`🗑️ Removed array item at index ${lastPart}`);
-          } else {
-            delete current[lastPart];
-            console.log(`🗑️ Removed property: ${lastPart}`);
-          }
-        }
-        else {
-          console.warn(`⚠️ Unsupported patch operation: ${patch.op}`);
-        }
-      } catch (error) {
-        console.error(`❌ Failed to apply patch ${i + 1}:`, error);
-        console.error('Patch:', patch);
-      }
+    if (result.success) {
+      console.log(`✅ Successfully applied ${result.appliedPatches}/${result.totalPatches} patches`);
+      return result.scene;
+    } else {
+      console.error('❌ Failed to apply scene patches:', result.error);
+      return scene; // Return original scene on failure
     }
-
-    console.log('✅ Scene patches applied successfully');
-    return updatedScene;
   }
 
   // Enhanced processUserMessage with JSON patch support

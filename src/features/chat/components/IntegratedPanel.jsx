@@ -14,7 +14,8 @@ function IntegratedPanel({
   onNewChat,
   onSceneUpdate,
   onPendingChanges,
-  onPreviewMode
+  onPreviewMode,
+  chatId
 }) {
   const [activeView, setActiveView] = useState('chat'); // 'chat', 'details', 'hints'
 
@@ -138,6 +139,7 @@ function IntegratedPanel({
             onSceneUpdate={onSceneUpdate}
             onPendingChanges={onPendingChanges}
             onPreviewMode={onPreviewMode}
+            chatId={chatId}
           />
         )}
 

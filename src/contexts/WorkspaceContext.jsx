@@ -8,13 +8,83 @@ export function WorkspaceProvider({ children }) {
   const database = useDatabase();
   const [workspaceManager] = useState(() => new WorkspaceManager(database));
   const [currentWorkspace, setCurrentWorkspace] = useState(null);
+  const [currentView, setCurrentView] = useState('dashboard'); // Add currentView state
+  const [workspaceUpdateTrigger, setWorkspaceUpdateTrigger] = useState(0); // Force re-renders
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
 
-  // Initialize workspace manager listeners
+  // Visualizer runtime state
+  const [isPlaying, setIsPlaying] = useState(false);
+  const [simulationTime, setSimulationTime] = useState(0);
+  const [fps, setFps] = useState(0);
+  const [showVelocityVectors, setShowVelocityVectors] = useState(false);
+  const [vectorScale, setVectorScale] = useState(1);
+  const [openGraphs, setOpenGraphs] = useState([]);
+  const [resetTrigger, setResetTrigger] = useState(0);
+
+  const togglePlayPause = useCallback(() => {
+    setIsPlaying(prev => !prev);
+  }, []);
+
+  const play = useCallback(() => {
+    setIsPlaying(true);
+  }, []);
+
+  const pause = useCallback(() => {
+    setIsPlaying(false);
+  }, []);
+
+  const resetSimulation = useCallback(() => {
+    setIsPlaying(false);
+    setSimulationTime(0);
+    setFps(0);
+    setResetTrigger(Date.now());
+    // Note: Actual object reset happens in Visualizer
+  }, []);
+
+  const updateSimulationTime = useCallback((time) => {
+    setSimulationTime(time);
+  }, []);
+
+  const updateFps = useCallback((newFps) => {
+    setFps(newFps);
+  }, []);
+
+  const toggleVelocityVectors = useCallback(() => {
+    setShowVelocityVectors(prev => !prev);
+  }, []);
+
+  const updateVectorScale = useCallback((scale) => {
+    setVectorScale(scale);
+  }, []);
+
+  const addGraph = useCallback((type) => {
+    const id = `graph-${Date.now()}`;
+    setOpenGraphs(prev => [...prev, { id, initialType: type }]);
+  }, []);
+
+  const removeGraph = useCallback((id) => {
+    setOpenGraphs(prev => prev.filter(g => g.id !== id));
+  }, []);
+
+  const saveCurrentScene = useCallback(async (sceneData) => {
+    try {
+      const savedId = await database.saveScene(sceneData);
+      console.log('Scene saved:', savedId);
+      return savedId;
+    } catch (err) {
+      console.error('Save failed:', err);
+      throw err;
+    }
+  }, [database]);
+
+  // Initialize workspace manager listeners and create default workspace
   useEffect(() => {
     const handleWorkspaceChange = (event, workspace) => {
+      // Use the workspace object directly (it has methods)
       setCurrentWorkspace(workspace);
+      // Increment trigger to force re-renders
+      setWorkspaceUpdateTrigger(prev => prev + 1);
       setError(null);
     };
 
@@ -24,6 +94,13 @@ export function WorkspaceProvider({ children }) {
 
     workspaceManager.addListener(handleWorkspaceChange);
     workspaceManager.addListener(handleWorkspaceError);
+
+    // Create default workspace if none exists
+    if (!workspaceManager.getCurrentWorkspace()) {
+      console.log('🏗️ Creating default workspace...');
+      const defaultWorkspace = workspaceManager.createWorkspace('Default Workspace');
+      workspaceManager.setCurrentWorkspace(defaultWorkspace);
+    }
 
     // Start auto-save
     workspaceManager.startAutoSave();
@@ -150,11 +227,42 @@ export function WorkspaceProvider({ children }) {
     updateSettings({ uiMode: mode });
   }, [updateSettings]);
 
+  // Scene-chat linking methods
+  const linkSceneToChat = useCallback((sceneId, chatId) => {
+    updateWorkspace(workspace => workspace.linkSceneToChat(sceneId, chatId));
+  }, [updateWorkspace]);
+
+  const getChatForScene = useCallback((sceneId) => {
+    return currentWorkspace?.getChatForScene(sceneId);
+  }, [currentWorkspace]);
+
+  const getScenesForChat = useCallback((chatId) => {
+    return currentWorkspace?.getScenesForChat(chatId) || [];
+  }, [currentWorkspace]);
+
   const contextValue = {
     // State
     currentWorkspace,
+    currentView,
+    workspaceUpdateTrigger, // Include trigger for re-renders
     loading,
     error,
+
+    // Visualizer state
+    isPlaying,
+    simulationTime,
+    fps,
+    showVelocityVectors,
+    vectorScale,
+    openGraphs,
+    resetTrigger,
+
+    // View management
+    setCurrentView,
+
+    // Workspace data
+    workspaceScenes: currentWorkspace?.scenes || [],
+    workspaceChats: currentWorkspace?.chat?.messages || [],
 
     // Workspace operations
     createWorkspace,
@@ -164,12 +272,39 @@ export function WorkspaceProvider({ children }) {
     deleteWorkspace,
     getAllWorkspaces,
 
+    // Scene management methods
+    getCurrentScene,
+    setCurrentScene,
+    addScene,
+    updateCurrentScene,
+    duplicateCurrentScene,
+    deleteScene,
+
     // Convenience methods
     updateScene,
     addMessage,
     updateSettings,
     getUIMode,
     setUIMode,
+
+    // Visualizer actions
+    togglePlayPause,
+    play,
+    pause,
+    resetSimulation,
+    updateSimulationTime,
+    updateFps,
+    toggleVelocityVectors,
+    updateVectorScale,
+    addGraph,
+    removeGraph,
+    saveCurrentScene,
+    setIsPlaying,
+
+    // Scene-chat linking methods
+    linkSceneToChat,
+    getChatForScene,
+    getScenesForChat,
 
     // Direct access to manager for advanced operations
     workspaceManager
@@ -192,7 +327,7 @@ export function useWorkspace() {
 
 // Hook for workspace-aware components
 export function useWorkspaceScene() {
-  const { currentWorkspace, getCurrentScene, updateCurrentScene, setCurrentScene, addScene, duplicateCurrentScene, deleteScene } = useWorkspace();
+  const { currentWorkspace, workspaceUpdateTrigger, getCurrentScene, updateCurrentScene, setCurrentScene, addScene, duplicateCurrentScene, deleteScene } = useWorkspace();
 
   return {
     scene: getCurrentScene(),

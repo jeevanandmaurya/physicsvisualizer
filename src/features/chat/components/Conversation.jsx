@@ -2,6 +2,7 @@ import React, { useState, useRef, useEffect } from 'react';
 import { Send, Plus } from 'lucide-react';
 import GeminiAIManager from '../../../core/ai/gemini';
 import ScenePatcher from '../../../core/scene/patcher';
+import { useWorkspace } from '../../../contexts/WorkspaceContext';
 import './Conversation.css';
 
 function Conversation({
@@ -13,8 +14,10 @@ function Conversation({
   onNewChat,
   onSceneUpdate, // New prop for AI scene modifications
   onPendingChanges, // Callback to set pending changes in parent
-  onPreviewMode // Callback to set preview mode in parent
+  onPreviewMode, // Callback to set preview mode in parent
+  chatId // ID of the current chat for linking scenes
 }) {
+  const { linkSceneToChat } = useWorkspace();
   const [messages, setMessages] = useState([
     {
       id: 1,
@@ -107,6 +110,12 @@ function Conversation({
         console.log('AI Scene Update Detected');
         console.log('Original scene objects:', currentScene?.objects?.length || 0);
         console.log('Updated scene objects:', aiResponse.updatedScene.objects?.length || 0);
+
+        // Link the scene to this chat when AI modifies it
+        if (chatId && currentScene?.id) {
+          linkSceneToChat(currentScene.id, chatId);
+          console.log(`🔗 Linked scene ${currentScene.id} to chat ${chatId}`);
+        }
 
         // Pass changes to parent for preview
         if (onPendingChanges) {

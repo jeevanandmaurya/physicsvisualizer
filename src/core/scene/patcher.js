@@ -159,11 +159,17 @@ class ScenePatcher {
     const { op, path, value } = patch;
 
     try {
-      if (op === 'add' && path === '/objects/-') {
-        // Add new object to objects array
-        if (!scene.objects) scene.objects = [];
-        scene.objects.push(value);
-        return { success: true, scene };
+      if (op === 'add') {
+        if (path === '/objects/-') {
+          // Add new object to objects array
+          if (!scene.objects) scene.objects = [];
+          scene.objects.push(value);
+          return { success: true, scene };
+        } else {
+          // General add: create path and set value
+          const result = this.setValueByPath(scene, path, value);
+          return result;
+        }
       }
 
       if (op === 'replace') {
@@ -184,7 +190,7 @@ class ScenePatcher {
     }
   }
 
-  // Set value by JSON path
+  // Set value by JSON path (supports add/replace)
   setValueByPath(obj, path, value) {
     const pathParts = path.substring(1).split('/').filter(p => p);
     let current = obj;
@@ -196,9 +202,27 @@ class ScenePatcher {
         // Handle array indexing for objects
         const index = parseInt(pathParts[i + 1]);
         if (!current[part]) current[part] = [];
+        if (current[part].length <= index) {
+          // Extend array if index is beyond current length
+          while (current[part].length < index) {
+            current[part].push({});
+          }
+        }
         if (!current[part][index]) current[part][index] = {};
         current = current[part][index];
         i++; // Skip next part
+      } else if (part.endsWith(']') && part.startsWith('[')) {
+        // Handle array index like /objects[1]/position
+        const arrayName = part.slice(0, -1);
+        const index = parseInt(part.slice(1, -1));
+        if (!current[arrayName]) current[arrayName] = [];
+        if (current[arrayName].length <= index) {
+          while (current[arrayName].length < index) {
+            current[arrayName].push({});
+          }
+        }
+        if (!current[arrayName][index]) current[arrayName][index] = {};
+        current = current[arrayName][index];
       } else {
         if (!current[part]) current[part] = {};
         current = current[part];
@@ -206,7 +230,18 @@ class ScenePatcher {
     }
 
     const lastPart = pathParts[pathParts.length - 1];
-    current[lastPart] = value;
+    if (lastPart === '-') {
+      // Append to array
+      const arrayPath = pathParts.slice(0, -1).join('/');
+      const array = this.getValueByPath(obj, '/' + arrayPath);
+      if (Array.isArray(array)) {
+        array.push(value);
+      } else {
+        return { success: false, scene: obj, error: 'Can only append to arrays with -' };
+      }
+    } else {
+      current[lastPart] = value;
+    }
 
     return { success: true, scene: obj };
   }
@@ -233,6 +268,23 @@ class ScenePatcher {
     }
 
     return { success: true, scene: obj };
+  }
+
+  // Helper to get value by path (for validation)
+  getValueByPath(obj, path) {
+    const pathParts = path.substring(1).split('/').filter(p => p);
+    let current = obj;
+
+    for (const part of pathParts) {
+      if (Array.isArray(current) && !isNaN(part)) {
+        current = current[parseInt(part)];
+      } else {
+        current = current[part];
+      }
+      if (current === undefined) return undefined;
+    }
+
+    return current;
   }
 
   // Create a diff between two scenes

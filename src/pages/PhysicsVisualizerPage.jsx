@@ -1,13 +1,83 @@
 import React, { useState, useEffect, useCallback, useRef, Suspense } from 'react';
 import { useLocation, useNavigate, Link } from 'react-router-dom';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
-import { faSpinner, faExclamationTriangle, faChevronLeft, faChevronRight } from '@fortawesome/free-solid-svg-icons';
+import { faSpinner, faExclamationTriangle, faChevronLeft, faChevronRight, faFolderOpen, faComments, faCog, faSearch, faChartBar } from '@fortawesome/free-solid-svg-icons';
 import { PanelGroup, Panel, PanelResizeHandle } from 'react-resizable-panels';
 
 import Visualizer from '../features/visualizer/components/Visualizer';
 import SceneSelector from '../features/collection/components/SceneSelector';
 import "./physicsvisualizer.css";
 import { useDatabase } from "../contexts/DatabaseContext";
+import { useWorkspace, useWorkspaceScene, useWorkspaceChat, useWorkspaceSettings } from "../contexts/WorkspaceContext";
+import ScenePatcher from '../core/scene/patcher';
+
+// VS Code-inspired Layout Components
+const ActivityBar = ({ activeView, onViewChange }) => (
+  <div className="activity-bar">
+    <button
+      className={`activity-button ${activeView === 'explorer' ? 'active' : ''}`}
+      onClick={() => onViewChange('explorer')}
+      title="Explorer"
+    >
+      <FontAwesomeIcon icon={faFolderOpen} />
+    </button>
+    <button
+      className={`activity-button ${activeView === 'chat' ? 'active' : ''}`}
+      onClick={() => onViewChange('chat')}
+      title="Chat"
+    >
+      <FontAwesomeIcon icon={faComments} />
+    </button>
+    <button
+      className={`activity-button ${activeView === 'search' ? 'active' : ''}`}
+      onClick={() => onViewChange('search')}
+      title="Search"
+    >
+      <FontAwesomeIcon icon={faSearch} />
+    </button>
+    <button
+      className={`activity-button ${activeView === 'settings' ? 'active' : ''}`}
+      onClick={() => onViewChange('settings')}
+      title="Settings"
+    >
+      <FontAwesomeIcon icon={faCog} />
+    </button>
+    <button
+      className={`activity-button ${activeView === 'analytics' ? 'active' : ''}`}
+      onClick={() => onViewChange('analytics')}
+      title="Analytics"
+    >
+      <FontAwesomeIcon icon={faChartBar} />
+    </button>
+  </div>
+);
+
+const SideBar = ({ activeView, children }) => (
+  <div className="side-bar">
+    <div className="side-bar-content">
+      {children}
+    </div>
+  </div>
+);
+
+const StatusBar = ({ scene, uiMode }) => (
+  <div className="status-bar">
+    <div className="status-left">
+      <span className="status-item">
+        {scene ? `Scene: ${scene.name}` : 'No scene loaded'}
+      </span>
+      <span className="status-item">
+        Objects: {scene?.objects?.length || 0}
+      </span>
+      <span className="status-item">
+        Mode: {uiMode}
+      </span>
+    </div>
+    <div className="status-right">
+      <span className="status-item">Ready</span>
+    </div>
+  </div>
+);
 
 // Lazy load non-critical components
 const SceneDetails = React.lazy(() => import('../features/collection/components/SceneDetails'));
@@ -40,7 +110,13 @@ function PhysicsVisualizerPage() {
   const location = useLocation();
   const navigate = useNavigate();
 
-  const [scene, setScene] = useState(null);
+  // Workspace hooks
+  const { createWorkspace, loadWorkspace, saveWorkspace, updateWorkspace, setIsPlaying } = useWorkspace();
+  const { scene, updateScene, scenes: workspaceScenes } = useWorkspaceScene();
+  const { messages: workspaceMessages, addMessage: addWorkspaceMessage } = useWorkspaceChat();
+  const { uiMode: workspaceUIMode, setUIMode: setWorkspaceUIMode } = useWorkspaceSettings();
+
+  const scenePatcher = useRef(new ScenePatcher());
   const [loading, setLoading] = useState(true);
   const [sceneSwitching, setSceneSwitching] = useState(false);
   const [error, setError] = useState(null);
@@ -53,8 +129,12 @@ function PhysicsVisualizerPage() {
   const [isPreviewMode, setIsPreviewMode] = useState(false);
   const [sceneSelectorTab, setSceneSelectorTab] = useState('examples'); // Track SceneSelector tab
   const [capturedThumbnail, setCapturedThumbnail] = useState(null);
-  const [uiMode, setUiMode] = useState('simple'); // 'simple' or 'advanced'
-  const [rightPanelView, setRightPanelView] = useState(uiMode === 'simple' ? 'integrated' : 'chat'); // 'chat', 'details', or 'integrated'
+  const [rightPanelView, setRightPanelView] = useState(workspaceUIMode === 'simple' ? 'integrated' : 'chat'); // 'chat', 'details', or 'integrated'
+
+  // VS Code-inspired layout states
+  const [activeActivityView, setActiveActivityView] = useState('explorer'); // 'explorer', 'chat', 'search', 'settings', 'analytics'
+  const [sideBarCollapsed, setSideBarCollapsed] = useState(false);
+  const [useVSCodeLayout, setUseVSCodeLayout] = useState(true); // Toggle between VS Code and classic layout
 
   // Panel management states
   const [leftSize, setLeftSize] = useState(20);
@@ -64,11 +144,7 @@ function PhysicsVisualizerPage() {
   const [leftExpandedSize, setLeftExpandedSize] = useState(20);
   const [rightExpandedSize, setRightExpandedSize] = useState(20);
 
-  // Ref to hold the most up-to-date scene state for saving
-  const sceneRef = useRef(null);
-  useEffect(() => {
-    sceneRef.current = scene;
-  }, [scene]);
+  // No local scene ref needed; use workspace scene directly
 
   // --- EFFECT: Load Scene Data ---
   useEffect(() => {
@@ -83,6 +159,7 @@ function PhysicsVisualizerPage() {
         let loadedScene = null;
         if (sceneIdToLoad === 'new_empty_scene') {
           loadedScene = createNewScene();
+          updateScene(loadedScene);
         } else if (sceneIdToLoad) {
           // The new getSceneById handles both local and example scenes
           loadedScene = await dataManager.getSceneById(sceneIdToLoad);
@@ -106,27 +183,25 @@ function PhysicsVisualizerPage() {
                 console.error('❌ Failed to create example chat:', error);
               }
             }
-          }
-        } else {
-          // No scene specified - don't load a default scene if we have chats
-          // Let the chat selection handle scene loading
-          console.log('📝 No specific scene requested, will load based on chat selection');
-          loadedScene = null;
-        }
-
-        if (isMounted) {
-          if (loadedScene) {
-            setScene(loadedScene);
+            updateScene(loadedScene);
             // Initialize property manager with the loaded scene (safely)
             try {
               dataManager.initializePropertiesFromScene?.(loadedScene);
             } catch (error) {
               console.warn('Property manager initialization failed:', error);
             }
-          } else if (!sceneIdToLoad) {
+          }
+        } else {
+          // No scene specified - don't load a default scene if we have chats
+          // Let the chat selection handle scene loading
+          console.log('📝 No specific scene requested, will load based on chat selection');
+        }
+
+        if (isMounted) {
+          if (!sceneIdToLoad) {
             // If no scene was requested and none was loaded, wait for chat selection
             console.log('⏳ Waiting for chat selection to determine scene');
-          } else {
+          } else if (!loadedScene) {
             setError(`Scene with ID "${sceneIdToLoad}" not found.`);
           }
         }
@@ -143,16 +218,16 @@ function PhysicsVisualizerPage() {
     }
 
     return () => { isMounted = false; };
-  }, [location.state, dataManager, navigate]);
+  }, [location.state, dataManager, navigate, updateScene]);
 
   // --- Scene Manipulation Handlers ---
   const handleSceneUpdate = useCallback((updatedScene) => {
-    setScene(prevScene => ({ ...prevScene, ...updatedScene }));
-  }, []);
+    updateScene(updatedScene);
+  }, [updateScene]);
 
   const handleSceneChange = useCallback((newScene) => {
-    setScene(newScene);
-  }, []);
+    updateScene(newScene);
+  }, [updateScene]);
 
   const handleExtractedScene = useCallback((extractedScene) => {
     setExtractedScenes(prev => [...prev, extractedScene]);
@@ -174,7 +249,7 @@ function PhysicsVisualizerPage() {
   }, [dataManager, navigate]);
 
   const handleSaveScene = useCallback(async (sceneToSave = null) => {
-    const targetScene = sceneToSave || sceneRef.current;
+    const targetScene = sceneToSave || scene;
     if (!targetScene) return;
 
     let sceneToSaveData = { ...targetScene };
@@ -200,7 +275,7 @@ function PhysicsVisualizerPage() {
       } else {
         // For existing scenes, just refetch to get the latest `updatedAt` timestamp
         const updatedScene = await dataManager.getSceneById(savedId);
-        setScene(updatedScene);
+        updateScene(updatedScene);
 
         // If user came from collection page, navigate back with refresh flag
         if (location.state?.fromCollection) {
@@ -211,7 +286,7 @@ function PhysicsVisualizerPage() {
       console.error("Failed to save scene:", err);
       alert("Error: Could not save the scene.");
     }
-  }, [dataManager, navigate, capturedThumbnail]);
+  }, [dataManager, navigate, capturedThumbnail, scene, updateScene]);
 
   const handleUpdateScene = useCallback(async (sceneToUpdate) => {
     if (!sceneToUpdate) return;
@@ -220,12 +295,12 @@ function PhysicsVisualizerPage() {
       await dataManager.saveScene(sceneToUpdate);
       // Refresh the current scene
       const updatedScene = await dataManager.getSceneById(sceneToUpdate.id);
-      setScene(updatedScene);
+      updateScene(updatedScene);
     } catch (err) {
       console.error("Failed to update scene:", err);
       alert("Error: Could not update the scene.");
     }
-  }, [dataManager]);
+  }, [dataManager, updateScene]);
 
   const handleShareToPublic = useCallback(async (sceneToShare) => {
     if (!sceneToShare) return;
@@ -439,6 +514,12 @@ function PhysicsVisualizerPage() {
   const handleUpdateConversation = useCallback(async (newMessages) => {
     setConversationHistory(newMessages);
 
+    // Add new messages to workspace
+    const latestMessage = newMessages[newMessages.length - 1];
+    if (latestMessage) {
+      addWorkspaceMessage(latestMessage);
+    }
+
     // Check if user just started chatting on an example scene
     const userMessages = newMessages.filter(msg => msg.isUser);
     const aiMessages = newMessages.filter(msg => !msg.isUser);
@@ -463,7 +544,7 @@ function PhysicsVisualizerPage() {
       await dataManager.saveChat(updatedChat);
       setCurrentChat(updatedChat);
     }
-  }, [currentChatId, currentChat, dataManager, scene, sceneSelectorTab]);
+  }, [currentChatId, currentChat, dataManager, scene, sceneSelectorTab, addWorkspaceMessage]);
 
   // --- AI Scene Update Handler ---
   const handleAISceneUpdate = useCallback(async (propertyPath, value, reason) => {
@@ -473,7 +554,7 @@ function PhysicsVisualizerPage() {
         console.log('🔄 Applying full scene update from AI');
         // Value is the complete updated scene
         const updatedScene = { ...scene, ...value };
-        setScene(updatedScene);
+        updateScene(updatedScene);
         console.log('✅ Scene updated successfully');
         return;
       }
@@ -496,7 +577,7 @@ function PhysicsVisualizerPage() {
         const updatedScene = dataManager.getSceneFromProperties(scene.id);
 
         if (updatedScene) {
-          setScene(updatedScene);
+          updateScene(updatedScene);
         } else {
           console.error('❌ No updated scene returned from getSceneFromProperties');
         }
@@ -511,7 +592,7 @@ function PhysicsVisualizerPage() {
       console.error('💥 Failed to apply AI scene modification:', error);
       // Don't throw error to prevent chat from breaking
     }
-  }, [dataManager, scene?.id, scene]);
+  }, [dataManager, scene?.id, scene, updateScene]);
 
   // --- Accept/Reject Changes Handlers ---
   const handleAcceptChanges = useCallback(async () => {
@@ -653,8 +734,8 @@ function PhysicsVisualizerPage() {
   if (!scene) {
     return (
       <div className="physics-visualizer-page">
-        <div className="visualizer-main-content">
-          <PanelGroup direction="horizontal" className="visualizer-panels">
+        <div className="visualizer-main-content" style={{ height: '100vh' }}>
+          <PanelGroup direction="horizontal" className="visualizer-panels" style={{ height: '100vh' }}>
             {/* Left Panel - Scene Selector */}
             <Panel defaultSize={20} minSize={15} maxSize={30} className="left-panel">
               <div className="panel-content">
@@ -717,17 +798,23 @@ function PhysicsVisualizerPage() {
                 {/* Conditional Content */}
                 <Suspense fallback={<ComponentLoader />}>
                   {rightPanelView === 'chat' ? (
-                    <Conversation
-                      updateConversation={handleUpdateConversation}
-                      conversationHistory={conversationHistory}
-                      initialMessage="Hello! I'm a Physics AI Agent. I can help you with physics questions and also discuss how to represent described scenes in a 3D visualizer JSON format. How can I assist you with physics today?"
-                      currentScene={null}
-                      onSceneSwitch={handleSceneSwitch}
-                      onNewChat={handleNewChat}
-                      onSceneUpdate={handleAISceneUpdate}
-                      onPendingChanges={setPendingChanges}
-                      onPreviewMode={setIsPreviewMode}
-                    />
+                  <Conversation
+                    updateConversation={handleUpdateConversation}
+                    conversationHistory={conversationHistory}
+                    initialMessage="Hello! I'm a Physics AI Agent. I can help you with physics questions and also discuss how to represent described scenes in a 3D visualizer JSON format. How can I assist you with physics today?"
+                    currentScene={null}
+                    onSceneSwitch={handleSceneSwitch}
+                    onNewChat={handleNewChat}
+                    onSceneUpdate={handleAISceneUpdate}
+                    onPendingChanges={setPendingChanges}
+onPreviewMode={(mode) => {
+  setIsPreviewMode(mode);
+  if (mode) {
+    setIsPlaying(false);
+  }
+}}
+                    chatId={currentChatId}
+                  />
                   ) : (
                     <SceneDetails scene={null} />
                   )}
@@ -741,107 +828,109 @@ function PhysicsVisualizerPage() {
   }
 
   return (
-    <div className="physics-visualizer-page">
-      <div className="visualizer-main-content">
-        <PanelGroup direction="horizontal" className="visualizer-panels">
-          {/* Left Panel - Scene Selector */}
-          <Panel
-            size={leftCollapsed ? 0 : leftSize}
-            minSize={0}
-            maxSize={30}
-            collapsible={true}
-            collapsedSize={0}
-            onCollapse={() => {
-              setLeftExpandedSize(leftSize);
-              setLeftCollapsed(true);
-            }}
-            onExpand={() => setLeftCollapsed(false)}
-            onResize={(size) => {
-              if (!leftCollapsed) {
-                setLeftSize(size);
-              }
-            }}
-            className={`left-panel ${leftCollapsed ? 'collapsed' : ''}`}
-          >
-            <div className="panel-content">
-                <SceneSelector
-                  currentScene={scene}
-                  handleSceneChange={handleSceneChange}
-                  conversationHistory={conversationHistory}
-                  userScenes={[]}
-                  loadingUserScenes={false}
-                  extractedScenes={extractedScenes}
-                  onExtractedScene={handleExtractedScene}
-                  onDeleteScene={handleDeleteScene}
-                  onSaveScene={handleSaveScene}
-                  onUpdateScene={handleUpdateScene}
-                  onShareToPublic={handleShareToPublic}
-                  onOpenProperties={handleOpenProperties}
-                  currentChatId={currentChatId}
-                  onChatSelect={handleChatSelect}
-                  onNewChat={handleNewChat}
-                  onSceneButtonClick={handleSceneButtonClick}
-                  refreshTrigger={chatRefreshTrigger}
-                  activeTab={sceneSelectorTab}
-                  onTabChange={setSceneSelectorTab}
-                  uiMode={uiMode}
-                />
+    <div className="vscode-workbench">
+      {/* Activity Bar - Leftmost sidebar */}
+      <ActivityBar
+        activeView={activeActivityView}
+        onViewChange={setActiveActivityView}
+      />
+
+      {/* Side Bar - Collapsible panel */}
+      <SideBar activeView={activeActivityView}>
+        <SceneSelector
+          currentScene={scene}
+          handleSceneChange={handleSceneChange}
+          conversationHistory={conversationHistory}
+          userScenes={[]}
+          loadingUserScenes={false}
+          extractedScenes={extractedScenes}
+          onExtractedScene={handleExtractedScene}
+          onDeleteScene={handleDeleteScene}
+          onSaveScene={handleSaveScene}
+          onUpdateScene={handleUpdateScene}
+          onShareToPublic={handleShareToPublic}
+          onOpenProperties={handleOpenProperties}
+          currentChatId={currentChatId}
+          onChatSelect={handleChatSelect}
+          onNewChat={handleNewChat}
+          onSceneButtonClick={handleSceneButtonClick}
+          refreshTrigger={chatRefreshTrigger}
+          activeTab={sceneSelectorTab}
+          onTabChange={setSceneSelectorTab}
+          uiMode={workspaceUIMode}
+        />
+      </SideBar>
+
+      {/* Editor Area - Main 3D visualization */}
+      <div className="editor-area">
+        <div className="editor-content">
+          <div style={{ height: '100vh', width: '100%' }}>
+            <Visualizer
+              key={`visualizer-${scene.id}`}
+              scene={scene}
+              pendingChanges={pendingChanges}
+              isPreviewMode={isPreviewMode}
+              onAcceptChanges={handleAcceptChanges}
+              onRejectChanges={handleRejectChanges}
+              onThumbnailCapture={handleThumbnailCapture}
+              uiMode={workspaceUIMode}
+              onModeChange={setWorkspaceUIMode}
+            />
+          </div>
+          {sceneSwitching && (
+            <div className="scene-loading-overlay">
+              <div className="scene-loading-content">
+                <FontAwesomeIcon icon={faSpinner} spin size="2x" />
+                <span>Loading Scene...</span>
+              </div>
             </div>
-          </Panel>
+          )}
+        </div>
+      </div>
 
-          <PanelResizeHandle className="resize-handle" />
+      {/* Panel Area - Right side panels */}
+      <div className="panel-area">
+        <Suspense fallback={<ComponentLoader />}>
+          {workspaceUIMode === 'simple' ? (
+            <IntegratedPanel
+              updateConversation={handleUpdateConversation}
+              conversationHistory={conversationHistory}
+              initialMessage="Hello! I'm a Physics AI Agent. I can help you with physics questions and also discuss how to represent described scenes in a 3D visualizer JSON format. How can I assist you with physics today?"
+              currentScene={scene}
+              onSceneSwitch={handleSceneSwitch}
+              onNewChat={handleNewChat}
+              onSceneUpdate={handleAISceneUpdate}
+              onPendingChanges={setPendingChanges}
+onPreviewMode={(mode) => {
+  setIsPreviewMode(mode);
+  if (mode) {
+    setIsPlaying(false);
+  }
+}}
+              chatId={currentChatId}
+            />
+          ) : (
+            <>
+              {/* Panel Tabs */}
+              <div className="panel-tabs">
+                <button
+                  className={`panel-tab ${rightPanelView === 'chat' ? 'active' : ''}`}
+                  onClick={() => setRightPanelView('chat')}
+                >
+                  💬 Chat
+                </button>
+                <button
+                  className={`panel-tab ${rightPanelView === 'details' ? 'active' : ''}`}
+                  onClick={() => setRightPanelView('details')}
+                >
+                  📋 Details
+                </button>
+              </div>
 
-          {/* Center Panel - 3D Visualizer */}
-          <Panel defaultSize={60} minSize={40} className="center-panel">
-            <div className="panel-content">
-              <Visualizer
-                key={`visualizer-${scene.id}`}
-                scene={scene}
-                pendingChanges={pendingChanges}
-                isPreviewMode={isPreviewMode}
-                onAcceptChanges={handleAcceptChanges}
-                onRejectChanges={handleRejectChanges}
-                onThumbnailCapture={handleThumbnailCapture}
-                uiMode={uiMode}
-                onModeChange={setUiMode}
-              />
-              {sceneSwitching && (
-                <div className="scene-loading-overlay">
-                  <div className="scene-loading-content">
-                    <FontAwesomeIcon icon={faSpinner} spin size="2x" />
-                    <span>Loading Scene...</span>
-                  </div>
-                </div>
-              )}
-            </div>
-          </Panel>
-
-          <PanelResizeHandle className="resize-handle" />
-
-          {/* Right Panel - Mode-dependent content */}
-          <Panel
-            size={rightCollapsed ? 0 : rightSize}
-            minSize={0}
-            maxSize={30}
-            collapsible={true}
-            collapsedSize={0}
-            onCollapse={() => {
-              setRightExpandedSize(rightSize);
-              setRightCollapsed(true);
-            }}
-            onExpand={() => setRightCollapsed(false)}
-            onResize={(size) => {
-              if (!rightCollapsed) {
-                setRightSize(size);
-              }
-            }}
-            className={`right-panel ${rightCollapsed ? 'collapsed' : ''}`}
-          >
-            <div className="panel-content">
-              {/* Mode-dependent content */}
-              <Suspense fallback={<ComponentLoader />}>
-                {uiMode === 'simple' ? (
-                  <IntegratedPanel
+              {/* Panel Content */}
+              <div className="panel-content">
+                {rightPanelView === 'chat' ? (
+                  <Conversation
                     updateConversation={handleUpdateConversation}
                     conversationHistory={conversationHistory}
                     initialMessage="Hello! I'm a Physics AI Agent. I can help you with physics questions and also discuss how to represent described scenes in a 3D visualizer JSON format. How can I assist you with physics today?"
@@ -851,62 +940,19 @@ function PhysicsVisualizerPage() {
                     onSceneUpdate={handleAISceneUpdate}
                     onPendingChanges={setPendingChanges}
                     onPreviewMode={setIsPreviewMode}
+                    chatId={currentChatId}
                   />
                 ) : (
-                  <>
-                    {/* Toggle Buttons for Advanced Mode */}
-                    <div className="panel-toggle-buttons">
-                      <button
-                        className={`toggle-button ${rightPanelView === 'chat' ? 'active' : ''}`}
-                        onClick={() => setRightPanelView('chat')}
-                      >
-                        💬 Chat
-                      </button>
-                      <button
-                        className={`toggle-button ${rightPanelView === 'details' ? 'active' : ''}`}
-                        onClick={() => setRightPanelView('details')}
-                      >
-                        📋 Details
-                      </button>
-                    </div>
-
-                    {/* Conditional Content for Advanced Mode */}
-                    {rightPanelView === 'chat' ? (
-                      <Conversation
-                        updateConversation={handleUpdateConversation}
-                        conversationHistory={conversationHistory}
-                        initialMessage="Hello! I'm a Physics AI Agent. I can help you with physics questions and also discuss how to represent described scenes in a 3D visualizer JSON format. How can I assist you with physics today?"
-                        currentScene={scene}
-                        onSceneSwitch={handleSceneSwitch}
-                        onNewChat={handleNewChat}
-                        onSceneUpdate={handleAISceneUpdate}
-                        onPendingChanges={setPendingChanges}
-                        onPreviewMode={setIsPreviewMode}
-                      />
-                    ) : (
-                      <SceneDetails scene={scene} />
-                    )}
-                  </>
+                  <SceneDetails scene={scene} />
                 )}
-              </Suspense>
-            </div>
-          </Panel>
-        </PanelGroup>
-
-        {/* Panel Toggle Buttons */}
-        <button
-          className={`panel-toggle-button left-edge ${leftCollapsed ? '' : 'open'}`}
-          onClick={toggleLeftPanel}
-        >
-          <FontAwesomeIcon icon={faChevronRight} />
-        </button>
-        <button
-          className={`panel-toggle-button right-edge ${rightCollapsed ? '' : 'open'}`}
-          onClick={toggleRightPanel}
-        >
-          <FontAwesomeIcon icon={faChevronLeft} />
-        </button>
+              </div>
+            </>
+          )}
+        </Suspense>
       </div>
+
+      {/* Status Bar - Bottom bar */}
+      <StatusBar scene={scene} uiMode={workspaceUIMode} />
     </div>
   );
 }
