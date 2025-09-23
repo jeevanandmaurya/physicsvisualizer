@@ -1,9 +1,9 @@
 import React, { useState, useCallback } from 'react';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
-import { faPlay, faPause, faRedo, faCamera, faSave, faEye, faEyeSlash, faChartLine, faChevronDown, faChevronUp } from '@fortawesome/free-solid-svg-icons';
+import { faPlay, faPause, faRedo, faCamera, faSave, faEye, faEyeSlash, faChartLine, faChevronDown, faChevronUp, faComments } from '@fortawesome/free-solid-svg-icons';
 import { useWorkspace } from '../contexts/WorkspaceContext';
 
-const StatusBar = ({ activeView }) => {
+const StatusBar = ({ activeView, chatOpen, onChatToggle }) => {
   const { workspaceScenes, workspaceChats, isPlaying, simulationTime, fps, showVelocityVectors, vectorScale, openGraphs, togglePlayPause, resetSimulation, updateVectorScale, toggleVelocityVectors, addGraph, getCurrentScene, saveCurrentScene } = useWorkspace();
   const [showGraphDropdown, setShowGraphDropdown] = useState(false);
   const [showThumbnailPreview, setShowThumbnailPreview] = useState(false);
@@ -18,22 +18,23 @@ const StatusBar = ({ activeView }) => {
   }, [vectorScale, updateVectorScale]);
 
   const getViewInfo = () => {
-    switch (activeView) {
-      case 'dashboard':
-        return `Dashboard`;
-      case 'collection':
-        return `Collection`;
-      case 'visualizer':
-        return `Visualizer`;
-      case 'history':
-        return `History`;
-      case 'settings':
-        return 'Settings';
-      case 'analytics':
-        return 'Analytics';
-      default:
-        return 'Ready';
-    }
+    const viewNames = {
+      dashboard: 'Dashboard',
+      collection: 'Collection',
+      visualizer: 'Visualizer',
+      settings: 'Settings'
+    };
+    return viewNames[activeView] || 'Ready';
+  };
+
+  const getLayoutInfo = () => {
+    const layouts = {
+      dashboard: 'Welcome',
+      collection: 'Gallery',
+      visualizer: 'Editor + Chat',
+      settings: 'Preferences'
+    };
+    return layouts[activeView] || '';
   };
 
   const getViewDetails = () => {
@@ -43,7 +44,7 @@ const StatusBar = ({ activeView }) => {
       case 'collection':
         return `${workspaceScenes.length} scenes`;
       case 'visualizer':
-        return `Scene: ${currentScene?.name || 'None'} | Objects: ${currentScene?.objects?.length || 0} | FPS: ${fps}`;
+        return `Scene: ${currentScene?.name || 'None'}\u00A0\u00A0|\u00A0\u00A0Objects: ${currentScene?.objects?.length || 0}\u00A0\u00A0|\u00A0\u00A0FPS: ${fps}`;
       case 'history':
         return `${workspaceChats.length} chats`;
       case 'settings':
@@ -121,10 +122,11 @@ const StatusBar = ({ activeView }) => {
   }, [addGraph]);
 
   return (
-    <div className="status-bar" style={{ height: '40px', padding: '5px 0' }}>
+    <div className="status-bar" style={{ height: '30px', padding: '3px 0' }}>
       <div className="status-bar-left">
-        <div className="status-bar-item">View: {getViewInfo()}</div>
-        <div className="status-bar-item" style={{ maxWidth: '400px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{getViewDetails()}</div>
+        <div className="status-bar-item" style={{ marginLeft: '10px' }}>{getViewInfo()}</div>
+        <div className="status-bar-item" style={{ color: '#ffffff', fontSize: '13px', marginLeft: '15px' }}>{getLayoutInfo()}</div>
+        <div className="status-bar-item" style={{ maxWidth: '400px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', marginLeft: '15px' }}>{getViewDetails()}</div>
       </div>
 
       {activeView === 'visualizer' && (
@@ -134,14 +136,14 @@ const StatusBar = ({ activeView }) => {
             onClick={togglePlayPause}
             title={isPlaying ? 'Pause Simulation' : 'Play Simulation'}
           >
-            <FontAwesomeIcon icon={isPlaying ? faPause : faPlay} style={{ fontSize: '20px' }} />
+            <FontAwesomeIcon icon={isPlaying ? faPause : faPlay} style={{ fontSize: '22px' }} />
           </button>
           <button
             className="status-control-button"
             onClick={resetSimulation}
             title="Reset Simulation"
           >
-            <FontAwesomeIcon icon={faRedo} style={{ fontSize: '20px' }} />
+            <FontAwesomeIcon icon={faRedo} style={{ fontSize: '22px' }} />
           </button>
           <div className="status-separator"></div>
           <button
@@ -149,13 +151,13 @@ const StatusBar = ({ activeView }) => {
             onClick={toggleVelocityVectors}
             title={showVelocityVectors ? 'Hide Velocity Vectors' : 'Show Velocity Vectors'}
           >
-            Vector <FontAwesomeIcon icon={showVelocityVectors ? faEyeSlash : faEye} style={{ fontSize: '16px' }} />
+            Vector <FontAwesomeIcon icon={showVelocityVectors ? faEyeSlash : faEye} style={{ fontSize: '18px' }} />
           </button>
           <button
             className="status-control-button"
             onClick={cycleScale}
             title="Cycle Vector Scale (1x-5x)"
-            style={{ fontSize: '20px' }}
+            style={{ fontSize: '22px' }}
           >
             x{vectorScale}
           </button>
@@ -165,15 +167,121 @@ const StatusBar = ({ activeView }) => {
             onClick={handleThumbnailCapture}
             title="Capture Thumbnail"
           >
-            <FontAwesomeIcon icon={faCamera} style={{ fontSize: '20px' }} />
+            <FontAwesomeIcon icon={faCamera} style={{ fontSize: '22px' }} />
           </button>
           <button
             className="status-control-button"
             onClick={handleSave}
             title="Save Scene"
           >
-            <FontAwesomeIcon icon={faSave} style={{ fontSize: '20px' }} />
+            <FontAwesomeIcon icon={faSave} style={{ fontSize: '22px' }} />
           </button>
+          <div className="status-separator"></div>
+          <button
+            className="status-control-button chat-toggle-button"
+            onClick={onChatToggle}
+            title={chatOpen ? "Close AI Chat" : "Open AI Chat"}
+          >
+            <FontAwesomeIcon icon={faComments} style={{ fontSize: '22px' }} />
+          </button>
+          <button
+            className="status-control-button"
+            onClick={() => setShowGraphDropdown(!showGraphDropdown)}
+            title="Open Graph Panel"
+          >
+            <FontAwesomeIcon icon={faChartLine} style={{ fontSize: '22px' }} />
+          </button>
+          {showGraphDropdown && (
+            <div className="graph-dropdown" style={{
+              position: 'absolute',
+              bottom: '35px',
+              right: 'auto',
+              backgroundColor: '#2c2c2c',
+              border: '1px solid #3e3e3e',
+              borderRadius: '4px',
+              padding: '8px',
+              zIndex: 1000,
+              minWidth: '150px'
+            }}>
+              <div style={{ color: '#ffffff', fontSize: '14px', marginBottom: '8px', fontWeight: 'bold' }}>Add Graph</div>
+              <button
+                onClick={() => handleAddGraph('position')}
+                style={{
+                  display: 'block',
+                  width: '100%',
+                  padding: '6px 12px',
+                  backgroundColor: 'transparent',
+                  color: '#ffffff',
+                  border: 'none',
+                  textAlign: 'left',
+                  cursor: 'pointer',
+                  fontSize: '13px',
+                  borderRadius: '3px'
+                }}
+                onMouseOver={(e) => e.target.style.backgroundColor = '#3e3e3e'}
+                onMouseOut={(e) => e.target.style.backgroundColor = 'transparent'}
+              >
+                📍 Position vs Time
+              </button>
+              <button
+                onClick={() => handleAddGraph('velocity')}
+                style={{
+                  display: 'block',
+                  width: '100%',
+                  padding: '6px 12px',
+                  backgroundColor: 'transparent',
+                  color: '#ffffff',
+                  border: 'none',
+                  textAlign: 'left',
+                  cursor: 'pointer',
+                  fontSize: '13px',
+                  borderRadius: '3px'
+                }}
+                onMouseOver={(e) => e.target.style.backgroundColor = '#3e3e3e'}
+                onMouseOut={(e) => e.target.style.backgroundColor = 'transparent'}
+              >
+                🏃 Velocity vs Time
+              </button>
+              <button
+                onClick={() => handleAddGraph('acceleration')}
+                style={{
+                  display: 'block',
+                  width: '100%',
+                  padding: '6px 12px',
+                  backgroundColor: 'transparent',
+                  color: '#ffffff',
+                  border: 'none',
+                  textAlign: 'left',
+                  cursor: 'pointer',
+                  fontSize: '13px',
+                  borderRadius: '3px'
+                }}
+                onMouseOver={(e) => e.target.style.backgroundColor = '#3e3e3e'}
+                onMouseOut={(e) => e.target.style.backgroundColor = 'transparent'}
+              >
+                ⚡ Acceleration vs Time
+              </button>
+              <button
+                onClick={() => handleAddGraph('energy')}
+                style={{
+                  display: 'block',
+                  width: '100%',
+                  padding: '6px 12px',
+                  backgroundColor: 'transparent',
+                  color: '#ffffff',
+                  border: 'none',
+                  textAlign: 'left',
+                  cursor: 'pointer',
+                  fontSize: '13px',
+                  borderRadius: '3px'
+                }}
+                onMouseOver={(e) => e.target.style.backgroundColor = '#3e3e3e'}
+                onMouseOut={(e) => e.target.style.backgroundColor = 'transparent'}
+              >
+                🔋 Energy vs Time
+              </button>
+            </div>
+          )}
         </div>
       )}
 

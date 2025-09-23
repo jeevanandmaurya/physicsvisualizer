@@ -97,7 +97,6 @@ export function WorkspaceProvider({ children }) {
 
     // Create default workspace if none exists
     if (!workspaceManager.getCurrentWorkspace()) {
-      console.log('🏗️ Creating default workspace...');
       const defaultWorkspace = workspaceManager.createWorkspace('Default Workspace');
       workspaceManager.setCurrentWorkspace(defaultWorkspace);
     }
@@ -233,7 +232,10 @@ export function WorkspaceProvider({ children }) {
   }, [updateWorkspace]);
 
   const getChatForScene = useCallback((sceneId) => {
-    return currentWorkspace?.getChatForScene(sceneId);
+    if (!currentWorkspace || typeof currentWorkspace.getChatForScene !== 'function') {
+      return null;
+    }
+    return currentWorkspace.getChatForScene(sceneId);
   }, [currentWorkspace]);
 
   const getScenesForChat = useCallback((chatId) => {

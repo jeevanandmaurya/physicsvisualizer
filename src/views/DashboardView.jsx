@@ -95,7 +95,18 @@ function DashboardView() {
         <div className="welcome-container">
             <div className="welcome-content">
                 <div className="welcome-header">
-                    <h1 className="welcome-title">Welcome to Physics Visualizer</h1>
+                    <h1 className="welcome-title">Welcome to</h1>
+                    <div style={{ textAlign: 'center', marginTop: '10px', marginBottom: '20px' }}>
+                        <img
+                            src="/src/assets/physicsvisualizer.svg"
+                            alt="Physics Visualizer Logo"
+                            style={{
+                                width: '500px',
+                                height: '150px',
+                                objectFit: 'contain'
+                            }}
+                        />
+                    </div>
                     <p className="welcome-subtitle">Create, explore, and learn with interactive physics simulations</p>
                 </div>
 

@@ -4,15 +4,52 @@ import SideBar from './SideBar';
 import EditorArea from './EditorArea';
 import PanelArea from './PanelArea';
 import StatusBar from './StatusBar';
-import { useWorkspace } from '../contexts/WorkspaceContext';
+import ChatOverlay from '../features/chat/components/ChatOverlay';
+import { useWorkspace, useWorkspaceScene, useWorkspaceChat } from '../contexts/WorkspaceContext';
 import './Workbench.css';
 
 const Workbench = () => {
-  const { currentView, setCurrentView } = useWorkspace();
+  const { currentView, setCurrentView, getChatForScene } = useWorkspace();
+  const { scene } = useWorkspaceScene();
+  const { messages, addMessage } = useWorkspaceChat();
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
   const [panelCollapsed, setPanelCollapsed] = useState(false);
+  const [chatOpen, setChatOpen] = useState(false);
 
-  // Keyboard shortcuts for view switching
+  // VS Code-inspired layout configuration for each view
+  const getLayoutConfig = (view) => {
+    const configs = {
+      // Dashboard: Clean welcome/overview (like VS Code's welcome)
+      dashboard: {
+        sidebar: false,
+        panel: false,
+        description: 'Welcome and overview'
+      },
+      // Collection: Scene gallery (clean grid view)
+      collection: {
+        sidebar: false,
+        panel: false,
+        description: 'Scene gallery and overview'
+      },
+      // Visualizer: Main physics workspace (like VS Code's editor with panels)
+      visualizer: {
+        sidebar: true,
+        panel: true,
+        description: '3D physics simulation with chat and details'
+      },
+      // Settings: Configuration (like VS Code's settings)
+      settings: {
+        sidebar: false,
+        panel: false,
+        description: 'Application preferences and settings'
+      }
+    };
+    return configs[view] || configs.dashboard;
+  };
+
+  const layoutConfig = getLayoutConfig(currentView);
+
+  // Keyboard shortcuts for view switching (VS Code style: Ctrl+1,2,3...)
   useEffect(() => {
     const handleKeyDown = (e) => {
       if (e.ctrlKey || e.metaKey) {
@@ -31,15 +68,7 @@ const Workbench = () => {
             break;
           case '4':
             e.preventDefault();
-            setCurrentView('history');
-            break;
-          case '5':
-            e.preventDefault();
             setCurrentView('settings');
-            break;
-          case '6':
-            e.preventDefault();
-            setCurrentView('analytics');
             break;
           default:
             break;
@@ -51,10 +80,6 @@ const Workbench = () => {
     return () => window.removeEventListener('keydown', handleKeyDown);
   }, [setCurrentView]);
 
-  // Determine which panels to show based on active view
-  const showSidebar = ['collection', 'visualizer', 'history'].includes(currentView);
-  const showPanelArea = ['visualizer'].includes(currentView);
-
   return (
     <div className="workbench">
       <ActivityBar
@@ -63,7 +88,7 @@ const Workbench = () => {
       />
       <div className="workbench-main">
         <div className="workbench-content">
-          {showSidebar && (
+          {layoutConfig.sidebar && (
             <SideBar
               activeView={currentView}
               collapsed={sidebarCollapsed}
@@ -71,7 +96,7 @@ const Workbench = () => {
             />
           )}
           <EditorArea activeView={currentView} />
-          {showPanelArea && (
+          {layoutConfig.panel && (
             <PanelArea
               activeView={currentView}
               collapsed={panelCollapsed}
@@ -79,8 +104,23 @@ const Workbench = () => {
             />
           )}
         </div>
-        <StatusBar activeView={currentView} />
+        <StatusBar
+          activeView={currentView}
+          chatOpen={chatOpen}
+          onChatToggle={() => setChatOpen(!chatOpen)}
+        />
       </div>
+      <ChatOverlay
+        isOpen={chatOpen}
+        onToggle={() => setChatOpen(!chatOpen)}
+        messages={messages}
+        addMessage={addMessage}
+        scene={scene}
+        getChatForScene={getChatForScene}
+        onSceneUpdate={(propertyPath, value, reason) => {
+          console.log('Scene update:', propertyPath, value, reason);
+        }}
+      />
     </div>
   );
 };

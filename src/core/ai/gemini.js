@@ -39,58 +39,86 @@ class GeminiAIManager {
     }
   }
 
-  // Call Gemini API
-  async callGeminiAPI(prompt) {
+  // Call Gemini API with retry logic for transient errors
+  async callGeminiAPI(prompt, maxRetries = 3) {
     if (!this.apiKey) {
       throw new Error('Gemini API key not found. Please set VITE_GEMINI_API_KEY in your environment variables.');
     }
 
-    const response = await fetch(
-      `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash-latest:generateContent?key=${this.apiKey}`,
-      {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          contents: [{
-            parts: [{
-              text: prompt
-            }]
-          }],
-          generationConfig: {
-            temperature: 0.7,
-            topK: 40,
-            topP: 0.95,
-            maxOutputTokens: 2048,
+    for (let attempt = 1; attempt <= maxRetries; attempt++) {
+      try {
+        const response = await fetch(
+          `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${this.apiKey}`,
+          {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({
+              contents: [{
+                parts: [{
+                  text: prompt
+                }]
+              }],
+              generationConfig: {
+                temperature: 0.7,
+                topK: 40,
+                topP: 0.95,
+                maxOutputTokens: 2048,
+              }
+            })
           }
-        })
+        );
+
+        if (!response.ok) {
+          const errorData = await response.json();
+          const errorMsg = errorData.error?.message || 'Unknown error';
+          const status = response.status;
+
+          // Retry on transient errors (5xx, rate limits)
+          if ((status >= 500 && status < 600) || status === 429) {
+            if (attempt < maxRetries) {
+              const delay = Math.pow(2, attempt) * 1000; // Exponential backoff: 2s, 4s, 8s
+              console.warn(`Gemini API error ${status} (attempt ${attempt}/${maxRetries}): ${errorMsg}. Retrying in ${delay}ms...`);
+              await new Promise(resolve => setTimeout(resolve, delay));
+              continue;
+            }
+          }
+
+          throw new Error(`Gemini API error: ${status} - ${errorMsg}`);
+        }
+
+        const data = await response.json();
+
+        if (!data.candidates || !data.candidates[0] || !data.candidates[0].content) {
+          throw new Error('Invalid response from Gemini API');
+        }
+
+        return data.candidates[0].content.parts[0].text;
+      } catch (error) {
+        if (attempt === maxRetries) {
+          throw error; // Re-throw on final failure
+        }
+        // For non-network errors, don't retry
+        if (!error.message.includes('503') && !error.message.includes('overloaded') && !error.message.includes('429')) {
+          throw error;
+        }
+        const delay = Math.pow(2, attempt) * 1000;
+        console.warn(`Transient error (attempt ${attempt}/${maxRetries}): ${error.message}. Retrying in ${delay}ms...`);
+        await new Promise(resolve => setTimeout(resolve, delay));
       }
-    );
-
-    if (!response.ok) {
-      const errorData = await response.json();
-      throw new Error(`Gemini API error: ${response.status} - ${errorData.error?.message || 'Unknown error'}`);
     }
-
-    const data = await response.json();
-
-    if (!data.candidates || !data.candidates[0] || !data.candidates[0].content) {
-      throw new Error('Invalid response from Gemini API');
-    }
-
-    return data.candidates[0].content.parts[0].text;
   }
 
-  // Parse AI response for scene modifications
+  // Parse AI response for scene modifications (consolidated to use JSON patches only)
   parseAIResponse(response) {
     console.log('🤖 AI Response Received:', response);
 
-    // Look for scene modification instructions in the response
-    const sceneModifications = this.extractSceneModifications(response);
+    // Extract JSON patches from the response
+    const sceneModifications = this.extractJSONPatches(response);
 
-    console.log('🔍 Extracted Scene Modifications:', sceneModifications);
-    console.log('📊 Modification Count:', sceneModifications.length);
+    console.log('🔍 Extracted JSON Patches:', sceneModifications);
+    console.log('📊 Patch Count:', sceneModifications.length);
 
     return {
       text: response,
@@ -418,7 +446,23 @@ Please respond as the Physics AI Agent, considering the current scene state and 
 
     const response = await this.callGeminiAPI(prompt);
     const patches = this.extractJSONPatches(response);
-    const updatedScene = this.applyScenePatches(sceneContext, patches);
+
+    // Only apply patches if we actually have some
+    let updatedScene = sceneContext;
+    if (patches && Array.isArray(patches) && patches.length > 0) {
+      console.log(`🔧 Applying ${patches.length} scene patches...`);
+      const patchResult = this.applyScenePatches(sceneContext, patches);
+      if (patchResult.success) {
+        updatedScene = patchResult.scene;
+        console.log(`✅ Successfully applied ${patchResult.appliedPatches} patches`);
+      } else {
+        console.error('❌ Failed to apply scene patches:', patchResult.error);
+        // Don't update the scene if patches failed
+        updatedScene = sceneContext;
+      }
+    } else {
+      console.log('ℹ️ No scene patches to apply');
+    }
 
     return {
       text: response.replace(/```json[\s\S]*?```/g, '').trim(),

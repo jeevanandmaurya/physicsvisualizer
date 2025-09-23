@@ -13,7 +13,7 @@ class ScenePatcher {
       mass: (value) => typeof value === 'number' && value > 0,
       radius: (value) => typeof value === 'number' && value > 0,
       color: (value) => typeof value === 'string' && /^#[0-9A-Fa-f]{6}$/.test(value),
-      dimensions: (value) => Array.isArray(value) && value.length === 3 && value.every(v => typeof v === 'number'),
+      dimensions: (value) => value === null || (Array.isArray(value) && value.length === 3 && value.every(v => typeof v === 'number')),
       type: (value) => ['Sphere', 'Box', 'Cylinder', 'Plane'].includes(value),
       id: (value) => typeof value === 'string' && value.length > 0
     };
@@ -198,48 +198,73 @@ class ScenePatcher {
     for (let i = 0; i < pathParts.length - 1; i++) {
       const part = pathParts[i];
 
-      if (part === 'objects' && !isNaN(pathParts[i + 1])) {
-        // Handle array indexing for objects
+      // Handle array indexing (e.g., objects/0, objects[0])
+      if (part === 'objects' && i + 1 < pathParts.length && !isNaN(pathParts[i + 1])) {
+        // Standard JSON path format: /objects/0/property
         const index = parseInt(pathParts[i + 1]);
         if (!current[part]) current[part] = [];
         if (current[part].length <= index) {
           // Extend array if index is beyond current length
-          while (current[part].length < index) {
+          while (current[part].length <= index) {
             current[part].push({});
           }
         }
-        if (!current[part][index]) current[part][index] = {};
         current = current[part][index];
-        i++; // Skip next part
-      } else if (part.endsWith(']') && part.startsWith('[')) {
-        // Handle array index like /objects[1]/position
-        const arrayName = part.slice(0, -1);
-        const index = parseInt(part.slice(1, -1));
+        i++; // Skip the index part
+      } else if (part.includes('[') && part.includes(']')) {
+        // Handle bracket notation: /objects[0]/property
+        const bracketIndex = part.indexOf('[');
+        const arrayName = part.substring(0, bracketIndex);
+        const indexStr = part.substring(bracketIndex + 1, part.length - 1);
+        const index = parseInt(indexStr);
+
+        if (isNaN(index)) {
+          return { success: false, scene: obj, error: `Invalid array index: ${indexStr}` };
+        }
+
         if (!current[arrayName]) current[arrayName] = [];
         if (current[arrayName].length <= index) {
-          while (current[arrayName].length < index) {
+          while (current[arrayName].length <= index) {
             current[arrayName].push({});
           }
         }
-        if (!current[arrayName][index]) current[arrayName][index] = {};
         current = current[arrayName][index];
       } else {
+        // Regular object property
         if (!current[part]) current[part] = {};
         current = current[part];
       }
     }
 
     const lastPart = pathParts[pathParts.length - 1];
+
     if (lastPart === '-') {
       // Append to array
-      const arrayPath = pathParts.slice(0, -1).join('/');
-      const array = this.getValueByPath(obj, '/' + arrayPath);
-      if (Array.isArray(array)) {
-        array.push(value);
+      if (Array.isArray(current)) {
+        current.push(value);
       } else {
         return { success: false, scene: obj, error: 'Can only append to arrays with -' };
       }
+    } else if (lastPart.includes('[') && lastPart.includes(']')) {
+      // Handle array indexing in the last part
+      const bracketIndex = lastPart.indexOf('[');
+      const arrayName = lastPart.substring(0, bracketIndex);
+      const indexStr = lastPart.substring(bracketIndex + 1, lastPart.length - 1);
+      const index = parseInt(indexStr);
+
+      if (isNaN(index)) {
+        return { success: false, scene: obj, error: `Invalid array index: ${indexStr}` };
+      }
+
+      if (!current[arrayName]) current[arrayName] = [];
+      if (current[arrayName].length <= index) {
+        while (current[arrayName].length <= index) {
+          current[arrayName].push(null);
+        }
+      }
+      current[arrayName][index] = value;
     } else {
+      // Regular property assignment
       current[lastPart] = value;
     }
 

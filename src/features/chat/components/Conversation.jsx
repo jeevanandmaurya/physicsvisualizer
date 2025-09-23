@@ -1,5 +1,5 @@
 import React, { useState, useRef, useEffect } from 'react';
-import { Send, Plus } from 'lucide-react';
+import { Send } from 'lucide-react';
 import GeminiAIManager from '../../../core/ai/gemini';
 import ScenePatcher from '../../../core/scene/patcher';
 import { useWorkspace } from '../../../contexts/WorkspaceContext';
@@ -10,14 +10,10 @@ function Conversation({
   conversationHistory,
   initialMessage,
   currentScene,
-  onSceneSwitch,
-  onNewChat,
-  onSceneUpdate, // New prop for AI scene modifications
-  onPendingChanges, // Callback to set pending changes in parent
-  onPreviewMode, // Callback to set preview mode in parent
-  chatId // ID of the current chat for linking scenes
+  onSceneUpdate,
+  chatId
 }) {
-  const { linkSceneToChat } = useWorkspace();
+  const { linkSceneToChat, updateCurrentScene } = useWorkspace();
   const [messages, setMessages] = useState([
     {
       id: 1,
@@ -41,22 +37,36 @@ function Conversation({
     scrollToBottom();
   }, [messages]);
 
-  // Update messages when conversationHistory changes (but not when scene changes)
+  // Update messages when conversationHistory changes or scene switches
   useEffect(() => {
     if (conversationHistory && conversationHistory.length > 0) {
-      // Show all messages from the chat, regardless of scene
       setMessages(conversationHistory);
     } else {
-      // If no conversation history, show initial message
       setMessages([{
-        id: Date.now(), // Use timestamp to ensure unique key
+        id: Date.now(),
         text: initialMessage || "Hello! I'm a Physics AI Agent. I can help you with physics questions and also discuss how to represent described scenes in a 3D visualizer JSON format. How can I assist you with physics today?",
         isUser: false,
         timestamp: new Date(),
         sceneId: currentScene?.id
       }]);
     }
-  }, [conversationHistory, initialMessage, currentScene?.id]);
+  }, [conversationHistory, initialMessage]);
+
+  // Handle scene switching - reset chat for new scenes
+  const prevSceneIdRef = useRef(currentScene?.id);
+  useEffect(() => {
+    if (prevSceneIdRef.current !== currentScene?.id) {
+      console.log(`🔄 Scene switched from ${prevSceneIdRef.current} to ${currentScene?.id}, resetting chat`);
+      setMessages([{
+        id: Date.now(),
+        text: initialMessage || "Hello! I'm a Physics AI Agent. I can help you with physics questions and also simulate scenes in a 3D visualizer.",
+        isUser: false,
+        timestamp: new Date(),
+        sceneId: currentScene?.id
+      }]);
+      prevSceneIdRef.current = currentScene?.id;
+    }
+  }, [currentScene?.id, initialMessage]);
 
   const handleSend = async () => {
     if (!input.trim() || isLoading) return;
@@ -72,15 +82,14 @@ function Conversation({
     const newMessages = [...messages, userMessage];
     setMessages(newMessages);
     setInput('');
-    setIsLoading(true);
 
-    // Update parent component
     if (updateConversation) {
       updateConversation(newMessages);
     }
 
+    setIsLoading(true);
+
     try {
-      // Get AI response with full context
       const chatContext = {
         history: messages,
         currentMessage: userMessage
@@ -89,14 +98,25 @@ function Conversation({
       const sceneContext = currentScene ? {
         id: currentScene.id,
         name: currentScene.name,
+        description: currentScene.description,
         objects: currentScene.objects?.map(obj => ({
           id: obj.id,
           type: obj.type,
           position: obj.position,
-          mass: obj.mass
+          velocity: obj.velocity,
+          mass: obj.mass,
+          radius: obj.radius,
+          dimensions: obj.dimensions,
+          color: obj.color,
+          isStatic: obj.isStatic,
+          rotation: obj.rotation
         })) || [],
         gravity: currentScene.gravity,
-        hasGround: currentScene.hasGround
+        hasGround: currentScene.hasGround,
+        contactMaterial: currentScene.contactMaterial,
+        backgroundColor: currentScene.backgroundColor,
+        lighting: currentScene.lighting,
+        camera: currentScene.camera
       } : null;
 
       const aiResponse = await aiManager.current.processUserMessage(
@@ -105,34 +125,37 @@ function Conversation({
         sceneContext
       );
 
-      // Handle scene modifications if AI provided any
-      if (aiResponse.updatedScene && aiResponse.sceneModifications && aiResponse.sceneModifications.length > 0) {
+      let sceneUpdateError = null;
+      if (aiResponse.sceneModifications && aiResponse.sceneModifications.length > 0) {
         console.log('AI Scene Update Detected');
-        console.log('Original scene objects:', currentScene?.objects?.length || 0);
-        console.log('Updated scene objects:', aiResponse.updatedScene.objects?.length || 0);
+        console.log('Applying', aiResponse.sceneModifications.length, 'modifications');
 
-        // Link the scene to this chat when AI modifies it
         if (chatId && currentScene?.id) {
           linkSceneToChat(currentScene.id, chatId);
           console.log(`🔗 Linked scene ${currentScene.id} to chat ${chatId}`);
         }
 
-        // Pass changes to parent for preview
-        if (onPendingChanges) {
-          onPendingChanges(aiResponse.sceneModifications);
+        try {
+          const patchResult = scenePatcher.current.applyPatches(currentScene, aiResponse.sceneModifications);
+
+          if (patchResult.success) {
+            console.log(`✅ Successfully applied ${patchResult.appliedPatches}/${patchResult.totalPatches} patches`);
+            updateCurrentScene(patchResult.scene);
+          } else {
+            console.error('❌ Failed to apply scene patches:', patchResult.error);
+            sceneUpdateError = `⚠️ I tried to modify the scene, but encountered an error: ${patchResult.error}`;
+          }
+        } catch (error) {
+          console.error('❌ Exception applying scene patches:', error);
+          sceneUpdateError = `⚠️ I tried to modify the scene, but encountered an unexpected error.`;
         }
-        if (onPreviewMode) {
-          onPreviewMode(true);
-        }
-        console.log(`📋 Showing preview for ${aiResponse.sceneModifications.length} changes`);
       } else {
         console.log('No scene modifications detected in AI response');
       }
 
-      // Add AI response
       const aiMessage = {
         id: Date.now() + 1,
-        text: aiResponse.text,
+        text: sceneUpdateError ? `${aiResponse.text}\n\n${sceneUpdateError}` : aiResponse.text,
         isUser: false,
         timestamp: new Date(),
         sceneId: currentScene?.id,
@@ -149,7 +172,6 @@ function Conversation({
     } catch (error) {
       console.error('AI Error:', error);
 
-      // Fallback response
       const fallbackMessage = {
         id: Date.now() + 1,
         text: "I'm sorry, I'm having trouble connecting to my AI service right now. Please try again in a moment.",
@@ -177,22 +199,7 @@ function Conversation({
   };
 
   return (
-    <div className="chat-container">
-      {/* Header */}
-      <div className="chat-header">
-        <h3>Chat</h3>
-        {onNewChat && (
-          <button
-            onClick={onNewChat}
-            className="new-chat-btn"
-            title="Start New Chat"
-          >
-            <Plus size={16} />
-            New Chat
-          </button>
-        )}
-      </div>
-
+    <>
       {/* Messages */}
       <div className="chat-messages">
         {messages.map((message) => (
@@ -240,7 +247,7 @@ function Conversation({
           </button>
         </div>
       </div>
-    </div>
+    </>
   );
 }
 

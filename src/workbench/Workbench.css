@@ -27,6 +27,23 @@
   padding: 10px 0;
 }
 
+.activity-bar-logo {
+  margin-bottom: 15px;
+  padding: 5px;
+  border-bottom: 1px solid #3e3e42;
+}
+
+.activity-bar-logo img {
+  width: 24px;
+  height: 24px;
+  border-radius: 3px;
+  transition: opacity 0.2s;
+}
+
+.activity-bar-logo img:hover {
+  opacity: 0.8;
+}
+
 .activity-bar button {
   width: 40px;
   height: 40px;
@@ -53,6 +70,14 @@
   color: #ffffff;
 }
 
+.activity-bar-separator {
+  width: 20px;
+  height: 1px;
+  background-color: #3e3e42;
+  margin: 10px 0;
+  align-self: center;
+}
+
 .sidebar {
   width: 250px;
   background-color: #252526;
@@ -72,6 +97,21 @@
   border-bottom: 1px solid #3e3e42;
   font-weight: bold;
   color: #cccccc;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.sidebar-header-logo {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.sidebar-header-logo img {
+  width: 24px;
+  height: 24px;
+  flex-shrink: 0;
 }
 
 .sidebar-content {
@@ -91,7 +131,7 @@
 .editor-content {
   flex: 1;
   overflow: auto;
-  padding: 20px;
+  /* padding: 20px; */
 }
 
 .panel-area {

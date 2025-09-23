@@ -1,6 +1,7 @@
 import React, { Suspense, useState, useCallback, useEffect } from 'react';
 import { useWorkspace, useWorkspaceScene, useWorkspaceChat, useWorkspaceSettings } from '../contexts/WorkspaceContext';
 import { useDatabase } from '../contexts/DatabaseContext';
+import logo from '../assets/icon-transparent.svg';
 
 // Lazy load components
 const SceneSelector = React.lazy(() => import('../features/collection/components/SceneSelector'));

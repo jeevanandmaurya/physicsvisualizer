@@ -1,6 +1,6 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
-import { faUserCircle, faSignInAlt, faSignOutAlt, faSpinner } from '@fortawesome/free-solid-svg-icons';
+import { faUserCircle, faSignInAlt, faSignOutAlt, faSpinner, faSearch, faSort, faSortAlphaDown, faSortAlphaUp, faCalendarAlt, faCalendar } from '@fortawesome/free-solid-svg-icons';
 import '../pages/collection.css';
 
 import { useDatabase } from '../contexts/DatabaseContext';
@@ -73,6 +73,8 @@ function CollectionView() {
   const [error, setError] = useState(null);
 
   const [activeTab, setActiveTab] = useState('publicScenes');
+  const [searchTerm, setSearchTerm] = useState('');
+  const [sortBy, setSortBy] = useState('name'); // 'name', 'date', 'name-desc', 'date-desc'
 
   // --- MODIFIED: Effect to fetch example scenes using DataManager ---
   useEffect(() => {
@@ -155,8 +157,44 @@ function CollectionView() {
     }
   }, [setCurrentView, updateScene, publicScenes, userScenes]);
 
+  // Filter and sort scenes based on search term and sort option
+  const filteredAndSortedScenes = useMemo(() => {
+    const scenes = activeTab === 'publicScenes' ? publicScenes : userScenes;
+
+    // Filter by search term
+    const filtered = scenes.filter(scene => {
+      const sceneName = (scene.name || scene.title || '').toLowerCase();
+      const sceneDesc = (scene.description || '').toLowerCase();
+      const searchLower = searchTerm.toLowerCase();
+
+      return sceneName.includes(searchLower) || sceneDesc.includes(searchLower);
+    });
+
+    // Sort scenes
+    const sorted = [...filtered].sort((a, b) => {
+      switch (sortBy) {
+        case 'name':
+          return (a.name || a.title || '').localeCompare(b.name || b.title || '');
+        case 'name-desc':
+          return (b.name || b.title || '').localeCompare(a.name || a.title || '');
+        case 'date':
+          return new Date(b.updatedAt || b.createdAt || 0) - new Date(a.updatedAt || a.createdAt || 0);
+        case 'date-desc':
+          return new Date(a.updatedAt || a.createdAt || 0) - new Date(b.updatedAt || b.createdAt || 0);
+        default:
+          return 0;
+      }
+    });
+
+    return sorted;
+  }, [activeTab, publicScenes, userScenes, searchTerm, sortBy]);
+
+  const handleSortChange = (newSortBy) => {
+    setSortBy(newSortBy);
+  };
+
   // Renders the scene grid with appropriate loading, empty, and error states
-  const renderSceneGrid = (scenes, isLoading, isUserTab = false) => {
+  const renderSceneGrid = (isLoading, isUserTab = false) => {
     if (isLoading) {
       return (
         <div className="scene-grid">
@@ -169,7 +207,10 @@ function CollectionView() {
         return <p className="error-state-message">{error}</p>;
     }
 
-    if (scenes.length === 0) {
+    if (filteredAndSortedScenes.length === 0) {
+      if (searchTerm) {
+        return <p className="empty-state-message">No scenes match your search. Try different keywords.</p>;
+      }
       if (isUserTab) {
         return <p className="empty-state-message">You haven't created any scenes yet. Go create one! 🚀</p>;
       }
@@ -178,7 +219,7 @@ function CollectionView() {
 
     return (
       <div className="scene-grid">
-        {scenes.map(scene => <SceneCard key={scene.id} scene={scene} isPublic={!isUserTab} onSceneClick={handleSceneClick} />)}
+        {filteredAndSortedScenes.map(scene => <SceneCard key={scene.id} scene={scene} isPublic={!isUserTab} onSceneClick={handleSceneClick} />)}
       </div>
     );
   };
@@ -197,16 +238,148 @@ function CollectionView() {
       <main className="collection-page-main-content">
         {activeTab === 'publicScenes' && (
           <section className="content-section">
-            <h2 className="section-title">Example Scenes</h2>
-            <p className="section-description">Explore simulations created by educators and the community.</p>
-            {renderSceneGrid(publicScenes, loadingPublic)}
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '10px' }}>
+              <div>
+                <h2 className="section-title">Example Scenes</h2>
+                <p className="section-description">Explore simulations created by educators and the community.</p>
+              </div>
+
+              {/* Search and Sort Controls - Top Right */}
+              <div className="collection-controls" style={{
+                display: 'flex',
+                gap: '20px',
+                alignItems: 'center',
+                flexWrap: 'wrap',
+                marginLeft: '20px'
+              }}>
+                <div className="search-container" style={{
+                  position: 'relative',
+                  minWidth: '150px',
+                  width: '180px'
+                }}>
+                  <FontAwesomeIcon icon={faSearch} style={{
+                    position: 'absolute',
+                    left: '10px',
+                    top: '50%',
+                    transform: 'translateY(-50%)',
+                    color: '#888',
+                    fontSize: '12px'
+                  }} />
+                  <input
+                    type="text"
+                    placeholder="Search scenes..."
+                    value={searchTerm}
+                    onChange={(e) => setSearchTerm(e.target.value)}
+                    style={{
+                      width: '100%',
+                      padding: '8px 10px 8px 30px',
+                      border: '1px solid #3e3e42',
+                      borderRadius: '4px',
+                      backgroundColor: '#2d2d30',
+                      color: '#ffffff',
+                      fontSize: '13px'
+                    }}
+                  />
+                </div>
+
+                <div className="sort-container" style={{ display: 'flex', gap: '5px', alignItems: 'center' }}>
+                  <FontAwesomeIcon icon={faSort} style={{ color: '#888', fontSize: '12px' }} />
+                  <select
+                    value={sortBy}
+                    onChange={(e) => handleSortChange(e.target.value)}
+                    style={{
+                      padding: '6px 8px',
+                      border: '1px solid #3e3e42',
+                      borderRadius: '4px',
+                      backgroundColor: '#2d2d30',
+                      color: '#ffffff',
+                      fontSize: '13px',
+                      cursor: 'pointer'
+                    }}
+                  >
+                    <option value="name">Name A-Z</option>
+                    <option value="name-desc">Name Z-A</option>
+                    <option value="date">Newest</option>
+                    <option value="date-desc">Oldest</option>
+                  </select>
+                </div>
+              </div>
+            </div>
+
+            {renderSceneGrid(loadingPublic)}
           </section>
         )}
         {activeTab === 'myScenes' && (
           <section className="content-section">
-            <h2 className="section-title">Your Scenes</h2>
-            <p className="section-description">Your personal collection of physics simulations.</p>
-            {renderSceneGrid(userScenes, loadingUser, true)}
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '10px' }}>
+              <div>
+                <h2 className="section-title">Your Scenes</h2>
+                <p className="section-description">Your personal collection of physics simulations.</p>
+              </div>
+
+              {/* Search and Sort Controls - Top Right */}
+              <div className="collection-controls" style={{
+                display: 'flex',
+                gap: '20px',
+                alignItems: 'center',
+                flexWrap: 'wrap',
+                marginLeft: '20px'
+              }}>
+                <div className="search-container" style={{
+                  position: 'relative',
+                  minWidth: '150px',
+                  width: '180px'
+                }}>
+                  <FontAwesomeIcon icon={faSearch} style={{
+                    position: 'absolute',
+                    left: '10px',
+                    top: '50%',
+                    transform: 'translateY(-50%)',
+                    color: '#888',
+                    fontSize: '12px'
+                  }} />
+                  <input
+                    type="text"
+                    placeholder="Search your scenes..."
+                    value={searchTerm}
+                    onChange={(e) => setSearchTerm(e.target.value)}
+                    style={{
+                      width: '100%',
+                      padding: '8px 10px 8px 30px',
+                      border: '1px solid #3e3e42',
+                      borderRadius: '4px',
+                      backgroundColor: '#2d2d30',
+                      color: '#ffffff',
+                      fontSize: '13px'
+                    }}
+                  />
+                </div>
+
+                <div className="sort-container" style={{ display: 'flex', gap: '5px', alignItems: 'center' }}>
+                  <FontAwesomeIcon icon={faSort} style={{ color: '#888', fontSize: '12px' }} />
+                  <select
+                    value={sortBy}
+                    onChange={(e) => handleSortChange(e.target.value)}
+                    style={{
+                      padding: '6px 8px',
+                      border: '1px solid #3e3e42',
+                      borderRadius: '4px',
+                      backgroundColor: '#2d2d30',
+                      color: '#ffffff',
+                      fontSize: '13px',
+                      cursor: 'pointer'
+                    }}
+                  >
+                    <option value="name">Name A-Z</option>
+                    <option value="name-desc">Name Z-A</option>
+                    <option value="date">Newest</option>
+                    <option value="date-desc">Oldest</option>
+                  </select>
+                </div>
+              </div>
+            </div>
+
+            {renderSceneGrid(loadingUser, true)}
           </section>
         )}
       </main>

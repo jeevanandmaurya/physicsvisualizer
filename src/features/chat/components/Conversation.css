@@ -3,53 +3,10 @@
   display: flex;
   flex-direction: column;
   height: 100%;
-  background: #1a1a1a;
-  border: 1px solid #333;
-  border-radius: 8px;
+  background: transparent;
+  border: none;
+  border-radius: 0;
   overflow: hidden;
-}
-
-/* Header */
-.chat-header {
-  height: 50px;
-  background: #252525;
-  border-bottom: 1px solid #333;
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  padding: 0 16px;
-  flex-shrink: 0;
-}
-
-.chat-header h3 {
-  margin: 0;
-  color: #e0e0e0;
-  font-size: 14px;
-  font-weight: 600;
-}
-
-/* New Chat Button */
-.new-chat-btn {
-  background: #333;
-  border: 1px solid #555;
-  border-radius: 6px;
-  color: #e0e0e0;
-  padding: 6px 10px;
-  font-size: 12px;
-  cursor: pointer;
-  display: flex;
-  align-items: center;
-  gap: 6px;
-  transition: all 0.2s ease;
-}
-
-.new-chat-btn:hover {
-  background: #444;
-  border-color: #777;
-}
-
-.new-chat-btn:active {
-  transform: scale(0.95);
 }
 
 /* Messages Area */
@@ -154,8 +111,8 @@
 
 /* Input Area */
 .chat-input {
-  background: #252525;
-  border-top: 1px solid #333;
+  background: transparent;
+  border-top: 1px solid rgba(255,255,255,0.06);
   padding: 12px;
   flex-shrink: 0;
 }
@@ -253,19 +210,6 @@
   .send-btn {
     width: 40px;
     height: 40px;
-  }
-}
-
-/* Small panels - hide "New Chat" text, show only icon */
-@media (max-width: 900px) {
-  .new-chat-btn span:not(.sr-only) {
-    display: none;
-  }
-
-  .new-chat-btn {
-    padding: 6px;
-    min-width: 32px;
-    justify-content: center;
   }
 }
 

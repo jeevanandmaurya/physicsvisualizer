@@ -18,10 +18,9 @@ import {
 
 // Import the separate, self-contained graph component
 import OverlayGraph from './OverlayGraph';
-import SceneConsole from './SceneConsole';
 
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
-import { faChartLine, faChevronDown, faChevronUp } from '@fortawesome/free-solid-svg-icons';
+import { faCube } from '@fortawesome/free-solid-svg-icons';
 import { useWorkspace } from '../../../contexts/WorkspaceContext';
 
 const MAX_HISTORY_POINTS = 2000;
@@ -122,9 +121,8 @@ function VelocityVectorVisuals({ show, velocities, objectApis, velocityScale }) 
   })}</>);
 }
 
-// --- Main Visualizer Component ---
-function Visualizer({ scene, pendingChanges, isPreviewMode, onAcceptChanges, onRejectChanges }) {
-    const { isPlaying, simulationTime, fps, showVelocityVectors, vectorScale, openGraphs, resetSimulation, updateSimulationTime, updateFps, addGraph, resetTrigger, setIsPlaying } = useWorkspace();
+function Visualizer({ scene }) {
+    const { isPlaying, simulationTime, fps, showVelocityVectors, vectorScale, openGraphs, resetSimulation, updateSimulationTime, updateFps, resetTrigger, setIsPlaying } = useWorkspace();
     const objectApis = useRef({});
     const gravitationalPhysics = useRef(new GravitationalPhysics(scene || {}));
     const initialSceneObjects = useRef(scene?.objects ? JSON.parse(JSON.stringify(scene.objects)) : []);
@@ -132,70 +130,10 @@ function Visualizer({ scene, pendingChanges, isPreviewMode, onAcceptChanges, onR
     const [objectHistory, setObjectHistory] = useState({});
     const [physicsData, setPhysicsData] = useState({ velocities: {} });
     const [canvasError, setCanvasError] = useState(false);
-    const [showGraphDropdown, setShowGraphDropdown] = useState(false);
     const r3fCanvasRef = useRef(null);
 
-    // Apply pending changes to scene for preview
-    const effectiveScene = useMemo(() => {
-      if (!isPreviewMode || !pendingChanges || !scene) return scene;
-
-      try {
-        // Create a deep copy of the scene
-        const sceneCopy = JSON.parse(JSON.stringify(scene));
-
-        // Apply the pending changes
-        pendingChanges.forEach(change => {
-          const pathParts = change.path.split('/').filter(p => p);
-          let current = sceneCopy;
-
-          // Navigate to the parent of the target property
-          for (let i = 0; i < pathParts.length - 1; i++) {
-            const part = pathParts[i];
-            if (part === 'objects' && !isNaN(pathParts[i + 1])) {
-              // Handle array indices for objects
-              const index = parseInt(pathParts[i + 1]);
-              if (!current[part]) current[part] = [];
-              if (!current[part][index]) current[part][index] = {};
-              current = current[part][index];
-              i++; // Skip the next part since we handled it
-            } else {
-              if (!current[part]) current[part] = {};
-              current = current[part];
-            }
-          }
-
-          // Apply the change
-          const lastPart = pathParts[pathParts.length - 1];
-          if (change.op === 'replace') {
-            current[lastPart] = change.value;
-          } else if (change.op === 'add') {
-            if (Array.isArray(current)) {
-              if (lastPart === '-') {
-                current.push(change.value);
-              } else {
-                current.splice(parseInt(lastPart), 0, change.value);
-              }
-            } else {
-              current[lastPart] = change.value;
-            }
-          } else if (change.op === 'remove') {
-            if (Array.isArray(current)) {
-              current.splice(parseInt(lastPart), 1);
-            } else {
-              delete current[lastPart];
-            }
-          }
-        });
-
-        return sceneCopy;
-      } catch (error) {
-        console.error('Error applying preview changes:', error);
-        return scene;
-      }
-    }, [scene, pendingChanges, isPreviewMode]);
-
-    const { gravity = [0, -9.81, 0], contactMaterial = {}, hasGround = true } = effectiveScene || {};
-    const objectsToRender = effectiveScene?.objects || [];
+    const { gravity = [0, -9.81, 0], contactMaterial = {}, hasGround = true } = scene || {};
+    const objectsToRender = scene?.objects || [];
 
     const defaultContactMaterial = {
         friction: contactMaterial.friction || 0.5,
@@ -284,27 +222,6 @@ function Visualizer({ scene, pendingChanges, isPreviewMode, onAcceptChanges, onR
     return (
         <div className="visualizer-container">
             <div className="controllbar">
-                <div className="graphs-dropdown-container">
-                    <button onClick={() => setShowGraphDropdown(prev => !prev)}>
-                        <FontAwesomeIcon icon={faChartLine} style={{ marginRight: '5px' }} />
-                        Graphs
-                        <FontAwesomeIcon icon={showGraphDropdown ? faChevronUp : faChevronDown} style={{ marginLeft: '5px' }} />
-                    </button>
-                    {showGraphDropdown && (
-                        <div className="graphs-dropdown-menu">
-                            {[
-                                { label: 'Y vs T', value: 'yvt' },
-                                { label: 'X vs T', value: 'xvt' },
-                                { label: 'Z vs T', value: 'zvt' },
-                                { label: 'Y vs X', value: 'yvx' }
-                            ].map(plotType => (
-                                <button key={plotType.value} onClick={() => { addGraph(plotType.value); setShowGraphDropdown(false); }} className="dropdown-item">
-                                    {plotType.label}
-                                </button>
-                            ))}
-                        </div>
-                    )}
-                </div>
             </div>
             <div className="main-content">
                 {canvasError ? (
@@ -351,8 +268,8 @@ function Visualizer({ scene, pendingChanges, isPreviewMode, onAcceptChanges, onR
                         <TimeUpdater isPlaying={isPlaying} updateSimulationTime={updateSimulationTime} />
                         <ambientLight intensity={0.6} />
                         <directionalLight position={[8, 10, 5]} intensity={1.0} castShadow shadow-mapSize-width={1024} shadow-mapSize-height={1024} />
-                        <Physics key={isPreviewMode ? JSON.stringify(pendingChanges) : `physics-${effectiveScene?.id || 'default'}`} gravity={gravity} defaultContactMaterial={defaultContactMaterial} isPaused={!isPlaying}>
-                            <PhysicsForceApplier scene={effectiveScene} objectApis={objectApis} gravitationalPhysics={gravitationalPhysics} isPlaying={isPlaying} onPhysicsDataCalculated={handlePhysicsDataCalculated} />
+                        <Physics key={`physics-${scene?.id || 'default'}`} gravity={gravity} defaultContactMaterial={defaultContactMaterial} isPaused={!isPlaying}>
+                            <PhysicsForceApplier scene={scene} objectApis={objectApis} gravitationalPhysics={gravitationalPhysics} isPlaying={isPlaying} onPhysicsDataCalculated={handlePhysicsDataCalculated} />
                             {hasGround && <GroundPlane />}
                             {objectsToRender.map((obj, index) => {
                                 const objectId = obj.id ?? `${obj.type?.toLowerCase() || 'obj'}-${index}`;
@@ -392,14 +309,6 @@ function Visualizer({ scene, pendingChanges, isPreviewMode, onAcceptChanges, onR
                         initialPosition={{ x: 20 + index * 30, y: 20 + index * 30 }}
                     />
                 ))}
-
-                {/* Scene Console for AI Changes Preview */}
-                <SceneConsole
-                    changes={pendingChanges}
-                    isVisible={isPreviewMode && pendingChanges && pendingChanges.length > 0}
-                    onAccept={onAcceptChanges}
-                    onReject={onRejectChanges}
-                />
             </div>
         </div>
     );

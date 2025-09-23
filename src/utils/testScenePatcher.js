@@ -1,5 +1,5 @@
 // Test file for ScenePatcher integration
-import ScenePatcher from './ScenePatcher.js';
+import ScenePatcher from '../core/scene/patcher.js';
 
 // Test the JSON patch system
 export function testScenePatcher() {

@@ -3,16 +3,12 @@ import { useDatabase } from '../../../contexts/DatabaseContext';
 import './SceneSelector.css';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { faUser, faBookOpen, faSpinner, faExclamationTriangle, faEllipsisV, faTrash, faSave, faEdit, faShare, faCog, faComments, faTimes, faCube } from '@fortawesome/free-solid-svg-icons';
-import extractPrompt from '../../../core/ai/prompts/extractPrompt.txt?raw';
 
 function SceneSelector({
     currentScene,
     handleSceneChange,
-    conversationHistory,
     userScenes,
     loadingUserScenes,
-    extractedScenes = [],
-    onExtractedScene,
     onDeleteScene,
     onSaveScene,
     onUpdateScene,
@@ -35,12 +31,10 @@ function SceneSelector({
     const [fetchedUserScenes, setFetchedUserScenes] = useState([]);
     const [chatHistory, setChatHistory] = useState([]);
     const [loading, setLoading] = useState(false);
-    const [isExtracting, setIsExtracting] = useState(false);
     const [error, setError] = useState(null);
     const [openMenuId, setOpenMenuId] = useState(null);
 
     const dataManager = useDatabase();
-    const GEMINI_API_KEY = import.meta.env.VITE_GEMINI_API_KEY;
 
     // Close menu when clicking outside
     useEffect(() => {
@@ -115,42 +109,6 @@ function SceneSelector({
     }, [activeTab, dataManager]);
     
     // --- Handlers ---
-
-    const handleExtractScene = async () => {
-        if (!conversationHistory.length) return setError("No conversation history to extract from.");
-
-        setIsExtracting(true);
-        setError(null);
-        try {
-            const conversationText = conversationHistory.map(msg => `${msg.role}: ${msg.content}`).join('\n');
-            const prompt = extractPrompt.replace('${conversationText}', conversationText);
-            const response = await fetch(
-                `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash-latest:generateContent?key=${GEMINI_API_KEY}`,
-                { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ contents: [{ parts: [{ text: prompt }] }] }) }
-            );
-            if (!response.ok) throw new Error(`HTTP error! Status: ${response.status}`);
-            
-            const data = await response.json();
-            const rawResponse = data.candidates?.[0]?.content?.parts?.[0]?.text || '';
-            const cleanedJson = rawResponse.match(/```json\s*([\s\S]*?)\s*```/)?.[1] || rawResponse;
-            const extractedScene = JSON.parse(cleanedJson);
-
-            if (onExtractedScene) {
-                onExtractedScene(extractedScene);
-                setActiveTab('user');
-            }
-        } catch (error) {
-            console.error("Error extracting scene:", error);
-            setError(`Scene extraction failed: ${error.message}`);
-        } finally {
-            setIsExtracting(false);
-        }
-    };
-    
-    const getCombinedUserScenes = () => {
-        // Show newly extracted (unsaved) scenes at the top of the user's saved list
-        return [...extractedScenes, ...fetchedUserScenes];
-    };
 
     // This function now correctly calls the prop passed from the parent.
     const handleSceneItemClick = (scene) => {
@@ -421,27 +379,18 @@ function SceneSelector({
     return (
         <div className="scene-selector-container">
             <div className="scene-selector">
-                <div className="scene-selector-header">
-                    <button className={`extract-button ${isExtracting ? 'extracting' : ''}`} onClick={handleExtractScene} disabled={isExtracting}>
-                        {isExtracting ? <><FontAwesomeIcon icon={faSpinner} spin /> Extracting...</> : 'Extract Scene'}
-                    </button>
-                    {error && <div className="error-message" role="alert">{error}</div>}
-                </div>
-
                 <div className="scene-tabs">
                     <button className={activeTab === 'examples' ? 'active' : ''} onClick={() => setActiveTab('examples')}><FontAwesomeIcon icon={faBookOpen} /> Examples</button>
                     {uiMode === 'advanced' && (
                         <button className={activeTab === 'chats' ? 'active' : ''} onClick={() => setActiveTab('chats')}><FontAwesomeIcon icon={faComments} /> Chat History</button>
                     )}
-                    <button className={activeTab === 'user' ? 'active' : ''} onClick={() => setActiveTab('user')}><FontAwesomeIcon icon={faUser} /> My Scenes
-                        {extractedScenes.length > 0 && <span className="unsaved-count">({extractedScenes.length})</span>}
-                    </button>
+                    <button className={activeTab === 'user' ? 'active' : ''} onClick={() => setActiveTab('user')}><FontAwesomeIcon icon={faUser} /> My Scenes</button>
                 </div>
-                
+
                 <div className="scene-list-panel">
                     {activeTab === 'examples' && renderSceneList(exampleScenes, loading, "No examples found.", false)}
                     {activeTab === 'chats' && renderChatList(chatHistory, loading, "No chat history yet. Start a new chat!")}
-                    {activeTab === 'user' && renderSceneList(getCombinedUserScenes(), loading, "No saved scenes yet.", true)}
+                    {activeTab === 'user' && renderSceneList(fetchedUserScenes, loading, "No saved scenes yet.", true)}
                 </div>
             </div>
         </div>
