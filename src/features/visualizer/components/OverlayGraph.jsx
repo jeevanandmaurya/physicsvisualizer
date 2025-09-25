@@ -32,7 +32,7 @@ function OverlayGraph({ id, initialType, data, onClose }) {
     if (!selectedObjectId || !data[selectedObjectId]) return { plotData: [], labels: newLabels };
     const history = data[selectedObjectId];
     
-    let newPlotData;
+    let newPlotData = [];
     // Correctly map data based on type
     if (initialType === 'yvx') {
         newPlotData = history.map(p => ({ x: p.x, y: p.y }));

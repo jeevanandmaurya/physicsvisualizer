@@ -12,18 +12,13 @@ class Workspace {
   constructor(id, name = 'New Workspace') {
     this.id = id;
     this.name = name;
-    this.description = '';
 
     // Multiple scenes per workspace (like current chat.scenes array)
     this.scenes = [this.createDefaultScene()];
     this.currentSceneIndex = 0; // Active scene
 
     this.chat = {
-      messages: [],
-      settings: {
-        model: 'gemini-1.5-flash',
-        temperature: 0.7
-      }
+      messages: []
     };
 
     this.settings = {
@@ -34,10 +29,7 @@ class Workspace {
     };
     this.metadata = {
       createdAt: new Date().toISOString(),
-      updatedAt: new Date().toISOString(),
-      tags: [],
-      isPublic: false,
-      authorId: null
+      updatedAt: new Date().toISOString()
     };
 
     // Track which chat last modified each scene
@@ -100,19 +92,16 @@ class Workspace {
     return this;
   }
 
-  // Duplicate current scene
-  duplicateCurrentScene() {
-    const currentScene = this.getCurrentScene();
-    if (currentScene) {
-      const duplicate = JSON.parse(JSON.stringify(currentScene));
-      duplicate.id = `scene-${Date.now()}-${this.scenes.length}`;
-      duplicate.name = `${currentScene.name} (Copy)`;
-      this.scenes.push(duplicate);
+  // Replace current scene with new scene data (for loading examples or external scenes)
+  replaceCurrentScene(newScene) {
+    if (this.currentSceneIndex >= 0 && this.currentSceneIndex < this.scenes.length) {
+      this.scenes[this.currentSceneIndex] = { ...newScene };
       this.metadata.updatedAt = new Date().toISOString();
-      return duplicate;
     }
-    return null;
+    return this;
   }
+
+
 
   // Delete scene by index
   deleteScene(index) {
@@ -157,8 +146,7 @@ class Workspace {
 
   // Check if workspace has unsaved changes
   hasUnsavedChanges() {
-    // Compare with last saved state (would be implemented with snapshots)
-    return true; // Simplified for now
+    return true; // Always assume changes for auto-save
   }
 
   // Link a scene to a chat (when AI modifies a scene)
@@ -173,23 +161,13 @@ class Workspace {
     return this.sceneChatLinks.get(sceneId);
   }
 
-  // Get all scenes linked to a specific chat
-  getScenesForChat(chatId) {
-    const sceneIds = [];
-    for (const [sceneId, linkedChatId] of this.sceneChatLinks) {
-      if (linkedChatId === chatId) {
-        sceneIds.push(sceneId);
-      }
-    }
-    return sceneIds;
-  }
+
 
   // Export for saving
   toJSON() {
     return {
       id: this.id,
       name: this.name,
-      description: this.description,
       scenes: this.scenes,
       currentSceneIndex: this.currentSceneIndex,
       chat: this.chat,
@@ -213,15 +191,11 @@ class Workspace {
     }
 
     // Copy other properties
-    workspace.description = data.description || '';
-    workspace.chat = data.chat || { messages: [], settings: { model: 'gemini-1.5-flash', temperature: 0.7 } };
+    workspace.chat = data.chat || { messages: [] };
     workspace.settings = data.settings || { uiMode: 'simple', showVectors: false, vectorScale: 1.5, autoSave: true };
     workspace.metadata = data.metadata || {
       createdAt: new Date().toISOString(),
-      updatedAt: new Date().toISOString(),
-      tags: [],
-      isPublic: false,
-      authorId: null
+      updatedAt: new Date().toISOString()
     };
 
     // Restore scene-chat links
@@ -283,20 +257,15 @@ class WorkspaceManager {
       const scene = await this.database.getSceneById(sceneId);
       if (!scene) return null;
 
-      // Find associated chat
       const chats = await this.database.getChatHistory();
       const chat = chats.find(c => c.sceneId === sceneId);
 
-      // Create workspace from legacy data
       const workspace = new Workspace(`workspace-${sceneId}`, scene.name);
-      workspace.scene = scene;
-      if (chat) {
-        workspace.chat.messages = chat.messages || [];
-      }
+      workspace.scenes = [scene];
+      if (chat) workspace.chat.messages = chat.messages || [];
 
       return workspace;
     } catch (error) {
-      console.warn('Migration failed:', error);
       return null;
     }
   }
@@ -339,50 +308,9 @@ class WorkspaceManager {
     this.notifyListeners('workspaceUpdated', this.currentWorkspace);
   }
 
-  // Get all workspaces
-  async getAllWorkspaces() {
-    try {
-      const workspaces = await this.database.getAllWorkspaces?.() || [];
-      return workspaces.map(data => Workspace.fromJSON(data));
-    } catch (error) {
-      console.error('Failed to get workspaces:', error);
-      return [];
-    }
-  }
 
-  // Delete workspace
-  async deleteWorkspace(id) {
-    try {
-      await this.database.deleteWorkspace?.(id);
-      this.workspaces.delete(id);
 
-      if (this.currentWorkspace?.id === id) {
-        this.currentWorkspace = null;
-        this.notifyListeners('currentWorkspaceChanged', null);
-      }
 
-      this.notifyListeners('workspaceDeleted', id);
-    } catch (error) {
-      console.error('Failed to delete workspace:', error);
-      throw error;
-    }
-  }
-
-  // Duplicate workspace
-  duplicateWorkspace(id) {
-    const original = this.workspaces.get(id);
-    if (!original) return null;
-
-    const duplicate = Workspace.fromJSON(original.toJSON());
-    duplicate.id = `workspace-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
-    duplicate.name = `${original.name} (Copy)`;
-    duplicate.metadata.createdAt = new Date().toISOString();
-    duplicate.metadata.updatedAt = new Date().toISOString();
-
-    this.workspaces.set(duplicate.id, duplicate);
-    this.notifyListeners('workspaceDuplicated', duplicate);
-    return duplicate;
-  }
 
   // Event system for UI updates
   addListener(callback) {

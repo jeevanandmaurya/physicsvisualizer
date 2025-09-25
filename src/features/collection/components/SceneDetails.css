@@ -38,6 +38,8 @@
     margin-bottom: 10px;
     padding: 2px;
     gap: 2px;
+    justify-content: space-between;
+    align-items: center;
 }
 
 .scene-tab {
@@ -71,6 +73,31 @@
 .scene-tab svg {
     width: 12px;
     height: 12px;
+}
+
+/* Close Button */
+.scene-details-close-btn {
+    background: none;
+    border: 1px solid #666;
+    border-radius: 3px;
+    color: #a0a0a0;
+    cursor: pointer;
+    font-size: 14px;
+    font-weight: bold;
+    padding: 2px 6px;
+    transition: all 0.2s ease;
+    width: 24px;
+    height: 24px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+}
+
+.scene-details-close-btn:hover {
+    background-color: #f44747;
+    border-color: #f44747;
+    color: #ffffff;
 }
 
 /* JSON View Styles */

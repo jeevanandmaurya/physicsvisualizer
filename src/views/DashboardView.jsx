@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
-import { faPlus, faFolderOpen, faCompass, faClockRotateLeft, faSpinner } from '@fortawesome/free-solid-svg-icons';
+import { faPlus, faFolderOpen, faCompass, faClockRotateLeft, faSpinner, faComments } from '@fortawesome/free-solid-svg-icons';
 
 import { useDatabase } from '../contexts/DatabaseContext';
 import { useWorkspace, useWorkspaceScene } from '../contexts/WorkspaceContext';
@@ -101,8 +101,8 @@ function DashboardView() {
                             src="/src/assets/physicsvisualizer.svg"
                             alt="Physics Visualizer Logo"
                             style={{
-                                width: '500px',
-                                height: '150px',
+                                width: '400px',
+                                height: '100px',
                                 objectFit: 'contain'
                             }}
                         />
@@ -123,6 +123,16 @@ function DashboardView() {
                                     <p>Create a blank physics simulation</p>
                                 </div>
                             </div>
+                            
+                            <div className="action-card" onClick={() => setCurrentView('chat')}>
+                                <div className="action-card-icon">
+                                    <FontAwesomeIcon icon={faComments} />
+                                </div>
+                                <div className="action-card-content">
+                                    <h3>New Chat</h3>
+                                    <p>Interact with Physics AI Agent</p>
+                                </div>
+                            </div>
 
                             <div className="action-card" onClick={handleViewCollection}>
                                 <div className="action-card-icon">
@@ -133,6 +143,7 @@ function DashboardView() {
                                     <p>Browse pre-built simulations</p>
                                 </div>
                             </div>
+
                         </div>
                     </div>
 

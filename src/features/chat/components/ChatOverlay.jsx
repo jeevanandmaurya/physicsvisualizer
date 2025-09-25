@@ -2,9 +2,9 @@ import React, { useState, useEffect, useRef } from 'react';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { faChevronUp, faChevronDown, faTimes } from '@fortawesome/free-solid-svg-icons';
 import { Send } from 'lucide-react';
-import GeminiAIManager from '../../../core/ai/gemini';
-import ScenePatcher from '../../../core/scene/patcher';
+import { useConversation } from './Conversation';
 import { useWorkspace } from '../../../contexts/WorkspaceContext';
+import { useTheme } from '../../../contexts/ThemeContext';
 import './ChatOverlay.css';
 
 const ChatOverlay = ({
@@ -16,6 +16,7 @@ const ChatOverlay = ({
   getChatForScene,
   onSceneUpdate
 }) => {
+  const { overlayOpacity } = useTheme();
   const [isMinimized, setIsMinimized] = useState(false);
   const [position, setPosition] = useState({ x: 100, y: 100 });
   const [size, setSize] = useState({ width: 800, height: 600 });
@@ -27,173 +28,37 @@ const ChatOverlay = ({
   const [resizeStart, setResizeStart] = useState({ x: 0, y: 0 });
   const overlayRef = useRef(null);
   const messagesEndRef = useRef(null);
-  const aiManager = useRef(new GeminiAIManager());
-  const scenePatcher = useRef(new ScenePatcher());
 
   const currentChatId = scene?.id ? getChatForScene(scene.id) : null;
-  const { linkSceneToChat, updateCurrentScene } = useWorkspace();
 
-  // Conversation state
-  const [chatMessages, setChatMessages] = useState([
-    {
-      id: 1,
-      text: "Hello! I'm a Physics AI Agent. I can help you with physics questions and also discuss how to represent described scenes in a 3D visualizer JSON format. How can I assist you with physics today?",
-      isUser: false,
-      timestamp: new Date(),
-      sceneId: scene?.id
+  // Use the conversation hook
+  const {
+    messages: chatMessages,
+    isLoading,
+    sendMessage
+  } = useConversation({
+    initialMessage: "Hello! I'm a Physics AI Agent. I can help you with physics questions and also discuss how to represent described scenes in a 3D visualizer JSON format. How can I assist you with physics today?",
+    currentScene: scene,
+    onSceneUpdate: onSceneUpdate,
+    chatId: currentChatId,
+    updateConversation: (msgs) => {
+      // Sync with parent component's message state
+      if (addMessage && msgs.length > chatMessages.length) {
+        const newMessage = msgs[msgs.length - 1];
+        if (newMessage && !newMessage.isUser) {
+          addMessage(newMessage);
+        }
+      }
     }
-  ]);
+  });
+
   const [input, setInput] = useState('');
-  const [isLoading, setIsLoading] = useState(false);
-
-  // Update messages when conversationHistory changes
-  useEffect(() => {
-    if (messages && messages.length > 0) {
-      setChatMessages(messages);
-    } else {
-      setChatMessages([{
-        id: Date.now(),
-        text: "Hello! I'm a Physics AI Agent. I can help you with physics questions and also discuss how to represent described scenes in a 3D visualizer JSON format. How can I assist you with physics today?",
-        isUser: false,
-        timestamp: new Date(),
-        sceneId: scene?.id
-      }]);
-    }
-  }, [messages]);
-
-  // Handle scene switching - reset chat for new scenes
-  const prevSceneIdRef = useRef(scene?.id);
-  useEffect(() => {
-    if (prevSceneIdRef.current !== scene?.id) {
-      console.log(`🔄 Scene switched from ${prevSceneIdRef.current} to ${scene?.id}, resetting chat`);
-      setChatMessages([{
-        id: Date.now(),
-        text: "Hello! I'm a Physics AI Agent. I can help you with physics questions and also simulate scenes in a 3D visualizer.",
-        isUser: false,
-        timestamp: new Date(),
-        sceneId: scene?.id
-      }]);
-      prevSceneIdRef.current = scene?.id;
-    }
-  }, [scene?.id]);
 
   const handleSend = async () => {
     if (!input.trim() || isLoading) return;
-
-    const userMessage = {
-      id: Date.now(),
-      text: input.trim(),
-      isUser: true,
-      timestamp: new Date(),
-      sceneId: scene?.id
-    };
-
-    const newMessages = [...chatMessages, userMessage];
-    setChatMessages(newMessages);
+    const messageText = input.trim();
     setInput('');
-
-    setIsLoading(true);
-
-    try {
-      const chatContext = {
-        history: chatMessages,
-        currentMessage: userMessage
-      };
-
-      const sceneContext = scene ? {
-        id: scene.id,
-        name: scene.name,
-        description: scene.description,
-        objects: scene.objects?.map(obj => ({
-          id: obj.id,
-          type: obj.type,
-          position: obj.position,
-          velocity: obj.velocity,
-          mass: obj.mass,
-          radius: obj.radius,
-          dimensions: obj.dimensions,
-          color: obj.color,
-          isStatic: obj.isStatic,
-          rotation: obj.rotation
-        })) || [],
-        gravity: scene.gravity,
-        hasGround: scene.hasGround,
-        contactMaterial: scene.contactMaterial,
-        backgroundColor: scene.backgroundColor,
-        lighting: scene.lighting,
-        camera: scene.camera
-      } : null;
-
-      const aiResponse = await aiManager.current.processUserMessage(
-        userMessage.text,
-        chatContext,
-        sceneContext
-      );
-
-      let sceneUpdateError = null;
-      if (aiResponse.sceneModifications && aiResponse.sceneModifications.length > 0) {
-        console.log('AI Scene Update Detected');
-        console.log('Applying', aiResponse.sceneModifications.length, 'modifications');
-
-        if (currentChatId && scene?.id) {
-          linkSceneToChat(scene.id, currentChatId);
-          console.log(`🔗 Linked scene ${scene.id} to chat ${currentChatId}`);
-        }
-
-        try {
-          const patchResult = scenePatcher.current.applyPatches(scene, aiResponse.sceneModifications);
-
-          if (patchResult.success) {
-            console.log(`✅ Successfully applied ${patchResult.appliedPatches}/${patchResult.totalPatches} patches`);
-            updateCurrentScene(patchResult.scene);
-          } else {
-            console.error('❌ Failed to apply scene patches:', patchResult.error);
-            sceneUpdateError = `⚠️ I tried to modify the scene, but encountered an error: ${patchResult.error}`;
-          }
-        } catch (error) {
-          console.error('❌ Exception applying scene patches:', error);
-          sceneUpdateError = `⚠️ I tried to modify the scene, but encountered an unexpected error.`;
-        }
-      } else {
-        console.log('No scene modifications detected in AI response');
-      }
-
-      const aiMessage = {
-        id: Date.now() + 1,
-        text: sceneUpdateError ? `${aiResponse.text}\n\n${sceneUpdateError}` : aiResponse.text,
-        isUser: false,
-        timestamp: new Date(),
-        sceneId: scene?.id,
-        aiMetadata: aiResponse.metadata
-      };
-
-      const updatedMessages = [...newMessages, aiMessage];
-      setChatMessages(updatedMessages);
-
-      if (addMessage) {
-        addMessage(aiMessage);
-      }
-
-    } catch (error) {
-      console.error('AI Error:', error);
-
-      const fallbackMessage = {
-        id: Date.now() + 1,
-        text: "I'm sorry, I'm having trouble connecting to my AI service right now. Please try again in a moment.",
-        isUser: false,
-        timestamp: new Date(),
-        sceneId: scene?.id
-      };
-
-      const updatedMessages = [...newMessages, fallbackMessage];
-      setChatMessages(updatedMessages);
-
-      if (addMessage) {
-        addMessage(fallbackMessage);
-      }
-    } finally {
-      setIsLoading(false);
-    }
+    await sendMessage(messageText);
   };
 
   const handleKeyPress = (e) => {
@@ -304,18 +169,18 @@ const ChatOverlay = ({
 
   return (
     <div className={`chat-overlay ${isMinimized ? 'minimized' : ''}`}>
-      {!isMinimized && <div className="chat-overlay-backdrop" />}
-      <div
-        className="chat-overlay-container"
-        ref={overlayRef}
-        style={{
-          left: `${position.x}px`,
-          top: `${position.y}px`,
-          width: `${size.width}px`,
-          height: isMinimized ? '40px' : `${size.height}px`,
-          cursor: isResizing ? 'nw-resize' : 'default'
-        }}
-      >
+        <div
+          className="chat-overlay-container"
+          ref={overlayRef}
+          style={{
+            left: `${position.x}px`,
+            top: `${position.y}px`,
+            width: `${size.width}px`,
+            height: isMinimized ? '28px' : `${size.height}px`,
+            cursor: isResizing ? 'nw-resize' : 'default',
+            '--chat-bg-opacity': overlayOpacity.chat
+          }}
+        >
         {/* Minimal header with title and controls - draggable */}
         <div
           className="chat-overlay-header"
@@ -337,10 +202,10 @@ const ChatOverlay = ({
                   setPreviousPosition(position);
                   setPreviousSize(size);
                   setPosition({
-                    x: (window.innerWidth - 20) / 2, // Horizontally centered
+                    x: (window.innerWidth - 90) / 2, // Horizontally centered
                     y: window.innerHeight - 80 // Above status bar
                   });
-                  setSize({ width: 50, height: 8 });
+                  setSize({ width: 90, height: 28 });
                   setIsMinimized(true);
                 }
               }}

@@ -2,11 +2,11 @@ import React from 'react';
 import DashboardView from '../views/DashboardView';
 import CollectionView from '../views/CollectionView';
 import VisualizerView from '../views/VisualizerView';
-import HistoryView from '../views/HistoryView';
+import ChatView from '../views/ChatView';
 import SettingsView from '../views/SettingsView';
-import AnalyticsView from '../views/AnalyticsView';
 
-const EditorArea = ({ activeView }) => {
+
+const EditorArea = ({ activeView, onViewChange }) => {
   const renderView = () => {
     switch (activeView) {
       case 'dashboard':
@@ -15,12 +15,10 @@ const EditorArea = ({ activeView }) => {
         return <CollectionView />;
       case 'visualizer':
         return <VisualizerView />;
-      case 'history':
-        return <HistoryView />;
+      case 'chat':
+        return <ChatView onViewChange={onViewChange} />;
       case 'settings':
         return <SettingsView />;
-      case 'analytics':
-        return <AnalyticsView />;
       default:
         return <DashboardView />;
     }

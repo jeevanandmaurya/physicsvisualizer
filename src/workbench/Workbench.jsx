@@ -1,10 +1,10 @@
 import React, { useState, useEffect } from 'react';
 import ActivityBar from './ActivityBar';
-import SideBar from './SideBar';
+import Panel from './Panel';
 import EditorArea from './EditorArea';
-import PanelArea from './PanelArea';
 import StatusBar from './StatusBar';
 import ChatOverlay from '../features/chat/components/ChatOverlay';
+import GraphOverlay from '../features/visualizer/components/GraphOverlay';
 import { useWorkspace, useWorkspaceScene, useWorkspaceChat } from '../contexts/WorkspaceContext';
 import './Workbench.css';
 
@@ -12,9 +12,9 @@ const Workbench = () => {
   const { currentView, setCurrentView, getChatForScene } = useWorkspace();
   const { scene } = useWorkspaceScene();
   const { messages, addMessage } = useWorkspaceChat();
-  const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
-  const [panelCollapsed, setPanelCollapsed] = useState(false);
   const [chatOpen, setChatOpen] = useState(false);
+  const [graphOpen, setGraphOpen] = useState(false);
+  const [showSceneDetails, setShowSceneDetails] = useState(false);
 
   // VS Code-inspired layout configuration for each view
   const getLayoutConfig = (view) => {
@@ -36,6 +36,12 @@ const Workbench = () => {
         sidebar: true,
         panel: true,
         description: '3D physics simulation with chat and details'
+      },
+      // Chat: Full chat experience
+      chat: {
+        sidebar: false,
+        panel: false,
+        description: 'Advanced chat system for physics discussions'
       },
       // Settings: Configuration (like VS Code's settings)
       settings: {
@@ -68,6 +74,10 @@ const Workbench = () => {
             break;
           case '4':
             e.preventDefault();
+            setCurrentView('chat');
+            break;
+          case '5':
+            e.preventDefault();
             setCurrentView('settings');
             break;
           default:
@@ -88,28 +98,22 @@ const Workbench = () => {
       />
       <div className="workbench-main">
         <div className="workbench-content">
-          {layoutConfig.sidebar && (
-            <SideBar
-              activeView={currentView}
-              collapsed={sidebarCollapsed}
-              onToggleCollapse={() => setSidebarCollapsed(!sidebarCollapsed)}
+          {currentView === 'visualizer' && (
+            <Panel
+              showSceneDetails={showSceneDetails}
+              onToggleSceneDetails={() => setShowSceneDetails(!showSceneDetails)}
             />
           )}
-          <EditorArea activeView={currentView} />
-          {layoutConfig.panel && (
-            <PanelArea
-              activeView={currentView}
-              collapsed={panelCollapsed}
-              onToggleCollapse={() => setPanelCollapsed(!panelCollapsed)}
-            />
-          )}
+          <EditorArea activeView={currentView} onViewChange={setCurrentView} />
         </div>
-        <StatusBar
-          activeView={currentView}
-          chatOpen={chatOpen}
-          onChatToggle={() => setChatOpen(!chatOpen)}
-        />
       </div>
+      <StatusBar
+        activeView={currentView}
+        chatOpen={chatOpen}
+        onChatToggle={() => setChatOpen(!chatOpen)}
+        graphOpen={graphOpen}
+        onGraphToggle={() => setGraphOpen(!graphOpen)}
+      />
       <ChatOverlay
         isOpen={chatOpen}
         onToggle={() => setChatOpen(!chatOpen)}
@@ -120,6 +124,10 @@ const Workbench = () => {
         onSceneUpdate={(propertyPath, value, reason) => {
           console.log('Scene update:', propertyPath, value, reason);
         }}
+      />
+      <GraphOverlay
+        isOpen={graphOpen}
+        onToggle={() => setGraphOpen(!graphOpen)}
       />
     </div>
   );

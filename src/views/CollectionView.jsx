@@ -1,10 +1,10 @@
 import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { faUserCircle, faSignInAlt, faSignOutAlt, faSpinner, faSearch, faSort, faSortAlphaDown, faSortAlphaUp, faCalendarAlt, faCalendar } from '@fortawesome/free-solid-svg-icons';
-import '../pages/collection.css';
 
 import { useDatabase } from '../contexts/DatabaseContext';
 import { useWorkspace, useWorkspaceScene } from '../contexts/WorkspaceContext';
+import './CollectionView.css';
 
 // --- Reusable UI Components ---
 
@@ -76,7 +76,7 @@ function CollectionView() {
   const [searchTerm, setSearchTerm] = useState('');
   const [sortBy, setSortBy] = useState('name'); // 'name', 'date', 'name-desc', 'date-desc'
 
-  // --- MODIFIED: Effect to fetch example scenes using DataManager ---
+  // --- Effect to fetch example scenes (representing example chats) ---
   useEffect(() => {
     let isMounted = true;
     if (!dataManager) return;
@@ -85,7 +85,18 @@ function CollectionView() {
     setError(null);
     dataManager.getScenes('examples')
       .then(scenes => {
-        if (isMounted) setPublicScenes(scenes);
+        if (isMounted) {
+          // Transform scenes into chat-like objects for display
+          const exampleChats = scenes.map(scene => ({
+            id: `chat-${scene.id}`,
+            name: scene.name,
+            description: scene.description,
+            thumbnailUrl: scene.thumbnailUrl,
+            sceneId: scene.id,
+            isExample: true
+          }));
+          setPublicScenes(exampleChats);
+        }
       })
       .catch(err => {
         console.error("Error fetching example scenes:", err);
@@ -130,23 +141,44 @@ function CollectionView() {
     return () => { isMounted = false; };
   }, [dataManager]);
 
-  const handleSceneClick = useCallback(async (sceneId, isPublic) => {
+  const handleSceneClick = useCallback(async (chatId, isPublic) => {
     try {
-      console.log('🎯 Loading scene:', sceneId, 'isPublic:', isPublic);
+      console.log('🎯 Loading chat/scene:', chatId, 'isPublic:', isPublic);
 
-      // Find the scene in the appropriate array
+      // Find the chat/scene in the appropriate array
       const scenesArray = isPublic ? publicScenes : userScenes;
-      const scene = scenesArray.find(s => s.id === sceneId);
+      const chatItem = scenesArray.find(s => s.id === chatId);
 
-      if (!scene) {
-        console.error('❌ Scene not found:', sceneId);
+      if (!chatItem) {
+        console.error('❌ Chat/scene not found:', chatId);
         return;
       }
 
-      console.log('✅ Found scene:', scene.name);
+      console.log('✅ Found chat/scene:', chatItem.name);
+
+      let actualScene;
+      let sceneId;
+
+      if (isPublic && chatItem.isExample) {
+        // For example chats, get the actual scene data
+        sceneId = chatItem.sceneId;
+        actualScene = await dataManager.getSceneById(sceneId);
+        if (!actualScene) {
+          console.error('❌ Example scene not found:', sceneId);
+          return;
+        }
+      } else {
+        // For user scenes, use the scene directly
+        actualScene = chatItem;
+        sceneId = chatItem.id;
+      }
+
+      // Create or get chat for this scene
+      const actualChatId = await dataManager.getOrCreateChatForScene(sceneId, actualScene.name);
+      console.log('💬 Chat ready:', actualChatId);
 
       // Load scene into workspace
-      updateScene(scene);
+      updateScene(actualScene);
 
       // Switch to visualizer view
       setCurrentView('visualizer');
@@ -155,7 +187,7 @@ function CollectionView() {
     } catch (error) {
       console.error('❌ Error loading scene:', error);
     }
-  }, [setCurrentView, updateScene, publicScenes, userScenes]);
+  }, [setCurrentView, updateScene, publicScenes, userScenes, dataManager]);
 
   // Filter and sort scenes based on search term and sort option
   const filteredAndSortedScenes = useMemo(() => {
@@ -262,7 +294,7 @@ function CollectionView() {
                     left: '10px',
                     top: '50%',
                     transform: 'translateY(-50%)',
-                    color: '#888',
+                    color: 'var(--border-color)',
                     fontSize: '12px'
                   }} />
                   <input
@@ -273,26 +305,26 @@ function CollectionView() {
                     style={{
                       width: '100%',
                       padding: '8px 10px 8px 30px',
-                      border: '1px solid #3e3e42',
+                      border: '1px solid var(--border-color)',
                       borderRadius: '4px',
-                      backgroundColor: '#2d2d30',
-                      color: '#ffffff',
+                      backgroundColor: 'var(--card-bg)',
+                      color: 'var(--text-color)',
                       fontSize: '13px'
                     }}
                   />
                 </div>
 
                 <div className="sort-container" style={{ display: 'flex', gap: '5px', alignItems: 'center' }}>
-                  <FontAwesomeIcon icon={faSort} style={{ color: '#888', fontSize: '12px' }} />
+                  <FontAwesomeIcon icon={faSort} style={{ color: 'var(--border-color)', fontSize: '12px' }} />
                   <select
                     value={sortBy}
                     onChange={(e) => handleSortChange(e.target.value)}
                     style={{
                       padding: '6px 8px',
-                      border: '1px solid #3e3e42',
+                      border: '1px solid var(--border-color)',
                       borderRadius: '4px',
-                      backgroundColor: '#2d2d30',
-                      color: '#ffffff',
+                      backgroundColor: 'var(--card-bg)',
+                      color: 'var(--text-color)',
                       fontSize: '13px',
                       cursor: 'pointer'
                     }}
@@ -335,7 +367,7 @@ function CollectionView() {
                     left: '10px',
                     top: '50%',
                     transform: 'translateY(-50%)',
-                    color: '#888',
+                    color: 'var(--border-color)',
                     fontSize: '12px'
                   }} />
                   <input
@@ -346,26 +378,26 @@ function CollectionView() {
                     style={{
                       width: '100%',
                       padding: '8px 10px 8px 30px',
-                      border: '1px solid #3e3e42',
+                      border: '1px solid var(--border-color)',
                       borderRadius: '4px',
-                      backgroundColor: '#2d2d30',
-                      color: '#ffffff',
+                      backgroundColor: 'var(--card-bg)',
+                      color: 'var(--text-color)',
                       fontSize: '13px'
                     }}
                   />
                 </div>
 
                 <div className="sort-container" style={{ display: 'flex', gap: '5px', alignItems: 'center' }}>
-                  <FontAwesomeIcon icon={faSort} style={{ color: '#888', fontSize: '12px' }} />
+                  <FontAwesomeIcon icon={faSort} style={{ color: 'var(--border-color)', fontSize: '12px' }} />
                   <select
                     value={sortBy}
                     onChange={(e) => handleSortChange(e.target.value)}
                     style={{
                       padding: '6px 8px',
-                      border: '1px solid #3e3e42',
+                      border: '1px solid var(--border-color)',
                       borderRadius: '4px',
-                      backgroundColor: '#2d2d30',
-                      color: '#ffffff',
+                      backgroundColor: 'var(--card-bg)',
+                      color: 'var(--text-color)',
                       fontSize: '13px',
                       cursor: 'pointer'
                     }}

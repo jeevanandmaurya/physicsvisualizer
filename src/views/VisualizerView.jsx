@@ -4,12 +4,9 @@ import { faSpinner, faExclamationTriangle } from '@fortawesome/free-solid-svg-ic
 import Visualizer from '../features/visualizer/components/Visualizer';
 import { useDatabase } from '../contexts/DatabaseContext';
 import { useWorkspace, useWorkspaceScene, useWorkspaceChat, useWorkspaceSettings } from '../contexts/WorkspaceContext';
-import { mechanicsExamples } from '../scenes.js';
 
-// Lazy load non-critical components
-const SceneDetails = React.lazy(() => import('../features/collection/components/SceneDetails'));
-const Conversation = React.lazy(() => import('../features/chat/components/Conversation'));
-const IntegratedPanel = React.lazy(() => import('../features/chat/components/IntegratedPanel'));
+
+// Lazy load non-critical components (none needed currently)
 
 // Loading component for lazy-loaded components
 const ComponentLoader = () => (

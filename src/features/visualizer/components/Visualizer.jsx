@@ -16,8 +16,7 @@ import {
     GroundPlane
 } from '../../../core/physics/engine.jsx';
 
-// Import the separate, self-contained graph component
-import OverlayGraph from './OverlayGraph';
+
 
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { faCube } from '@fortawesome/free-solid-svg-icons';
@@ -122,12 +121,11 @@ function VelocityVectorVisuals({ show, velocities, objectApis, velocityScale }) 
 }
 
 function Visualizer({ scene }) {
-    const { isPlaying, simulationTime, fps, showVelocityVectors, vectorScale, openGraphs, resetSimulation, updateSimulationTime, updateFps, resetTrigger, setIsPlaying } = useWorkspace();
+    const { isPlaying, simulationTime, fps, showVelocityVectors, vectorScale, openGraphs, resetSimulation, updateSimulationTime, updateFps, resetTrigger, setIsPlaying, removeGraph, setObjectHistory } = useWorkspace();
     const objectApis = useRef({});
     const gravitationalPhysics = useRef(new GravitationalPhysics(scene || {}));
     const initialSceneObjects = useRef(scene?.objects ? JSON.parse(JSON.stringify(scene.objects)) : []);
     const historyRef = useRef({});
-    const [objectHistory, setObjectHistory] = useState({});
     const [physicsData, setPhysicsData] = useState({ velocities: {} });
     const [canvasError, setCanvasError] = useState(false);
     const r3fCanvasRef = useRef(null);
@@ -298,17 +296,7 @@ function Visualizer({ scene }) {
                     </Canvas>
                 )}
 
-                {/* The graphs are now rendered inside the main content area */}
-                {openGraphs.map((graphConfig, index) => (
-                    <OverlayGraph
-                        key={graphConfig.id}
-                        id={graphConfig.id}
-                        initialType={graphConfig.initialType}
-                        data={objectHistory}
-                        onClose={useWorkspace().removeGraph}
-                        initialPosition={{ x: 20 + index * 30, y: 20 + index * 30 }}
-                    />
-                ))}
+
             </div>
         </div>
     );

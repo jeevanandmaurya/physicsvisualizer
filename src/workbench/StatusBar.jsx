@@ -3,8 +3,18 @@ import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { faPlay, faPause, faRedo, faCamera, faSave, faEye, faEyeSlash, faChartLine, faChevronDown, faChevronUp, faComments } from '@fortawesome/free-solid-svg-icons';
 import { useWorkspace } from '../contexts/WorkspaceContext';
 
-const StatusBar = ({ activeView, chatOpen, onChatToggle }) => {
+const StatusBar = ({ activeView, chatOpen, onChatToggle, graphOpen, onGraphToggle }) => {
   const { workspaceScenes, workspaceChats, isPlaying, simulationTime, fps, showVelocityVectors, vectorScale, openGraphs, togglePlayPause, resetSimulation, updateVectorScale, toggleVelocityVectors, addGraph, getCurrentScene, saveCurrentScene } = useWorkspace();
+
+  const handleGraphToggle = useCallback(() => {
+    if (!graphOpen) {
+      // When opening graphs, add a default position graph if none exist
+      if (openGraphs.length === 0) {
+        addGraph('position');
+      }
+    }
+    onGraphToggle();
+  }, [graphOpen, onGraphToggle, openGraphs.length, addGraph]);
   const [showGraphDropdown, setShowGraphDropdown] = useState(false);
   const [showThumbnailPreview, setShowThumbnailPreview] = useState(false);
   const [thumbnailPreview, setThumbnailPreview] = useState(null);
@@ -151,13 +161,13 @@ const StatusBar = ({ activeView, chatOpen, onChatToggle }) => {
             onClick={toggleVelocityVectors}
             title={showVelocityVectors ? 'Hide Velocity Vectors' : 'Show Velocity Vectors'}
           >
-            Vector <FontAwesomeIcon icon={showVelocityVectors ? faEyeSlash : faEye} style={{ fontSize: '18px' }} />
+            {'Vector \u00A0'}<FontAwesomeIcon icon={showVelocityVectors ? faEyeSlash : faEye} style={{ fontSize: '16px' }} />
           </button>
           <button
             className="status-control-button"
             onClick={cycleScale}
             title="Cycle Vector Scale (1x-5x)"
-            style={{ fontSize: '22px' }}
+            style={{ fontSize: '18px' }}
           >
             x{vectorScale}
           </button>
@@ -185,103 +195,12 @@ const StatusBar = ({ activeView, chatOpen, onChatToggle }) => {
             <FontAwesomeIcon icon={faComments} style={{ fontSize: '22px' }} />
           </button>
           <button
-            className="status-control-button"
-            onClick={() => setShowGraphDropdown(!showGraphDropdown)}
-            title="Open Graph Panel"
+            className="status-control-button graph-toggle-button"
+            onClick={handleGraphToggle}
+            title={graphOpen ? "Close Graph Panel" : "Open Graph Panel"}
           >
             <FontAwesomeIcon icon={faChartLine} style={{ fontSize: '22px' }} />
           </button>
-          {showGraphDropdown && (
-            <div className="graph-dropdown" style={{
-              position: 'absolute',
-              bottom: '35px',
-              right: 'auto',
-              backgroundColor: '#2c2c2c',
-              border: '1px solid #3e3e3e',
-              borderRadius: '4px',
-              padding: '8px',
-              zIndex: 1000,
-              minWidth: '150px'
-            }}>
-              <div style={{ color: '#ffffff', fontSize: '14px', marginBottom: '8px', fontWeight: 'bold' }}>Add Graph</div>
-              <button
-                onClick={() => handleAddGraph('position')}
-                style={{
-                  display: 'block',
-                  width: '100%',
-                  padding: '6px 12px',
-                  backgroundColor: 'transparent',
-                  color: '#ffffff',
-                  border: 'none',
-                  textAlign: 'left',
-                  cursor: 'pointer',
-                  fontSize: '13px',
-                  borderRadius: '3px'
-                }}
-                onMouseOver={(e) => e.target.style.backgroundColor = '#3e3e3e'}
-                onMouseOut={(e) => e.target.style.backgroundColor = 'transparent'}
-              >
-                📍 Position vs Time
-              </button>
-              <button
-                onClick={() => handleAddGraph('velocity')}
-                style={{
-                  display: 'block',
-                  width: '100%',
-                  padding: '6px 12px',
-                  backgroundColor: 'transparent',
-                  color: '#ffffff',
-                  border: 'none',
-                  textAlign: 'left',
-                  cursor: 'pointer',
-                  fontSize: '13px',
-                  borderRadius: '3px'
-                }}
-                onMouseOver={(e) => e.target.style.backgroundColor = '#3e3e3e'}
-                onMouseOut={(e) => e.target.style.backgroundColor = 'transparent'}
-              >
-                🏃 Velocity vs Time
-              </button>
-              <button
-                onClick={() => handleAddGraph('acceleration')}
-                style={{
-                  display: 'block',
-                  width: '100%',
-                  padding: '6px 12px',
-                  backgroundColor: 'transparent',
-                  color: '#ffffff',
-                  border: 'none',
-                  textAlign: 'left',
-                  cursor: 'pointer',
-                  fontSize: '13px',
-                  borderRadius: '3px'
-                }}
-                onMouseOver={(e) => e.target.style.backgroundColor = '#3e3e3e'}
-                onMouseOut={(e) => e.target.style.backgroundColor = 'transparent'}
-              >
-                ⚡ Acceleration vs Time
-              </button>
-              <button
-                onClick={() => handleAddGraph('energy')}
-                style={{
-                  display: 'block',
-                  width: '100%',
-                  padding: '6px 12px',
-                  backgroundColor: 'transparent',
-                  color: '#ffffff',
-                  border: 'none',
-                  textAlign: 'left',
-                  cursor: 'pointer',
-                  fontSize: '13px',
-                  borderRadius: '3px'
-                }}
-                onMouseOver={(e) => e.target.style.backgroundColor = '#3e3e3e'}
-                onMouseOut={(e) => e.target.style.backgroundColor = 'transparent'}
-              >
-                🔋 Energy vs Time
-              </button>
-            </div>
-          )}
         </div>
       )}
 

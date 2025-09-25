@@ -21,6 +21,7 @@ export function WorkspaceProvider({ children }) {
   const [vectorScale, setVectorScale] = useState(1);
   const [openGraphs, setOpenGraphs] = useState([]);
   const [resetTrigger, setResetTrigger] = useState(0);
+  const [objectHistory, setObjectHistory] = useState({});
 
   const togglePlayPause = useCallback(() => {
     setIsPlaying(prev => !prev);
@@ -158,27 +159,9 @@ export function WorkspaceProvider({ children }) {
     workspaceManager.updateCurrentWorkspace(updater);
   }, [workspaceManager]);
 
-  const deleteWorkspace = useCallback(async (id) => {
-    try {
-      setLoading(true);
-      setError(null);
-      await workspaceManager.deleteWorkspace(id);
-    } catch (err) {
-      setError(err.message);
-      throw err;
-    } finally {
-      setLoading(false);
-    }
-  }, [workspaceManager]);
 
-  const getAllWorkspaces = useCallback(async () => {
-    try {
-      return await workspaceManager.getAllWorkspaces();
-    } catch (err) {
-      setError(err.message);
-      return [];
-    }
-  }, [workspaceManager]);
+
+
 
   // Scene management methods
   const getCurrentScene = useCallback(() => {
@@ -197,9 +180,11 @@ export function WorkspaceProvider({ children }) {
     updateWorkspace(workspace => workspace.updateCurrentScene(updates));
   }, [updateWorkspace]);
 
-  const duplicateCurrentScene = useCallback(() => {
-    updateWorkspace(workspace => workspace.duplicateCurrentScene());
+  const replaceCurrentScene = useCallback((newScene) => {
+    updateWorkspace(workspace => workspace.replaceCurrentScene(newScene));
   }, [updateWorkspace]);
+
+
 
   const deleteScene = useCallback((index) => {
     updateWorkspace(workspace => workspace.deleteScene(index));
@@ -238,9 +223,7 @@ export function WorkspaceProvider({ children }) {
     return currentWorkspace.getChatForScene(sceneId);
   }, [currentWorkspace]);
 
-  const getScenesForChat = useCallback((chatId) => {
-    return currentWorkspace?.getScenesForChat(chatId) || [];
-  }, [currentWorkspace]);
+
 
   const contextValue = {
     // State
@@ -258,6 +241,8 @@ export function WorkspaceProvider({ children }) {
     vectorScale,
     openGraphs,
     resetTrigger,
+    objectHistory,
+    setObjectHistory,
 
     // View management
     setCurrentView,
@@ -271,15 +256,13 @@ export function WorkspaceProvider({ children }) {
     loadWorkspace,
     saveWorkspace,
     updateWorkspace,
-    deleteWorkspace,
-    getAllWorkspaces,
 
     // Scene management methods
     getCurrentScene,
     setCurrentScene,
     addScene,
     updateCurrentScene,
-    duplicateCurrentScene,
+    replaceCurrentScene,
     deleteScene,
 
     // Convenience methods
@@ -306,7 +289,6 @@ export function WorkspaceProvider({ children }) {
     // Scene-chat linking methods
     linkSceneToChat,
     getChatForScene,
-    getScenesForChat,
 
     // Direct access to manager for advanced operations
     workspaceManager
@@ -329,16 +311,16 @@ export function useWorkspace() {
 
 // Hook for workspace-aware components
 export function useWorkspaceScene() {
-  const { currentWorkspace, workspaceUpdateTrigger, getCurrentScene, updateCurrentScene, setCurrentScene, addScene, duplicateCurrentScene, deleteScene } = useWorkspace();
+  const { currentWorkspace, workspaceUpdateTrigger, getCurrentScene, updateCurrentScene, replaceCurrentScene, setCurrentScene, addScene, deleteScene } = useWorkspace();
 
   return {
     scene: getCurrentScene(),
     scenes: currentWorkspace?.scenes || [],
     currentSceneIndex: currentWorkspace?.currentSceneIndex || 0,
     updateScene: updateCurrentScene,
+    replaceCurrentScene,
     setCurrentScene,
     addScene,
-    duplicateCurrentScene,
     deleteScene,
     sceneId: getCurrentScene()?.id
   };

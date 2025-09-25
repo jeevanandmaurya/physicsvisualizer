@@ -7,14 +7,14 @@ physicsvisualizer/
 ├── 📄 package.json & vite.config.js    # Build configuration
 ├── 📄 README.md                        # Project documentation
 ├── 🏗️ PhysicsVisualizerArchitecture.md # System architecture docs
+├── 📄 file-structure.txt               # This file
 ├── 📁 public/                          # Static assets
 │   ├── index.html
-│   ├── sw.js
 │   └── vite.svg
 ├── 📁 src/                             # Source code (Feature-based)
 │   ├── 🏠 App.jsx & main.jsx           # React app entry points
-│   ├── 🎨 index.css                    # Global styles
-│   ├── 📊 scenes.js                    # Scene data & examples
+│   ├── 🎨 App.css & index.css          # Global styles
+│   ├── 📊 scene.js & scenes.js         # Scene data & examples
 │   ├── 🗂️ assets/                      # Static assets (images, fonts)
 │   │   ├── physicsvisualizer.svg/png
 │   │   ├── UbuntuMono fonts
@@ -30,38 +30,57 @@ physicsvisualizer/
 │   │   │   ├── fluid/calculations.js
 │   │   │   ├── constraints/calculations.js
 │   │   │   └── connections/calculations.js
-│   │   └── 🎬 scene/                   # Scene management
-│   │       ├── history.js
-│   │       └── patcher.js
+│   │   ├── 🎬 scene/                   # Scene management
+│   │   │   ├── history.js
+│   │   │   └── patcher.js
+│   │   └── 🗂️ workspace/               # Workspace management
+│   │       └── WorkspaceManager.js
 │   ├── 🎯 features/                    # Feature-based components
 │   │   ├── 🎲 visualizer/              # 3D visualization feature
 │   │   │   └── components/
 │   │   │       ├── Visualizer.jsx/css
 │   │   │       ├── OverlayGraph.jsx
+│   │   │       ├── GraphOverlay.jsx
 │   │   │       └── SceneConsole.jsx/css
 │   │   ├── 💬 chat/                    # AI chat feature
-│   │   │   └── components/
-│   │   │       └── Conversation.jsx/css
+│   │   │   ├── components/
+│   │   │   │   ├── ChatOverlay.jsx/css
+│   │   │   │   ├── Conversation.jsx/css
+│   │   │   │   └── IntegratedPanel.jsx/css
+│   │   │   └── hooks/ (future use)
 │   │   └── 📚 collection/              # Scene management feature
-│   │       └── components/
-│   │           ├── SceneSelector.jsx/css
-│   │           ├── SceneDetails.jsx/css
-│   │           └── ChangePreview.jsx/css
+│   │       ├── components/
+│   │       │   ├── SceneSelector.jsx/css (hook export only)
+│   │       │   ├── SceneDetails.jsx/css (hook export only)
+│   │       │   └── ChangePreview.jsx/css
+│   │       └── hooks/
+│   │           ├── useSceneSelector.js
+│   │           └── useSceneDetails.js
 │   ├── 🎨 shared/ui/                   # Reusable UI components
 │   │   └── components/
-│   │       ├── GlobalNav.jsx/css      # Navigation
 │   │       ├── leftPanel.jsx/css      # Layout panels
 │   │       ├── rightPanel.jsx/css     # Layout panels
 │   │       ├── messagecontent.jsx     # Message display
 │   │       └── Graph.css              # Chart styling
-│   ├── 📄 pages/                       # Page-level components
-│   │   ├── DashboardPage.jsx/css
-│   │   ├── CollectionPage.jsx/css
-│   │   └── PhysicsVisualizerPage.jsx/css
+│   ├── 🖥️ views/                       # Page-level view components
+│   │   ├── DashboardView.jsx
+│   │   ├── VisualizerView.jsx
+│   │   ├── CollectionView.jsx (CSS integrated)
+│   │   ├── ChatView.jsx
+│   │   ├── SettingsView.jsx
+│   │   ├── HistoryView.jsx
+│   │   └── AnalyticsView.jsx
+│   ├── 🪟 workbench/                   # Main application layout
+│   │   ├── Workbench.jsx/css          # Main layout container
+│   │   ├── Panel.jsx                  # Side panel component
+│   │   ├── ActivityBar.jsx            # Left activity bar
+│   │   └── StatusBar.jsx              # Bottom status bar
 │   ├── ⚙️ contexts/                    # React contexts
-│   │   └── DatabaseContext.jsx
+│   │   ├── DatabaseContext.jsx
+│   │   ├── WorkspaceContext.jsx
+│   │   └── ThemeContext.jsx
 │   └── 🛠️ utils/                       # Utility functions
-│       └── ScenePatcher.js
+│       └── testScenePatcher.js
 └── 📁 backup/                          # Original components backup
     └── components/ (all original files)
 ```
@@ -72,20 +91,22 @@ physicsvisualizer/
 📱 DOM Root (index.html)
 └── 🎯 React Root (main.jsx)
     └── 🔄 StrictMode
-        └── 🧭 BrowserRouter (React Router)
-            └── 💾 DatabaseProvider (Context)
-                └── 🏠 App.jsx (Main App Component)
-                    ├── 🧭 GlobalNav (Navigation Bar)
-                    │   ├── 🏠 Dashboard Link
-                    │   ├── 🎲 3D Visualizer Link
-                    │   └── 📚 Collection Link
+        └── 💾 DatabaseProvider (Context)
+            └── 🏠 App.jsx (Main App Component)
+                └── 🪟 Workbench (Main Layout)
+                    ├── 📊 ActivityBar (Left Sidebar)
+                    │   ├── 🏠 Dashboard
+                    │   ├── 🎲 Visualizer
+                    │   ├── 💬 Chat
+                    │   ├── 📚 Collection
+                    │   └── ⚙️ Settings
                     │
-                    └── 📄 Routes (Page Content)
-                        ├── 📊 DashboardPage (/)
-                        ├── 🎲 PhysicsVisualizerPage (/visualizer) ← MAIN PAGE
-                        │   └── 📐 PanelGroup (Resizable Panels)
-                        │       ├── 📁 Left Panel (25% - Scene Selector)
-                        │       │   └── 🎯 SceneSelector Component
+                    └── 📋 Content Area
+                        ├── 📊 DashboardView (Default)
+                        ├── 🎲 VisualizerView ← MAIN PAGE
+                        │   └── 📐 SidePanel (Scene Management)
+                        │       ├── 📁 Left Panel (Scene Selector)
+                        │       │   └── 🎯 useSceneSelector Hook
                         │       │       ├── 🔍 Extract Scene Button
                         │       │       ├── 📑 Tab Navigation
                         │       │       │   ├── 📖 Examples Tab
@@ -99,25 +120,34 @@ physicsvisualizer/
                         │       │       │       └── ⋯ Three-Dot Menu
                         │       │       └── 📝 Scene Description
                         │       │
-                        │       ├── 🔧 Center Panel (50% - 3D Visualizer)
-                        │       │   └── 🎯 Visualizer Component
-                        │       │       ├── 🎮 Three.js Canvas
-                        │       │       ├── 🎲 Physics Objects
-                        │       │       ├── 📊 Real-time Graphs
-                        │       │       └── 🎨 Scene Rendering
-                        │       │
-                        │       └── 💬 Right Panel (25% - Chat UI)
-                        │           └── 🎯 Conversation Component
-                        │               ├── 📋 Chat Header
-                        │               │   └── 💬 "Chat" Title
-                        │               ├── 💭 Conversation Box (80%)
-                        │               │   ├── 🤖 AI Messages
-                        │               │   └── 👤 User Messages
-                        │               └── ⌨️ Input Section (20%)
-                        │                   ├── 📝 Textarea
-                        │                   └── 📤 Send Button
+                        │       └── 🔧 Center Panel (3D Visualizer)
+                        │           └── 🎯 Visualizer Component
+                        │               ├── 🎮 Three.js Canvas
+                        │               ├── 🎲 Physics Objects
+                        │               ├── 📊 Real-time Graphs
+                        │               └── 🎨 Scene Rendering
                         │
-                        └── 📚 CollectionPage (/collection)
+                        └── 💬 Right Panel (Scene Details - Optional)
+                            └── 🎯 useSceneDetails Hook
+                                ├── 📑 Tab Navigation
+                                │   ├── 📋 List View
+                                │   └── 💻 JSON View
+                                ├── 📊 Scene Properties
+                                │   ├── ⚛️ Gravity & Physics
+                                │   ├── 📏 Dimensions
+                                │   └── 👤 Author Info
+                                └── 🎯 Objects List
+                                    ├── 📝 Object Details
+                                    ├── 🔧 Properties
+                                    └── 📋 Expandable Items
+                        │
+                        ├── 💬 ChatView (AI Chat Interface)
+                        │   └── 🎯 Conversation Components
+                        │       ├── 🤖 AI Messages
+                        │       └── 👤 User Messages
+                        │
+                        ├── 📚 CollectionView (Scene Library)
+                        └── ⚙️ SettingsView (App Settings)
 ```
 
 ## 🎯 Architecture Benefits
@@ -147,15 +177,18 @@ physicsvisualizer/
 1. **New Feature**: Create folder in `src/features/`
 2. **Shared Component**: Add to `src/shared/ui/components/`
 3. **Business Logic**: Place in appropriate `src/core/` subfolder
-4. **Page**: Add to `src/pages/`
-5. **Utility**: Add to `src/utils/`
+4. **View Component**: Add to `src/views/`
+5. **Workbench Component**: Add to `src/workbench/`
+6. **Hook**: Add to feature's `hooks/` folder
+7. **Utility**: Add to `src/utils/`
 
 ## 📋 File Organization Legend
 
-- 🎯 **Features**: Business domain components
+- 🎯 **Features**: Business domain components (with hooks)
 - 🔧 **Core**: Business logic & engines
 - 🎨 **Shared**: Reusable UI components
-- 📄 **Pages**: Route-level components
+- 🖥️ **Views**: Page-level view components
+- 🪟 **Workbench**: Main application layout
 - ⚙️ **Contexts**: React state management
 - 🛠️ **Utils**: Helper functions
 - 📊 **Assets**: Static resources
@@ -164,5 +197,5 @@ physicsvisualizer/
 ---
 
 **Last Updated**: September 2025
-**Architecture**: Feature-Based with Shared UI Components
+**Architecture**: Feature-Based with Hooks & Views
 **Status**: ✅ Production Ready

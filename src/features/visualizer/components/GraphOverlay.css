@@ -1,0 +1,280 @@
+.overlay-graph {
+  position: absolute;
+  background: rgba(255, 255, 255, var(--graph-bg-opacity, 0.9));
+  border: 1px solid var(--border-color);
+  border-radius: 16px;
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  min-width: 380px;
+  min-height: 300px;
+  user-select: none; /* Prevent text selection */
+  pointer-events: auto; /* Allow the container to capture its own events */
+}
+
+.dark .overlay-graph {
+  background: rgba(26, 26, 26, var(--graph-bg-opacity, 0.5));
+}
+
+.overlay-graph:active {
+  cursor: grabbing;
+}
+
+/* Graph Header */
+.graph-header {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 2px 6px;
+  background: rgba(26, 26, 26, 0.7);
+  border-bottom: 1px solid rgba(255,255,255,0.06);
+  cursor: grab;
+  user-select: none;
+  min-height: 28px;
+  z-index: 10;
+}
+
+.graph-header:active {
+  cursor: grabbing;
+}
+
+.title-text {
+  color: #e6e6e6;
+  font-size: 12px;
+  font-weight: 500;
+  flex: 1;
+  text-align: left;
+  padding-left: 2px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.graph-header-controls {
+  display: flex;
+  gap: 2px;
+}
+
+.minimize-btn,
+.close-btn {
+  background: transparent;
+  border: 1px solid transparent;
+  color: #c8c8c8;
+  width: 22px;
+  height: 22px;
+  padding: 1px;
+  border-radius: 3px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  font-size: 11px;
+}
+
+.minimize-btn:hover,
+.close-btn:hover {
+  background: rgba(255, 255, 255, 0.03);
+  border-color: rgba(255, 255, 255, 0.04);
+  color: #ffffff;
+}
+
+.close-btn:hover {
+  background: rgba(220, 53, 69, 0.12);
+  color: #ffcccc;
+  border-color: rgba(220, 53, 69, 0.18);
+}
+
+/* Graph Content */
+.graph-content-wrapper {
+  position: absolute;
+  top: 28px; /* Below the fixed header */
+  left: 0;
+  right: 0;
+  bottom: 0;
+  display: flex;
+  flex-direction: column;
+  padding: 12px;
+  gap: 12px;
+}
+
+/* Graph Controls */
+.graph-controls {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+  align-items: center;
+  padding: 8px 12px;
+  background: rgba(26, 26, 26, 0.3);
+  border-radius: 8px;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.graph-controls select {
+  background: rgba(26, 26, 26, 0.6);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 6px;
+  padding: 6px 8px;
+  color: #e0e0e0;
+  font-size: 12px;
+  min-width: 120px;
+}
+
+.graph-controls select:focus {
+  outline: none;
+  border-color: #0084ff;
+  box-shadow: 0 0 0 2px rgba(0, 132, 255, 0.1);
+}
+
+.graph-controls label {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  color: #e0e0e0;
+  font-size: 12px;
+  cursor: pointer;
+  user-select: none;
+}
+
+.graph-controls input[type="checkbox"] {
+  width: 14px;
+  height: 14px;
+  accent-color: #0084ff;
+}
+
+/* Live Controls */
+.live-controls {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.live-indicator {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: #666;
+  transition: background-color 0.2s ease;
+}
+
+.live-indicator.active {
+  background: #00ff00;
+  box-shadow: 0 0 6px rgba(0, 255, 0, 0.5);
+}
+
+.live-controls button {
+  background: rgba(26, 26, 26, 0.6);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 4px;
+  padding: 4px 8px;
+  color: #e0e0e0;
+  font-size: 11px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.live-controls button:hover:not(:disabled) {
+  background: rgba(0, 132, 255, 0.2);
+  border-color: #0084ff;
+}
+
+.live-controls button:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.live-controls select {
+  background: rgba(26, 26, 26, 0.6);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 4px;
+  padding: 4px 6px;
+  color: #e0e0e0;
+  font-size: 11px;
+  min-width: 50px;
+}
+
+.live-controls select:focus {
+  outline: none;
+  border-color: #0084ff;
+}
+
+/* Chart Area */
+.chart-area-wrapper {
+  flex: 1;
+  min-height: 200px;
+  background: rgba(26, 26, 26, 0.2);
+  border-radius: 8px;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  overflow: hidden;
+  position: relative;
+}
+
+/* Minimized State */
+.overlay-graph.minimized {
+  width: auto !important;
+  height: auto !important;
+  min-width: 200px !important;
+  min-height: 40px !important;
+  background: rgba(26, 26, 26, 0.8);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.2);
+}
+
+.overlay-graph.minimized .graph-content-wrapper,
+.overlay-graph.minimized .resize-handle {
+  display: none;
+}
+
+.overlay-graph.minimized .graph-header {
+  cursor: pointer;
+}
+
+/* Responsive Design */
+@media (max-width: 640px) {
+  .overlay-graph {
+    left: 56px !important; /* Clear activity bar */
+    right: 8px !important;
+    width: calc(100% - 64px) !important; /* Account for activity bar */
+    height: calc(100% - 50px) !important; /* Account for status bar with extra clearance */
+    top: 8px !important;
+    bottom: 42px !important; /* Clear status bar with extra space */
+    min-width: 0;
+    min-height: 0;
+    border-radius: 6px;
+  }
+
+  .overlay-graph.minimized {
+    left: 56px !important;
+    top: 8px !important;
+    width: auto !important;
+    height: auto !important;
+    min-width: 200px !important;
+    min-height: 40px !important;
+  }
+
+  .graph-controls {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 8px;
+  }
+
+  .graph-controls select {
+    min-width: 100%;
+  }
+}
+
+/* Focus Accessibility */
+.minimize-btn:focus,
+.close-btn:focus {
+  outline: 2px solid rgba(100, 149, 237, 0.4);
+  outline-offset: 2px;
+}
+
+/* Chart.js Custom Styling */
+.chart-area-wrapper canvas {
+  border-radius: 6px;
+}
