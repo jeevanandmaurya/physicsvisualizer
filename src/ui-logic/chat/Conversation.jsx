@@ -1,7 +1,7 @@
 import { useState, useRef, useEffect } from 'react';
-import GeminiAIManager from '../../../core/ai/gemini';
-import ScenePatcher from '../../../core/scene/patcher';
-import { useWorkspace } from '../../../contexts/WorkspaceContext';
+import GeminiAIManager from '../../core/ai/gemini';
+import ScenePatcher from '../../core/scene/patcher';
+import { useWorkspace } from '../../contexts/WorkspaceContext';
 
 // Pure backend hook for chat functionality
 export function useConversation({

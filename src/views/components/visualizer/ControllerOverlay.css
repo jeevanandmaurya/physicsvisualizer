@@ -1,0 +1,295 @@
+.controller-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  z-index: 1000;
+  pointer-events: none; /* Allow events to pass through to underlying elements */
+}
+
+.controller-overlay-container {
+  position: absolute;
+  background: rgba(var(--panel-bg-rgb, 255, 255, 255), var(--controller-bg-opacity, 0.9));
+  border: 1px solid var(--border-color);
+  border-radius: 16px;
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  min-width: 350px;
+  min-height: 300px;
+  user-select: none; /* Prevent text selection */
+  pointer-events: auto; /* Allow the container to capture its own events */
+}
+
+.dark .controller-overlay-container {
+  background: rgba(var(--panel-bg-rgb, 26, 26, 26), var(--controller-bg-opacity, 0.5));
+}
+
+.controller-overlay-container:active {
+  cursor: grabbing;
+}
+
+.controller-overlay-content {
+  position: absolute;
+  top: 28px; /* Below the fixed header */
+  left: 0;
+  right: 0;
+  bottom: 0;
+  display: flex;
+  flex-direction: column;
+  height: calc(100% - 28px);
+}
+
+.controller-list {
+  flex: 1;
+  overflow-y: auto;
+  padding: 8px;
+  min-height: 0;
+}
+
+.controller-list::-webkit-scrollbar {
+  width: 6px;
+}
+
+.controller-list::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.controller-list::-webkit-scrollbar-thumb {
+  background: var(--border-color);
+  border-radius: 3px;
+}
+
+.controller-list::-webkit-scrollbar-thumb:hover {
+  background: var(--primary-hover);
+}
+
+.controller-item {
+  margin-bottom: 8px;
+  padding: 6px;
+  background: var(--button-bg);
+  border-radius: 6px;
+  border: 1px solid var(--border-color);
+}
+
+.controller-label {
+  display: block;
+  color: var(--text-color);
+  font-size: 12px;
+  font-weight: 500;
+  margin-bottom: 4px;
+}
+
+.controller-input-group {
+  display: flex;
+  gap: 6px;
+  align-items: center;
+}
+
+.controller-slider {
+  flex: 1;
+  -webkit-appearance: none;
+  appearance: none;
+  height: 6px;
+  background: var(--border-color);
+  border-radius: 3px;
+  outline: none;
+  cursor: pointer;
+}
+
+.controller-slider::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  appearance: none;
+  width: 16px;
+  height: 16px;
+  background: var(--primary-color);
+  border-radius: 50%;
+  cursor: pointer;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+}
+
+.controller-slider::-webkit-slider-thumb:hover {
+  background: var(--primary-hover);
+  transform: scale(1.1);
+}
+
+.controller-number-input {
+  width: 60px;
+  background: var(--button-bg);
+  border: 1px solid var(--border-color);
+  border-radius: 4px;
+  padding: 2px 4px;
+  color: var(--text-color);
+  font-size: 12px;
+  outline: none;
+  text-align: center;
+}
+
+.controller-number-input:focus {
+  border-color: var(--primary-color);
+  box-shadow: 0 0 0 2px rgba(var(--primary-color-rgb, 0, 132, 255), 0.1);
+}
+
+.controller-number-input.full-width {
+  width: 100%;
+}
+
+.no-controllers {
+  text-align: center;
+  color: var(--text-color);
+  padding: 40px 20px;
+  opacity: 0.6;
+}
+
+.no-controllers p {
+  margin: 8px 0;
+}
+
+.controller-overlay-control-btn {
+  background: transparent;
+  border: 1px solid transparent;
+  color: var(--text-color);
+  width: 22px;
+  height: 22px;
+  padding: 1px;
+  border-radius: 3px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  font-size: 11px;
+  opacity: 0.7;
+}
+
+.controller-overlay-control-btn:hover {
+  background: rgba(255, 255, 255, 0.03);
+  border-color: rgba(255, 255, 255, 0.04);
+  color: #ffffff;
+  opacity: 1;
+}
+
+.controller-overlay-control-btn.close-btn:hover {
+  background: rgba(244, 71, 71, 0.1);
+  color: var(--error-color);
+  border-color: var(--error-color);
+  opacity: 1;
+}
+
+.resize-handle {
+  position: absolute;
+  right: 4px;
+  bottom: 4px;
+  width: 20px;
+  height: 20px;
+  cursor: nwse-resize;
+  background: transparent;
+}
+
+/* Responsive tweaks - avoid activity bar and status bar */
+@media (max-width: 640px) {
+  .controller-overlay-container {
+    left: 56px !important; /* Clear activity bar */
+    right: 8px !important;
+    width: calc(100% - 64px) !important; /* Account for activity bar */
+    height: calc(100% - 50px) !important; /* Account for status bar with extra clearance */
+    top: 8px !important;
+    bottom: 42px !important; /* Clear status bar with extra space */
+    min-width: 0;
+    min-height: 0;
+    border-radius: 6px;
+  }
+}
+
+/* Responsive minimized state */
+@media (max-width: 640px) {
+  .controller-overlay.minimized .controller-overlay-container {
+    left: 56px !important;
+    top: 8px !important;
+    width: auto !important;
+    height: auto !important;
+    min-width: 90px;
+    min-height: 28px;
+  }
+}
+
+/* Focus accessibility */
+.controller-overlay-control-btn:focus {
+  outline: 2px solid rgba(100, 149, 237, 0.4);
+  outline-offset: 2px;
+}
+
+/* Minimal header with title and controls - draggable */
+.controller-overlay-header {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 2px 6px;
+  background: var(--secondary-bg);
+  border-bottom: 1px solid var(--border-color);
+  cursor: grab;
+  user-select: none;
+  min-height: 28px;
+  z-index: 10;
+}
+
+.controller-overlay-header:active {
+  cursor: grabbing;
+}
+
+.controller-overlay-title {
+  color: var(--text-color);
+  font-size: 12px;
+  font-weight: 500;
+  flex: 1;
+  text-align: left;
+  padding-left: 2px;
+}
+
+.controller-overlay-header-controls {
+  display: flex;
+  gap: 2px;
+}
+
+/* When minimized, make container compact */
+.controller-overlay.minimized .controller-overlay-container {
+  width: auto;
+  height: auto;
+  min-width: 90px;
+  min-height: 28px;
+  background: rgba(26, 26, 26, 0.8);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.2);
+}
+
+/* when minimized, hide content but keep header visible */
+.controller-overlay.minimized .controller-overlay-content,
+.controller-overlay.minimized .resize-handle {
+  display: none;
+}
+
+/* Visible resize grip */
+.resize-handle::before {
+  content: "";
+  position: absolute;
+  right: 6px;
+  bottom: 6px;
+  width: 12px;
+  height: 12px;
+  background: linear-gradient(135deg, rgba(255,255,255,0.12) 25%, transparent 25%),
+              linear-gradient(225deg, rgba(255,255,255,0.12) 25%, transparent 25%);
+  background-size: 6px 6px;
+  background-repeat: repeat;
+  border-radius: 2px;
+  opacity: 0.9;
+}
+
+/* Make the header clickable to toggle minimize when minimized */
+.controller-overlay.minimized .controller-overlay-header {
+  cursor: pointer;
+}

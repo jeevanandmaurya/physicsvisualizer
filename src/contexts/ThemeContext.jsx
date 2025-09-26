@@ -8,7 +8,8 @@ export const ThemeProvider = ({ children }) => {
   const [theme, setTheme] = useState('light');
   const [overlayOpacity, setOverlayOpacity] = useState({
     chat: 0.8,
-    graph: 0.8
+    graph: 0.8,
+    controller: 0.8
   });
 
   useEffect(() => {
@@ -22,11 +23,15 @@ export const ThemeProvider = ({ children }) => {
     // Load overlay opacity settings
     const savedChatOpacity = localStorage.getItem('chatOpacity');
     const savedGraphOpacity = localStorage.getItem('graphOpacity');
+    const savedControllerOpacity = localStorage.getItem('controllerOpacity');
     if (savedChatOpacity) {
       setOverlayOpacity(prev => ({ ...prev, chat: parseFloat(savedChatOpacity) }));
     }
     if (savedGraphOpacity) {
       setOverlayOpacity(prev => ({ ...prev, graph: parseFloat(savedGraphOpacity) }));
+    }
+    if (savedControllerOpacity) {
+      setOverlayOpacity(prev => ({ ...prev, controller: parseFloat(savedControllerOpacity) }));
     }
   }, []);
 

@@ -19,7 +19,7 @@
 }
 
 .activity-bar {
-  width: 50px;
+  width: 40px;
   background-color: var(--secondary-bg);
   border-right: 1px solid var(--border-color);
   display: flex;
@@ -51,9 +51,10 @@
 }
 
 .activity-bar button {
-  width: 40px;
+  width: 35px;
   height: 40px;
-  margin: 5px 0;
+  padding: 0px;
+  margin: 3px 0;
   background: none;
   border: none;
   color: var(--text-color);
@@ -72,6 +73,35 @@
 }
 
 .activity-bar button.active {
+  background-color: var(--primary-color);
+  color: #ffffff;
+}
+
+.panel-toggle-attached {
+  position: absolute;
+  padding: 0px;
+  left: 40px;
+  top: 50%;
+  transform: translateY(-50%);
+  width: 25px;
+  height: 60px;
+  background-color: var(--secondary-bg);
+  filter: invert(0.1);
+  border: 2px solid var(--text-color);
+
+  border-left: none;
+  color: var(--text-color);
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 12px;
+  border-radius: 0 20px 20px 0;
+  z-index: 100;
+  transition: all 0.2s ease;
+}
+
+.panel-toggle-attached:hover {
   background-color: var(--primary-color);
   color: #ffffff;
 }
@@ -209,15 +239,17 @@
   bottom: 0;
   left: 0;
   right: 0;
-  height: 28px;
+  height: 35px;
   background-color: var(--primary-color);
   color: #ffffff;
   display: flex;
   align-items: center;
-  padding: 0 10px;
+  padding: 0x 10px;
   font-size: 12px;
   border-top: 1px solid var(--border-color);
   z-index: 10;
+  overflow-x: auto;
+  overflow-y: hidden;
 }
 
 .status-bar-left {
@@ -245,7 +277,7 @@
   border: none;
   color: #ffffff;
   cursor: pointer;
-  padding: 2px 6px;
+  padding: 0px 2px;
   border-radius: 3px;
   font-size: 11px;
   display: flex;

@@ -1,12 +1,11 @@
 import React, { useRef, useEffect, useCallback, useMemo, useState } from 'react';
 import { Canvas, useFrame } from '@react-three/fiber';
 import { Physics } from '@react-three/cannon';
-import { OrbitControls, Grid, Text } from '@react-three/drei';
+import { OrbitControls, Grid, Text, useTexture } from '@react-three/drei';
 import * as THREE from 'three';
-import './Visualizer.css';
 
 // Import physics calculations and engine components
-import { GravitationalPhysics } from '../../../core/physics/gravitation/calculations';
+import { GravitationalPhysics } from '../../core/physics/gravitation/calculations.js';
 import {
     PhysicsForceApplier,
     Sphere,
@@ -14,13 +13,14 @@ import {
     Cylinder,
     SceneBox,
     GroundPlane
-} from '../../../core/physics/engine.jsx';
+} from '../../core/physics/engine.jsx';
 
 
 
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { faCube } from '@fortawesome/free-solid-svg-icons';
-import { useWorkspace } from '../../../contexts/WorkspaceContext';
+import { useWorkspace } from '../../contexts/WorkspaceContext';
+import SceneDetailsUI from '../../views/components/scene-management/SceneDetailsUI';
 
 const MAX_HISTORY_POINTS = 2000;
 
@@ -120,8 +120,23 @@ function VelocityVectorVisuals({ show, velocities, objectApis, velocityScale }) 
   })}</>);
 }
 
-function Visualizer({ scene }) {
+function Skybox({ texturePath }) {
+  const texture = useTexture(texturePath || '/src/assets/background.svg');
+  return (
+    <mesh>
+      <sphereGeometry args={[100000, 60, 40]} />
+      <meshBasicMaterial map={texture} side={THREE.BackSide} />
+    </mesh>
+  );
+}
+
+function Visualizer({ scene, showSceneDetails, onToggleSceneDetails }) {
     const { isPlaying, simulationTime, fps, showVelocityVectors, vectorScale, openGraphs, resetSimulation, updateSimulationTime, updateFps, resetTrigger, setIsPlaying, removeGraph, setObjectHistory } = useWorkspace();
+
+    // Debug: Log scene changes
+    useEffect(() => {
+        console.log('Visualizer: Scene updated:', scene?.id, scene?.gravity, scene?.objects?.map(o => ({ id: o.id, mass: o.mass })));
+    }, [scene]);
     const objectApis = useRef({});
     const gravitationalPhysics = useRef(new GravitationalPhysics(scene || {}));
     const initialSceneObjects = useRef(scene?.objects ? JSON.parse(JSON.stringify(scene.objects)) : []);
@@ -219,8 +234,14 @@ function Visualizer({ scene }) {
 
     return (
         <div className="visualizer-container">
-            <div className="controllbar">
-            </div>
+            {showSceneDetails && (
+                <div className="scene-details-panel">
+                    <SceneDetailsUI
+                        scene={scene}
+                        onToggleSceneDetails={onToggleSceneDetails}
+                    />
+                </div>
+            )}
             <div className="main-content">
                 {canvasError ? (
                     <div className="canvas-fallback">
@@ -266,7 +287,7 @@ function Visualizer({ scene }) {
                         <TimeUpdater isPlaying={isPlaying} updateSimulationTime={updateSimulationTime} />
                         <ambientLight intensity={0.6} />
                         <directionalLight position={[8, 10, 5]} intensity={1.0} castShadow shadow-mapSize-width={1024} shadow-mapSize-height={1024} />
-                        <Physics key={`physics-${scene?.id || 'default'}`} gravity={gravity} defaultContactMaterial={defaultContactMaterial} isPaused={!isPlaying}>
+                        <Physics key={`physics-${scene?.id || 'default'}-${JSON.stringify(gravity)}`} gravity={gravity} defaultContactMaterial={defaultContactMaterial} isPaused={!isPlaying}>
                             <PhysicsForceApplier scene={scene} objectApis={objectApis} gravitationalPhysics={gravitationalPhysics} isPlaying={isPlaying} onPhysicsDataCalculated={handlePhysicsDataCalculated} />
                             {hasGround && <GroundPlane />}
                             {objectsToRender.map((obj, index) => {
@@ -276,13 +297,13 @@ function Visualizer({ scene }) {
 
                                 switch (configWithId.type) {
                                     case "Sphere":
-                                        return <Sphere key={objectId} {...commonProps} />;
+                                        return <Sphere key={`${objectId}-${configWithId.mass}-${JSON.stringify(configWithId.velocity)}`} {...commonProps} />;
                                     case "Box":
-                                        return <Box key={objectId} {...commonProps} />;
+                                        return <Box key={`${objectId}-${configWithId.mass}-${JSON.stringify(configWithId.velocity)}`} {...commonProps} />;
                                     case "Cylinder":
-                                        return <Cylinder key={objectId} {...commonProps} />;
+                                        return <Cylinder key={`${objectId}-${configWithId.mass}-${JSON.stringify(configWithId.velocity)}`} {...commonProps} />;
                                     case "Plane":
-                                        return <SceneBox key={objectId} config={{ ...configWithId, mass: configWithId.mass ?? 0 }} id={objectId} setApi={setApi} />;
+                                        return <SceneBox key={`${objectId}-${configWithId.mass}`} config={{ ...configWithId, mass: configWithId.mass ?? 0 }} id={objectId} setApi={setApi} />;
                                     default:
                                         return null;
                                 }
@@ -293,6 +314,7 @@ function Visualizer({ scene }) {
                         <LabeledAxesHelper size={5} />
                         <SimpleGrid show={hasGround} />
                         <FpsCounter updateFps={updateFps} />
+                        <Skybox texturePath={scene?.type === 'extraterrestrial' || scene?.theme === 'space' ? '/src/assets/space.svg' : '/src/assets/background.svg'} />
                     </Canvas>
                 )}
 

@@ -142,6 +142,11 @@ class ScenePatcher {
       }
     }
 
+    // After applying patches, check if scene should be marked as extraterrestrial
+    if (updatedScene && appliedCount > 0) {
+      this.updateSceneType(updatedScene);
+    }
+
     const success = appliedCount > 0;
     const errorMessage = errors.length > 0 ? errors.join('; ') : null;
 
@@ -363,6 +368,35 @@ class ScenePatcher {
 
     compareObjects(oldScene, newScene);
     return patches;
+  }
+
+  // Update scene type based on extraterrestrial criteria
+  updateSceneType(scene) {
+    if (!scene) return;
+
+    // Check if scene meets extraterrestrial criteria:
+    // - gravity is [0, 0, 0] (zero gravity)
+    // - hasGround is false
+    // - gravitationalPhysics is enabled
+    const isExtraterrestrial =
+      scene.gravity &&
+      Array.isArray(scene.gravity) &&
+      scene.gravity.length === 3 &&
+      scene.gravity[0] === 0 &&
+      scene.gravity[1] === 0 &&
+      scene.gravity[2] === 0 &&
+      scene.hasGround === false &&
+      scene.gravitationalPhysics &&
+      scene.gravitationalPhysics.enabled === true;
+
+    if (isExtraterrestrial) {
+      scene.type = 'extraterrestrial';
+      console.log('🌌 Scene marked as extraterrestrial - space background will be used');
+    } else if (scene.type === 'extraterrestrial') {
+      // Remove extraterrestrial type if it no longer meets criteria
+      delete scene.type;
+      console.log('🌍 Scene no longer meets extraterrestrial criteria - type removed');
+    }
   }
 
   // Get scene statistics

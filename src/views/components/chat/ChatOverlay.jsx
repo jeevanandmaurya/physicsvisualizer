@@ -2,7 +2,7 @@ import React, { useState, useEffect, useRef } from 'react';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { faChevronUp, faChevronDown, faTimes } from '@fortawesome/free-solid-svg-icons';
 import { Send } from 'lucide-react';
-import { useConversation } from './Conversation';
+import { useConversation } from '../../../ui-logic/chat/Conversation';
 import { useWorkspace } from '../../../contexts/WorkspaceContext';
 import { useTheme } from '../../../contexts/ThemeContext';
 import './ChatOverlay.css';

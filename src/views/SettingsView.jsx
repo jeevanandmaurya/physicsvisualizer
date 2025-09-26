@@ -22,7 +22,7 @@ function SettingsView() {
 
       <div style={{ marginBottom: '30px' }}>
         <h3>Overlay Opacity</h3>
-        <p>Adjust the opacity of overlay windows (chat and graph panels).</p>
+        <p>Adjust the opacity of overlay windows (chat, graph, and controller panels).</p>
 
         <div style={{ marginBottom: '20px' }}>
           <label style={{ display: 'block', marginBottom: '8px', fontWeight: '500' }}>
@@ -50,6 +50,21 @@ function SettingsView() {
             step="0.1"
             value={overlayOpacity.graph}
             onChange={(e) => handleOpacityChange('graph', e.target.value)}
+            style={{ width: '100%', maxWidth: '300px' }}
+          />
+        </div>
+
+        <div style={{ marginBottom: '20px' }}>
+          <label style={{ display: 'block', marginBottom: '8px', fontWeight: '500' }}>
+            Controller Overlay Opacity: {((overlayOpacity.controller || 0.8) * 100).toFixed(0)}%
+          </label>
+          <input
+            type="range"
+            min="0.1"
+            max="1"
+            step="0.05"
+            value={overlayOpacity.controller || 0.8}
+            onChange={(e) => handleOpacityChange('controller', e.target.value)}
             style={{ width: '100%', maxWidth: '300px' }}
           />
         </div>

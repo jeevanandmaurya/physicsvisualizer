@@ -1,9 +1,9 @@
 import React, { useState, useCallback } from 'react';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
-import { faPlay, faPause, faRedo, faCamera, faSave, faEye, faEyeSlash, faChartLine, faChevronDown, faChevronUp, faComments } from '@fortawesome/free-solid-svg-icons';
+import { faPlay, faPause, faRedo, faCamera, faSave, faEye, faEyeSlash, faChartLine, faChevronDown, faChevronUp, faComments, faSlidersH } from '@fortawesome/free-solid-svg-icons';
 import { useWorkspace } from '../contexts/WorkspaceContext';
 
-const StatusBar = ({ activeView, chatOpen, onChatToggle, graphOpen, onGraphToggle }) => {
+const StatusBar = ({ activeView, chatOpen, onChatToggle, graphOpen, onGraphToggle, controllerOpen, onControllerToggle }) => {
   const { workspaceScenes, workspaceChats, isPlaying, simulationTime, fps, showVelocityVectors, vectorScale, openGraphs, togglePlayPause, resetSimulation, updateVectorScale, toggleVelocityVectors, addGraph, getCurrentScene, saveCurrentScene } = useWorkspace();
 
   const handleGraphToggle = useCallback(() => {
@@ -41,7 +41,7 @@ const StatusBar = ({ activeView, chatOpen, onChatToggle, graphOpen, onGraphToggl
     const layouts = {
       dashboard: 'Welcome',
       collection: 'Gallery',
-      visualizer: 'Editor + Chat',
+      visualizer: '3D',
       settings: 'Preferences'
     };
     return layouts[activeView] || '';
@@ -132,7 +132,7 @@ const StatusBar = ({ activeView, chatOpen, onChatToggle, graphOpen, onGraphToggl
   }, [addGraph]);
 
   return (
-    <div className="status-bar" style={{ height: '30px', padding: '3px 0' }}>
+    <div className="status-bar">
       <div className="status-bar-left">
         <div className="status-bar-item" style={{ marginLeft: '10px' }}>{getViewInfo()}</div>
         <div className="status-bar-item" style={{ color: '#ffffff', fontSize: '13px', marginLeft: '15px' }}>{getLayoutInfo()}</div>
@@ -200,6 +200,13 @@ const StatusBar = ({ activeView, chatOpen, onChatToggle, graphOpen, onGraphToggl
             title={graphOpen ? "Close Graph Panel" : "Open Graph Panel"}
           >
             <FontAwesomeIcon icon={faChartLine} style={{ fontSize: '22px' }} />
+          </button>
+          <button
+            className="status-control-button controller-toggle-button"
+            onClick={onControllerToggle}
+            title={controllerOpen ? "Close Controller Panel" : "Open Controller Panel"}
+          >
+            <FontAwesomeIcon icon={faSlidersH} style={{ fontSize: '22px' }} />
           </button>
         </div>
       )}

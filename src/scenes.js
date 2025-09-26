@@ -24,7 +24,73 @@ export const mechanicsExamples = [
     "hasGround": true,
     "contactMaterial": { "friction": 0.5, "restitution": 0.7 },
     "gravitationalPhysics": { "enabled": false },
-    "simulationScale": "terrestrial"
+    "simulationScale": "terrestrial",
+    "controllers": [
+      {
+        "id": "gravity-x",
+        "label": "Gravity X",
+        "type": "slider",
+        "min": -20,
+        "max": 20,
+        "step": 0.1,
+        "value": 0,
+        "propertyPath": "gravity[0]"
+      },
+      {
+        "id": "gravity-y",
+        "label": "Gravity Y",
+        "type": "slider",
+        "min": -20,
+        "max": 20,
+        "step": 0.1,
+        "value": -9.81,
+        "propertyPath": "gravity[1]"
+      },
+      {
+        "id": "gravity-z",
+        "label": "Gravity Z",
+        "type": "slider",
+        "min": -20,
+        "max": 20,
+        "step": 0.1,
+        "value": 0,
+        "propertyPath": "gravity[2]"
+      },
+      {
+        "id": "sphere-mass",
+        "label": "Sphere Mass",
+        "type": "slider",
+        "min": 0.1,
+        "max": 5,
+        "step": 0.1,
+        "value": 1,
+        "objectId": "sphere-1",
+        "property": "mass"
+      },
+      {
+        "id": "box-mass",
+        "label": "Box Mass",
+        "type": "slider",
+        "min": 0.1,
+        "max": 5,
+        "step": 0.1,
+        "value": 1.5,
+        "objectId": "box-1",
+        "property": "mass"
+      },
+      {
+        "id": "cylinder-mass",
+        "label": "Cylinder Mass",
+        "type": "slider",
+        "min": 0.1,
+        "max": 5,
+        "step": 0.1,
+        "value": 2,
+        "objectId": "cylinder-1",
+        "property": "mass"
+      },
+
+    ]
   },
   {
     "id": "simple-pendulum",
@@ -264,6 +330,7 @@ export const mechanicsExamples = [
     "name": "Solar System Basics",
     "description": "Simplified solar system showing orbital mechanics with a central sun and orbiting planets.",
   "thumbnailUrl": solarThumb,
+    "type": "extraterrestrial",
     "objects": [
       { "id": "sun", "type": "Sphere", "mass": 1000, "gravitationalMass": 10000, "position": [0, 0, 0], "radius": 8, "isStatic": true, "color": "#FDB813" },
       { "id": "mercury", "type": "Sphere", "mass": 0.055, "position": [15, 0, 0], "radius": 0.4, "velocity": [0, 0, 25], "color": "#8C7853" },
@@ -319,5 +386,111 @@ export const mechanicsExamples = [
     "contactMaterial": { "friction": 0.6, "restitution": 0.3 },
     "gravitationalPhysics": { "enabled": false },
     "simulationScale": "terrestrial"
+  },
+  {
+    "id": "stable-three-body",
+    "name": "Stable Three-Body Problem",
+    "description": "Three celestial bodies in a stable orbital configuration forming an equilateral triangle. Use controllers to test stability constraints and see when the system becomes unstable.",
+    "thumbnailUrl": emptyThumb,
+    "simulationScale": "extraterrestrial",
+    "objects": [
+      { "id": "star1", "type": "Sphere", "mass": 100, "radius": 2, "position": [0, 0, 0], "velocity": [0, 0.4, 0], "color": "#FFFF00" },
+      { "id": "star2", "type": "Sphere", "mass": 10, "radius": 1, "position": [10, 0, 0], "velocity": [0, 0.4, 0], "color": "#FF0000" },
+      { "id": "star3", "type": "Sphere", "mass": 10, "radius": 1, "position": [5, 8.66, 0], "velocity": [-0.3464, -0.2, 0], "color": "#00FF00" }
+    ],
+    "gravity": [0, 0, 0],
+    "hasGround": false,
+    "contactMaterial": { "friction": 0, "restitution": 0.5 },
+    "gravitationalPhysics": { "enabled": true, "gravitationalConstant": 1, "minDistance": 1, "softening": 0.1 },
+    "simulationScale": "solar_system",
+    "controllers": [
+      {
+        "id": "star1-mass",
+        "label": "Star 1 Mass (Yellow)",
+        "type": "slider",
+        "min": 50,
+        "max": 120,
+        "step": 5,
+        "value": 100,
+        "objectId": "star1",
+        "property": "mass"
+      },
+      {
+        "id": "star2-mass",
+        "label": "Star 2 Mass (Red)",
+        "type": "slider",
+        "min": 5,
+        "max": 50,
+        "step": 1,
+        "value": 10,
+        "objectId": "star2",
+        "property": "mass"
+      },
+      {
+        "id": "star3-mass",
+        "label": "Star 3 Mass (Green)",
+        "type": "slider",
+        "min": 5,
+        "max": 50,
+        "step": 1,
+        "value": 10,
+        "objectId": "star3",
+        "property": "mass"
+      },
+      {
+        "id": "star3-x-pos",
+        "label": "Star 3 X Position",
+        "type": "slider",
+        "min": 3,
+        "max": 7,
+        "step": 0.1,
+        "value": 5,
+        "objectId": "star3",
+        "property": "position[0]"
+      },
+      {
+        "id": "star3-y-pos",
+        "label": "Star 3 Y Position",
+        "type": "slider",
+        "min": 7,
+        "max": 10,
+        "step": 0.1,
+        "value": 8.66,
+        "objectId": "star3",
+        "property": "position[1]"
+      },
+      {
+        "id": "star1-velocity-x",
+        "label": "Star 1 Velocity X",
+        "type": "slider",
+        "min": -1,
+        "max": 1,
+        "step": 0.1,
+        "value": 0,
+        "objectId": "star1",
+        "property": "velocity[0]"
+      },
+      {
+        "id": "star1-velocity-y",
+        "label": "Star 1 Velocity Y",
+        "type": "slider",
+        "min": 0,
+        "max": 1,
+        "step": 0.1,
+        "value": 0.4,
+        "objectId": "star1",
+        "property": "velocity[1]"
+      },
+      {
+        "id": "gravitational-constant",
+        "label": "Gravitational Constant",
+        "type": "slider",
+        "min": 0.5,
+        "max": 2,
+        "step": 0.1,
+        "value": 1,
+        "propertyPath": "gravitationalPhysics.gravitationalConstant"
+      }
+    ]
   }
 ];

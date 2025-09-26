@@ -1,5 +1,4 @@
 import { useState, useEffect, useCallback } from 'react';
-import { useDatabase } from '../../../contexts/DatabaseContext';
 
 export function useSceneSelector({
     currentScene,
@@ -16,9 +15,10 @@ export function useSceneSelector({
     onNewChat,
     onSceneButtonClick,
     refreshTrigger,
-    activeTab: externalActiveTab,
-    onTabChange: externalOnTabChange,
-    uiMode = 'simple'
+    externalActiveTab,
+    externalOnTabChange,
+    dataManager,
+    GEMINI_API_KEY
 }) {
     // Use external tab state if provided, otherwise use internal state
     const [internalActiveTab, setInternalActiveTab] = useState('examples');
@@ -31,15 +31,6 @@ export function useSceneSelector({
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState(null);
     const [openMenuId, setOpenMenuId] = useState(null);
-
-    const dataManager = useDatabase();
-
-    // Close menu when clicking outside
-    useEffect(() => {
-        const handleClickOutside = () => setOpenMenuId(null);
-        document.addEventListener('click', handleClickOutside);
-        return () => document.removeEventListener('click', handleClickOutside);
-    }, []);
 
     // --- Data Fetching Logic ---
     useEffect(() => {
@@ -108,16 +99,35 @@ export function useSceneSelector({
 
     // --- Handlers ---
 
-    const handleSceneItemClick = useCallback((scene) => {
-        handleSceneChange(scene);
-    }, [handleSceneChange]);
+    const getCombinedUserScenes = () => {
+        // Always include a default empty scene at the top
+        const defaultEmptyScene = {
+            id: 'default-empty',
+            name: 'New Scene',
+            description: 'Start with an empty scene to build your physics simulation.',
+            isTemporary: true,
+            gravity: [0, -9.81, 0],
+            hasGround: true,
+            simulationScale: 'terrestrial',
+            gravitationalPhysics: { enabled: false },
+            objects: []
+        };
 
-    const handleMenuToggle = useCallback((e, sceneId) => {
+        // Return default empty scene followed by user's saved scenes
+        return [defaultEmptyScene, ...fetchedUserScenes];
+    };
+
+    // This function now correctly calls the prop passed from the parent.
+    const handleSceneItemClick = (scene) => {
+        handleSceneChange(scene);
+    };
+
+    const handleMenuToggle = (e, sceneId) => {
         e.stopPropagation();
         setOpenMenuId(openMenuId === sceneId ? null : sceneId);
-    }, [openMenuId]);
+    };
 
-    const handleMenuAction = useCallback(async (action, scene) => {
+    const handleMenuAction = async (action, scene) => {
         setOpenMenuId(null);
         switch (action) {
             case 'delete':
@@ -167,9 +177,9 @@ export function useSceneSelector({
                 }
                 break;
         }
-    }, [onDeleteScene, onSaveScene, onUpdateScene, onShareToPublic, onOpenProperties, activeTab, dataManager]);
+    };
 
-    const handleChatDelete = useCallback(async (chatId) => {
+    const handleChatDelete = async (chatId) => {
         setOpenMenuId(null);
         if (window.confirm('Are you sure you want to delete this chat? This action cannot be undone.')) {
             try {
@@ -192,41 +202,26 @@ export function useSceneSelector({
                 alert('Error: Could not delete chat.');
             }
         }
-    }, [currentChatId, onChatSelect, dataManager]);
-
-    // --- Data for rendering ---
-    const getScenesData = () => {
-        switch (activeTab) {
-            case 'examples':
-                return { scenes: exampleScenes, isLoading: loading, emptyMessage: "No examples found.", isLocalSection: false };
-            case 'chats':
-                return { chats: chatHistory, isLoading: loading, emptyMessage: "No chat history yet. Start a new chat!" };
-            case 'user':
-                return { scenes: fetchedUserScenes, isLoading: loading, emptyMessage: "No saved scenes yet.", isLocalSection: true };
-            default:
-                return { scenes: [], isLoading: false, emptyMessage: "", isLocalSection: false };
-        }
     };
 
     return {
         // State
         activeTab,
         setActiveTab,
+        exampleScenes,
+        fetchedUserScenes,
+        chatHistory,
         loading,
         error,
         openMenuId,
         setOpenMenuId,
-
-        // Data
-        scenesData: getScenesData(),
+        setError,
 
         // Handlers
+        getCombinedUserScenes,
         handleSceneItemClick,
         handleMenuToggle,
         handleMenuAction,
-        handleChatDelete,
-
-        // UI helpers
-        uiMode
+        handleChatDelete
     };
 }

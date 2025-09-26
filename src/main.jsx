@@ -3,14 +3,17 @@ import { createRoot } from 'react-dom/client';
 import './index.css';
 import { DatabaseProvider } from './contexts/DatabaseContext';
 import { WorkspaceProvider } from './contexts/WorkspaceContext';
+import { ThemeProvider } from './contexts/ThemeContext';
 import App from './App.jsx';
 
 createRoot(document.getElementById('root')).render(
   <StrictMode>
-    <DatabaseProvider>
-      <WorkspaceProvider>
-        <App />
-      </WorkspaceProvider>
-    </DatabaseProvider>
+    <ThemeProvider>
+      <DatabaseProvider>
+        <WorkspaceProvider>
+          <App />
+        </WorkspaceProvider>
+      </DatabaseProvider>
+    </ThemeProvider>
   </StrictMode>
 );

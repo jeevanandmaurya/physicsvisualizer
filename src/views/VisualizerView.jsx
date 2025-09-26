@@ -1,9 +1,10 @@
 import React, { useState, useEffect, useCallback, useRef, Suspense } from 'react';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { faSpinner, faExclamationTriangle } from '@fortawesome/free-solid-svg-icons';
-import Visualizer from '../features/visualizer/components/Visualizer';
+import Visualizer from '../ui-logic/visualizer/Visualizer';
 import { useDatabase } from '../contexts/DatabaseContext';
 import { useWorkspace, useWorkspaceScene, useWorkspaceChat, useWorkspaceSettings } from '../contexts/WorkspaceContext';
+import './VisualizerView.css';
 
 
 // Lazy load non-critical components (none needed currently)
@@ -48,6 +49,7 @@ function VisualizerView() {
   const [isPreviewMode, setIsPreviewMode] = useState(false);
   const [capturedThumbnail, setCapturedThumbnail] = useState(null);
   const [rightPanelView, setRightPanelView] = useState(workspaceUIMode === 'simple' ? 'integrated' : 'chat');
+  const [showSceneDetails, setShowSceneDetails] = useState(false);
 
   // Use workspace scene directly
   const scene = workspaceScene;
@@ -213,6 +215,11 @@ function VisualizerView() {
     setCapturedThumbnail(thumbnailDataUrl);
   }, []);
 
+  // --- Scene Details Toggle Handler ---
+  const handleToggleSceneDetails = useCallback(() => {
+    setShowSceneDetails(prev => !prev);
+  }, []);
+
   // Set loading to false after initialization
   useEffect(() => {
     setLoading(false);
@@ -252,6 +259,8 @@ function VisualizerView() {
         uiMode={workspaceUIMode}
         onModeChange={setWorkspaceUIMode}
         showControls={false} // Controls are now in status bar
+        showSceneDetails={showSceneDetails}
+        onToggleSceneDetails={handleToggleSceneDetails}
       />
       {sceneSwitching && (
         <div className="scene-loading-overlay">

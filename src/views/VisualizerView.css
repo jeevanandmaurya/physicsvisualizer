@@ -143,8 +143,8 @@ html, body, #root {
 .fps-counter {
   position: absolute;
   font-size: 12px;
-  top: 15px; 
-  left: 15px; 
+  top: 15px;
+  left: 15px;
   background-color: var(--overlay-bg);
   color: var(--text-color);
   padding: 4px 8px;
@@ -234,6 +234,15 @@ html, body, #root {
 
 .dropdown-item:hover {
   background-color: var(--secondary-bg);
+}
+
+/* ===== SCENE DETAILS PANEL ===== */
+.scene-details-panel {
+  flex-shrink: 0; /* Prevent shrinking */
+  background-color: var(--secondary-bg);
+  border-bottom: 1px solid var(--border-color);
+  max-height: 300px; /* Limit height */
+  overflow-y: auto; /* Allow scrolling if content is too tall */
 }
 
 /* ===== NEW STYLES FOR OVERLAY GRAPH ===== */
