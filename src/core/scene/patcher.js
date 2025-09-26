@@ -202,6 +202,7 @@ class ScenePatcher {
 
     for (let i = 0; i < pathParts.length - 1; i++) {
       const part = pathParts[i];
+      const nextPart = pathParts[i + 1];
 
       // Handle array indexing (e.g., objects/0, objects[0])
       if (part === 'objects' && i + 1 < pathParts.length && !isNaN(pathParts[i + 1])) {
@@ -235,9 +236,15 @@ class ScenePatcher {
         }
         current = current[arrayName][index];
       } else {
-        // Regular object property
-        if (!current[part]) current[part] = {};
-        current = current[part];
+        // If next part is '-', this should be an array
+        if (nextPart === '-') {
+          if (!current[part]) current[part] = [];
+          current = current[part];
+        } else {
+          // Regular object property
+          if (!current[part]) current[part] = {};
+          current = current[part];
+        }
       }
     }
 

@@ -152,14 +152,41 @@ const ControllerOverlay = ({
 
     // Update the scene property
     if (controller.propertyPath) {
-      // Handle property path like "gravity[0]"
+      // Handle property path like "gravity[0]" or "position[0]"
       const pathParts = controller.propertyPath.split(/\[|\]/).filter(p => p !== '');
       let current = updatedScene;
       for (let i = 0; i < pathParts.length - 1; i++) {
-        if (!current[pathParts[i]]) current[pathParts[i]] = {};
-        current = current[pathParts[i]];
+        const part = pathParts[i];
+        const nextPart = pathParts[i + 1];
+
+        // If next part is a number (array index), ensure current[part] is an array
+        if (!isNaN(nextPart)) {
+          if (!current[part] || !Array.isArray(current[part])) {
+            current[part] = [];
+          }
+        } else {
+          // Regular object property
+          if (!current[part]) current[part] = {};
+        }
+        current = current[part];
       }
-      current[pathParts[pathParts.length - 1]] = value;
+
+      // Set the final value
+      const lastPart = pathParts[pathParts.length - 1];
+      if (!isNaN(lastPart)) {
+        // Array index
+        const index = parseInt(lastPart);
+        if (Array.isArray(current)) {
+          // Ensure array is large enough
+          while (current.length <= index) {
+            current.push(0);
+          }
+          current[index] = value;
+        }
+      } else {
+        // Object property
+        current[lastPart] = value;
+      }
     } else if (controller.objectId && controller.property) {
       // Handle object property
       const objectIndex = updatedScene.objects.findIndex(obj => obj.id === controller.objectId);

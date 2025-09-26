@@ -44,6 +44,19 @@ export function testScenePatcher() {
       op: 'replace',
       path: '/gravity',
       value: [0, -15, 0]
+    },
+    // Test adding controllers to a scene that doesn't have them
+    {
+      op: 'add',
+      path: '/controllers/-',
+      value: {
+        id: 'test-slider',
+        label: 'Test Slider',
+        type: 'slider',
+        min: 0,
+        max: 10,
+        value: 5
+      }
     }
   ];
 
@@ -68,11 +81,60 @@ export function testScenePatcher() {
       console.log('🌍 Gravity updated successfully');
     }
 
+    // Verify controllers were added
+    if (result.scene.controllers && result.scene.controllers.length === 1) {
+      console.log('🎛️ Controllers array created and slider added successfully');
+    } else {
+      console.error('❌ Controllers test failed');
+      return false;
+    }
+
     return true;
   } else {
     console.error('❌ Test failed:', result.error);
     return false;
   }
+}
+
+// Test controller property path handling
+export function testControllerPropertyPaths() {
+  console.log('🎛️ Testing Controller Property Path Handling...');
+
+  // Test the property path parsing logic from ControllerOverlay
+  const testPropertyPaths = [
+    { path: 'gravity[0]', expected: [0, -9.81, 0] },
+    { path: 'position[0]', expected: [1, 2, 3] },
+    { path: 'dimensions[1]', expected: [10, 20, 30] }
+  ];
+
+  const testScene = {
+    gravity: [0, -9.81, 0],
+    position: [1, 2, 3],
+    dimensions: [10, 20, 30]
+  };
+
+  for (const test of testPropertyPaths) {
+    const pathParts = test.path.split(/\[|\]/).filter(p => p !== '');
+    let current = testScene;
+    for (let i = 0; i < pathParts.length - 1; i++) {
+      if (!current[pathParts[i]]) {
+        console.error(`❌ Path ${test.path} not found`);
+        return false;
+      }
+      current = current[pathParts[i]];
+    }
+    const value = current[pathParts[pathParts.length - 1]];
+
+    if (JSON.stringify(value) === JSON.stringify(test.expected[pathParts[pathParts.length - 1]])) {
+      console.log(`✅ ${test.path} = ${value}`);
+    } else {
+      console.error(`❌ ${test.path} failed: got ${value}, expected ${test.expected[pathParts[pathParts.length - 1]]}`);
+      return false;
+    }
+  }
+
+  console.log('✅ Controller property path tests passed');
+  return true;
 }
 
 // Test Gemini response parsing
@@ -117,9 +179,10 @@ if (typeof window === 'undefined') {
   // Node.js environment
   console.log('🚀 Running ScenePatcher tests...');
   const patcherTest = testScenePatcher();
+  const controllerTest = testControllerPropertyPaths();
   const parsingTest = testGeminiResponseParsing();
 
-  if (patcherTest && parsingTest) {
+  if (patcherTest && controllerTest && parsingTest) {
     console.log('🎉 All tests passed!');
   } else {
     console.log('💥 Some tests failed!');

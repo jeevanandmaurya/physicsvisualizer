@@ -17,6 +17,10 @@ import {
 
 
 
+// Import assets
+import backgroundTexture from '../../assets/background.svg';
+import spaceTexture from '../../assets/space.svg';
+
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { faCube } from '@fortawesome/free-solid-svg-icons';
 import { useWorkspace } from '../../contexts/WorkspaceContext';
@@ -121,7 +125,7 @@ function VelocityVectorVisuals({ show, velocities, objectApis, velocityScale }) 
 }
 
 function Skybox({ texturePath }) {
-  const texture = useTexture(texturePath || '/src/assets/background.svg');
+  const texture = useTexture(texturePath || backgroundTexture);
   return (
     <mesh>
       <sphereGeometry args={[100000, 60, 40]} />
@@ -314,7 +318,7 @@ function Visualizer({ scene, showSceneDetails, onToggleSceneDetails }) {
                         <LabeledAxesHelper size={5} />
                         <SimpleGrid show={hasGround} />
                         <FpsCounter updateFps={updateFps} />
-                        <Skybox texturePath={scene?.type === 'extraterrestrial' || scene?.theme === 'space' ? '/src/assets/space.svg' : '/src/assets/background.svg'} />
+                        <Skybox texturePath={scene?.type === 'extraterrestrial' || scene?.theme === 'space' ? spaceTexture : backgroundTexture} />
                     </Canvas>
                 )}
 
