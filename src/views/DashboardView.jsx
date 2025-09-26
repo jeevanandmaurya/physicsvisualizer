@@ -2,6 +2,8 @@ import React, { useState, useEffect, useCallback } from 'react';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { faPlus, faFolderOpen, faCompass, faClockRotateLeft, faSpinner, faComments } from '@fortawesome/free-solid-svg-icons';
 
+import logo from '../assets/physicsvisualizer.svg';
+
 import { useDatabase } from '../contexts/DatabaseContext';
 import { useWorkspace, useWorkspaceScene } from '../contexts/WorkspaceContext';
 
@@ -98,7 +100,7 @@ function DashboardView() {
                     <h1 className="welcome-title">Welcome to</h1>
                     <div style={{ textAlign: 'center', marginTop: '10px', marginBottom: '20px' }}>
                         <img
-                            src="/src/assets/physicsvisualizer.svg"
+                            src={logo}
                             alt="Physics Visualizer Logo"
                             style={{
                                 width: '400px',
