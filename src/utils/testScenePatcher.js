@@ -174,6 +174,57 @@ This will create an interesting physics simulation!`;
   }
 }
 
+// Test constraint system integration
+export function testConstraintSystem() {
+  console.log('🔗 Testing Constraint System...');
+
+  // Mock Cannon.js world and bodies for testing
+  const mockWorld = {
+    addConstraint: jest.fn(),
+    removeConstraint: jest.fn(),
+    constraints: []
+  };
+
+  const mockBodyA = { userData: { id: 'bodyA' } };
+  const mockBodyB = { userData: { id: 'bodyB' } };
+  const mockApi = { bodyA: mockBodyA, bodyB: mockBodyB };
+
+  // Mock objectApis
+  const objectApis = {
+    bodyA: mockApi,
+    bodyB: mockApi
+  };
+
+  // Test scene with constraints
+  const testScene = {
+    constraints: { enabled: true },
+    objects: [
+      {
+        id: 'bodyA',
+        constraints: [
+          { type: 'pointToPoint', targetId: 'bodyB', pivotA: [0, 0, 0], pivotB: [1, 0, 0] }
+        ]
+      }
+    ]
+  };
+
+  try {
+    // Import and test the constraint system
+    import('../core/physics/constraints/calculations.js').then(({ ConstraintPhysics }) => {
+      const constraintPhysics = new ConstraintPhysics(testScene, mockWorld);
+      constraintPhysics.initializeConstraints(testScene.objects, objectApis);
+
+      // Check if constraint was added to world
+      expect(mockWorld.addConstraint).toHaveBeenCalled();
+      console.log('✅ Constraint system test passed');
+      return true;
+    });
+  } catch (error) {
+    console.error('❌ Constraint system test failed:', error);
+    return false;
+  }
+}
+
 // Run tests if this file is executed directly
 if (typeof window === 'undefined') {
   // Node.js environment
@@ -181,8 +232,9 @@ if (typeof window === 'undefined') {
   const patcherTest = testScenePatcher();
   const controllerTest = testControllerPropertyPaths();
   const parsingTest = testGeminiResponseParsing();
+  const constraintTest = testConstraintSystem();
 
-  if (patcherTest && controllerTest && parsingTest) {
+  if (patcherTest && controllerTest && parsingTest && constraintTest) {
     console.log('🎉 All tests passed!');
   } else {
     console.log('💥 Some tests failed!');

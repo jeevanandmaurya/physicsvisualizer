@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { useDatabase } from '../../../contexts/DatabaseContext';
+import { useWorkspace } from '../../../contexts/WorkspaceContext';
 import { useSceneSelector } from '../../../ui-logic/scene-management/useSceneSelector';
 import './SceneSelector.css';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
@@ -21,10 +22,13 @@ function SceneSelectorUI({
     activeTab: externalActiveTab,
     onTabChange: externalOnTabChange,
     onToggleSceneDetails,
-    onClose
+    onClose,
+    onRefreshSceneList,
+    workspaceScenes // Add workspace scenes
 }) {
     const dataManager = useDatabase();
     const GEMINI_API_KEY = import.meta.env.VITE_GEMINI_API_KEY;
+    const { setCurrentScene: setWorkspaceCurrentScene } = useWorkspace(); // Get workspace scene switching function
 
     const {
         activeTab,
@@ -56,12 +60,14 @@ function SceneSelectorUI({
         externalActiveTab,
         externalOnTabChange,
         dataManager,
-        GEMINI_API_KEY
+        GEMINI_API_KEY,
+        workspaceScenes // Pass workspace scenes
     });
 
     // State for section expansion
     const [userScenesExpanded, setUserScenesExpanded] = useState(true);
     const [exampleScenesExpanded, setExampleScenesExpanded] = useState(true);
+    const [workspaceScenesExpanded, setWorkspaceScenesExpanded] = useState(true);
 
     // Close menu when clicking outside
     useEffect(() => {
@@ -157,7 +163,7 @@ function SceneSelectorUI({
             <ul className="scene-list">
                 {scenesToRender.map((scene) => (
                     <li
-                        key={scene.id}
+                        key={isLocalSection ? scene.id : `example-${scene.id}`}
                         onClick={() => handleSceneItemClick(scene)}
                         className={`scene-item ${currentScene && currentScene.id === scene.id ? 'selected' : ''}`}
                         title={scene.description}
@@ -173,6 +179,20 @@ function SceneSelectorUI({
                             </div>
                             <div className="scene-description">{scene.description}</div>
                         </div>
+                        {isLocalSection && (
+                            <button
+                                className="scene-delete-btn"
+                                onClick={(e) => {
+                                    e.stopPropagation();
+                                    if (onDeleteScene) {
+                                        onDeleteScene(scene);
+                                    }
+                                }}
+                                title="Delete Scene"
+                            >
+                                <FontAwesomeIcon icon={faTrash} />
+                            </button>
+                        )}
                         <button
                             className="scene-details-toggle-btn"
                             onClick={(e) => {
@@ -188,6 +208,41 @@ function SceneSelectorUI({
             ))}
         </ul>
     )};
+
+    const handleNewScene = async () => {
+        const newScene = {
+            id: 'new-scene-' + Date.now(),
+            name: 'New Scene',
+            description: 'Start with an empty scene to build your physics simulation.',
+            isTemporary: false,
+            gravity: [0, -9.81, 0],
+            hasGround: true,
+            simulationScale: 'terrestrial',
+            gravitationalPhysics: { enabled: false },
+            objects: []
+        };
+
+        // Save to database first so it appears in "Your Scenes"
+        if (dataManager) {
+            try {
+                const savedId = await dataManager.saveScene(newScene);
+                newScene.id = savedId; // Update with saved ID
+                console.log('New scene saved to database:', savedId);
+
+                // Create and link a chat for this scene
+                await dataManager.getOrCreateChatForScene(savedId, newScene.name);
+
+                // Refresh the scene list in the parent component
+                if (onRefreshSceneList) {
+                    await onRefreshSceneList();
+                }
+            } catch (error) {
+                console.error('Failed to save new scene:', error);
+            }
+        }
+
+        handleSceneChange(newScene);
+    };
 
     return (
         <div className="scene-selector-container">
@@ -205,6 +260,57 @@ function SceneSelectorUI({
                     )}
                 </div>
                 <div className="scene-list-panel">
+                    {/* New Scene Button - Always at top */}
+                    <div className="new-scene-section">
+                        <button
+                            className="new-scene-btn"
+                            onClick={handleNewScene}
+                            title="Create a new empty scene"
+                        >
+                            <FontAwesomeIcon icon={faCube} />
+                            New Scene
+                        </button>
+                    </div>
+
+                    {/* Workspace Scenes - Currently Active Scenes */}
+                    {workspaceScenes && workspaceScenes.length > 1 && (
+                        <div className="scene-section workspace-scenes">
+                            <h4 onClick={() => setWorkspaceScenesExpanded(!workspaceScenesExpanded)} style={{ cursor: 'pointer' }}>
+                                <FontAwesomeIcon
+                                    icon={workspaceScenesExpanded ? faChevronDown : faChevronRight}
+                                    style={{ marginRight: '8px', fontSize: '12px' }}
+                                />
+                                Current Workspace ({workspaceScenes.length} scenes)
+                            </h4>
+                            {workspaceScenesExpanded && (
+                                <ul className="scene-list workspace-list">
+                                    {workspaceScenes.map((scene, index) => (
+                                        <li
+                                            key={scene.id || `workspace-scene-${index}`}
+                                            onClick={() => {
+                                                console.log('Switching to workspace scene:', index);
+                                                setWorkspaceCurrentScene(index);
+                                            }}
+                                            className={`scene-item workspace-item ${currentScene && currentScene.id === scene.id ? 'selected' : ''}`}
+                                            title={`Workspace scene: ${scene.description || 'No description'}`}
+                                        >
+                                            <div className="scene-content">
+                                                <div className="scene-name">
+                                                    <FontAwesomeIcon icon={faCube} className="scene-3d-icon" />
+                                                    {scene.name || `Scene ${index + 1}`}
+                                                    <span className="workspace-indicator" title="Workspace scene">●</span>
+                                                </div>
+                                                <div className="scene-description">
+                                                    {scene.objects ? `${scene.objects.length} objects` : 'Empty scene'}
+                                                </div>
+                                            </div>
+                                        </li>
+                                    ))}
+                                </ul>
+                            )}
+                        </div>
+                    )}
+
                     <div className="scene-section user-scenes">
                         <h4 onClick={() => setUserScenesExpanded(!userScenesExpanded)} style={{ cursor: 'pointer' }}>
                             <FontAwesomeIcon
@@ -213,7 +319,7 @@ function SceneSelectorUI({
                             />
                             Your Scenes
                         </h4>
-                        {userScenesExpanded && renderSceneList(getCombinedUserScenes(), loading, "No saved scenes yet.", true)}
+                        {userScenesExpanded && renderSceneList(userScenes, loadingUserScenes, "No saved scenes yet.", true)}
                     </div>
                     <div className="scene-section example-scenes">
                         <h4 onClick={() => setExampleScenesExpanded(!exampleScenesExpanded)} style={{ cursor: 'pointer' }}>

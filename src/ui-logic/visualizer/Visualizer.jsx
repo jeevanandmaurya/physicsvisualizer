@@ -1,19 +1,10 @@
-import React, { useRef, useEffect, useCallback, useMemo, useState } from 'react';
+import React, { useRef, useEffect, useCallback, useState } from 'react';
 import { Canvas, useFrame } from '@react-three/fiber';
-import { Physics } from '@react-three/cannon';
 import { OrbitControls, Grid, Text, useTexture } from '@react-three/drei';
 import * as THREE from 'three';
 
 // Import physics calculations and engine components
-import { GravitationalPhysics } from '../../core/physics/gravitation/calculations.js';
-import {
-    PhysicsForceApplier,
-    Sphere,
-    Box,
-    Cylinder,
-    SceneBox,
-    GroundPlane
-} from '../../core/physics/engine.jsx';
+import { PhysicsWorld } from '../../core/physics/engine.jsx';
 
 
 
@@ -26,14 +17,15 @@ import { faCube } from '@fortawesome/free-solid-svg-icons';
 import { useWorkspace } from '../../contexts/WorkspaceContext';
 import SceneDetailsUI from '../../views/components/scene-management/SceneDetailsUI';
 
-const MAX_HISTORY_POINTS = 2000;
-
 // --- Visualizer-specific helper components ---
-function TimeUpdater({ isPlaying, updateSimulationTime }) { 
-  useFrame((state, delta) => { 
-    if (isPlaying) updateSimulationTime(prevTime => prevTime + delta); 
-  }); 
-  return null; 
+function TimeUpdater({ isPlaying, updateSimulationTime }) {
+  useFrame((state, delta) => {
+    // Update simulation time only when playing (world time stops when paused)
+    if (isPlaying) {
+      updateSimulationTime(prevTime => prevTime + delta);
+    }
+  });
+  return null;
 }
 function FpsCounter({ updateFps }) { 
   const lastTimeRef = useRef(performance.now()); 
@@ -94,34 +86,38 @@ function Arrow({ vec, color }) {
   }, [vec, geometries]); 
   return (<group ref={groupRef}><mesh ref={shaftRef} geometry={geometries.shaft}><meshStandardMaterial color={color} /></mesh><mesh ref={coneRef} geometry={geometries.cone}><meshStandardMaterial color={color} /></mesh></group>); 
 }
-function VelocityVector({ api, velocityData, velocityScale }) { 
-  const groupRef = useRef(); 
-  const positionRef = useRef([0, 0, 0]); 
-  useEffect(() => { 
-    if (api) { 
-      const unsubscribe = api.position.subscribe(p => { positionRef.current = [...p]; }); 
-      return unsubscribe; 
-    } 
-  }, [api]); 
-  useFrame(() => { 
-    if (groupRef.current && positionRef.current) { 
-      const [x, y, z] = positionRef.current; 
-      groupRef.current.position.set(x, y, z); 
-    } 
-  }); 
-  if (!velocityData || !Array.isArray(velocityData)) return null; 
-  const velocityVector = new THREE.Vector3().fromArray(velocityData); 
-  const scaledVelocityVec = velocityVector.multiplyScalar(velocityScale); 
-  if (scaledVelocityVec.length() < 0.01) return null; 
-  return (<group ref={groupRef}><Arrow vec={scaledVelocityVec} color="white" /></group>); 
+function VelocityVector({ position, velocityData, velocityScale, color }) {
+  if (!velocityData || !Array.isArray(velocityData)) return null;
+  const velocityVector = new THREE.Vector3().fromArray(velocityData);
+  const scaledVelocityVec = velocityVector.multiplyScalar(velocityScale);
+  if (scaledVelocityVec.length() < 0.01) return null;
+
+  return (
+    <group position={position || [0, 0, 0]}>
+      <Arrow vec={scaledVelocityVec} color={color || "#00ff88"} />
+    </group>
+  );
 }
-function VelocityVectorVisuals({ show, velocities, objectApis, velocityScale }) {
-  if (!show || !velocities) return null;
-  return (<>{Object.entries(velocities).map(([id, velocity]) => {
-    const api = objectApis.current[id];
-    if (!api) return null;
-    return (<VelocityVector key={id} api={api} velocityData={velocity} velocityScale={velocityScale} />);
-  })}</>);
+function VelocityVectorVisuals({ show, velocities, velocityScale, sceneObjects }) {
+  if (!show || !velocities || !sceneObjects) return null;
+
+  return sceneObjects.map((obj) => {
+    const velocity = velocities[obj.id];
+    if (!velocity || !Array.isArray(velocity)) return null;
+
+    const velocityVector = new THREE.Vector3().fromArray(velocity);
+    if (velocityVector.length() < 0.01) return null;
+
+    return (
+      <VelocityVector
+        key={`velocity-${obj.id}`}
+        position={obj.position || [0, 0, 0]}
+        velocityData={velocity}
+        velocityScale={velocityScale || 1}
+        color="#00ff88"
+      />
+    );
+  });
 }
 
 function Skybox({ texturePath }) {
@@ -135,16 +131,15 @@ function Skybox({ texturePath }) {
 }
 
 function Visualizer({ scene, showSceneDetails, onToggleSceneDetails }) {
-    const { isPlaying, simulationTime, fps, showVelocityVectors, vectorScale, openGraphs, resetSimulation, updateSimulationTime, updateFps, resetTrigger, setIsPlaying, removeGraph, setObjectHistory } = useWorkspace();
+    const { isPlaying, simulationTime, fps, showVelocityVectors, vectorScale, openGraphs, resetSimulation, loopReset, updateSimulationTime, updateFps, resetTrigger, removeGraph, setObjectHistory, loopMode, setIsPlaying } = useWorkspace();
 
     // Debug: Log scene changes
     useEffect(() => {
         console.log('Visualizer: Scene updated:', scene?.id, scene?.gravity, scene?.objects?.map(o => ({ id: o.id, mass: o.mass })));
     }, [scene]);
-    const objectApis = useRef({});
-    const gravitationalPhysics = useRef(new GravitationalPhysics(scene || {}));
-    const initialSceneObjects = useRef(scene?.objects ? JSON.parse(JSON.stringify(scene.objects)) : []);
+
     const historyRef = useRef({});
+    const lastLoopResetRef = useRef(0);
     const [physicsData, setPhysicsData] = useState({ velocities: {} });
     const [canvasError, setCanvasError] = useState(false);
     const r3fCanvasRef = useRef(null);
@@ -157,55 +152,16 @@ function Visualizer({ scene, showSceneDetails, onToggleSceneDetails }) {
         restitution: contactMaterial.restitution || 0.7
     };
 
-    const setApi = useCallback((id, api) => { objectApis.current[id] = api; }, []);
-
-    const onPhysicsUpdate = useCallback(({ id, time, position }) => {
-        if (!historyRef.current[id]) historyRef.current[id] = [];
-        const history = historyRef.current[id];
-        const lastPoint = history[history.length - 1];
-
-        if (!lastPoint || (position[0] - lastPoint.x) ** 2 + (position[1] - lastPoint.y) ** 2 + (position[2] - lastPoint.z) ** 2 > 1e-8) {
-            history.push({ t: time, x: position[0], y: position[1], z: position[2] });
-            if (history.length > MAX_HISTORY_POINTS) history.shift();
-        }
-    }, []);
-
-    const handleReset = useCallback(() => {
-        historyRef.current = {};
-        setObjectHistory({});
-        setPhysicsData({ velocities: {} });
-        gravitationalPhysics.current.currentPositions = {};
-        gravitationalPhysics.current.currentVelocities = {};
-
-        initialSceneObjects.current.forEach(config => {
-            const api = objectApis.current[config.id];
-            if (api) {
-                api.wakeUp();
-                const pos = config.position || [0, 0, 0];
-                const vel = config.velocity || [0, 0, 0];
-                api.position.set(...pos);
-                api.velocity.set(...vel);
-                api.rotation.set(...(config.rotation || [0, 0, 0]));
-                api.angularVelocity.set(...(config.angularVelocity || [0, 0, 0]));
-                gravitationalPhysics.current.updatePosition(config.id, pos);
-                gravitationalPhysics.current.updateVelocity(config.id, vel);
-            }
-        });
-    }, []);
-
     const handlePhysicsDataCalculated = useCallback((data) => { 
       setPhysicsData(data); 
     }, []);
 
     useEffect(() => {
-        initialSceneObjects.current = scene?.objects?.map((obj, i) => ({
-            ...obj,
-            id: obj.id ?? `${obj.type?.toLowerCase() || 'obj'}-${i}`
-        })) || [];
-        gravitationalPhysics.current = new GravitationalPhysics(scene || {});
-        handleReset();
+        historyRef.current = {};
+        setObjectHistory({});
+        setPhysicsData({ velocities: {} });
         setIsPlaying(false);
-    }, [scene, handleReset, setIsPlaying]);
+    }, [scene, setIsPlaying]);
 
     useEffect(() => {
         const i = setInterval(() => {
@@ -213,13 +169,6 @@ function Visualizer({ scene, showSceneDetails, onToggleSceneDetails }) {
         }, 200);
         return () => clearInterval(i);
     }, []);
-
-    // Reset objects when resetTrigger changes
-    useEffect(() => {
-        if (resetTrigger > 0) {
-            handleReset();
-        }
-    }, [resetTrigger, handleReset]);
 
     // Handle WebGL context loss
     useEffect(() => {
@@ -235,6 +184,16 @@ function Visualizer({ scene, showSceneDetails, onToggleSceneDetails }) {
             return () => canvas.removeEventListener('webglcontextlost', handleContextLoss);
         }
     }, []);
+
+    // Handle loop reset
+    useEffect(() => {
+        if (loopMode !== 'none' && isPlaying) {
+            const interval = loopMode === '5sec' ? 5 : 10;
+            if (simulationTime >= interval) {
+                loopReset();
+            }
+        }
+    }, [loopMode, isPlaying, simulationTime, loopReset]);
 
     return (
         <div className="visualizer-container">
@@ -291,29 +250,13 @@ function Visualizer({ scene, showSceneDetails, onToggleSceneDetails }) {
                         <TimeUpdater isPlaying={isPlaying} updateSimulationTime={updateSimulationTime} />
                         <ambientLight intensity={0.6} />
                         <directionalLight position={[8, 10, 5]} intensity={1.0} castShadow shadow-mapSize-width={1024} shadow-mapSize-height={1024} />
-                        <Physics key={`physics-${scene?.id || 'default'}-${JSON.stringify(gravity)}`} gravity={gravity} defaultContactMaterial={defaultContactMaterial} isPaused={!isPlaying}>
-                            <PhysicsForceApplier scene={scene} objectApis={objectApis} gravitationalPhysics={gravitationalPhysics} isPlaying={isPlaying} onPhysicsDataCalculated={handlePhysicsDataCalculated} />
-                            {hasGround && <GroundPlane />}
-                            {objectsToRender.map((obj, index) => {
-                                const objectId = obj.id ?? `${obj.type?.toLowerCase() || 'obj'}-${index}`;
-                                const configWithId = { ...obj, id: objectId };
-                                const commonProps = { config: configWithId, id: objectId, setApi, onPhysicsUpdate, gravitationalPhysics, isPlaying };
-
-                                switch (configWithId.type) {
-                                    case "Sphere":
-                                        return <Sphere key={`${objectId}-${configWithId.mass}-${JSON.stringify(configWithId.velocity)}`} {...commonProps} />;
-                                    case "Box":
-                                        return <Box key={`${objectId}-${configWithId.mass}-${JSON.stringify(configWithId.velocity)}`} {...commonProps} />;
-                                    case "Cylinder":
-                                        return <Cylinder key={`${objectId}-${configWithId.mass}-${JSON.stringify(configWithId.velocity)}`} {...commonProps} />;
-                                    case "Plane":
-                                        return <SceneBox key={`${objectId}-${configWithId.mass}`} config={{ ...configWithId, mass: configWithId.mass ?? 0 }} id={objectId} setApi={setApi} />;
-                                    default:
-                                        return null;
-                                }
-                            })}
-                        </Physics>
-                        <VelocityVectorVisuals show={showVelocityVectors} velocities={physicsData.velocities} objectApis={objectApis} velocityScale={vectorScale} />
+                        <PhysicsWorld
+                            scene={scene}
+                            isPlaying={isPlaying}
+                            onPhysicsDataCalculated={handlePhysicsDataCalculated}
+                            resetTrigger={resetTrigger}
+                        />
+                        <VelocityVectorVisuals show={showVelocityVectors} velocities={physicsData.velocities} velocityScale={vectorScale} sceneObjects={objectsToRender} />
                         <OrbitControls />
                         <LabeledAxesHelper size={5} />
                         <SimpleGrid show={hasGround} />
@@ -328,5 +271,4 @@ function Visualizer({ scene, showSceneDetails, onToggleSceneDetails }) {
     );
 }
 
-export { GravitationalPhysics };
 export default Visualizer;

@@ -23,7 +23,7 @@ export default defineConfig({
         manualChunks: {
           // Separate vendor chunks for better caching
           'react-vendor': ['react', 'react-dom'],
-          'three-vendor': ['three', '@react-three/fiber', '@react-three/drei', '@react-three/cannon', 'cannon'],
+          'three-vendor': ['three', '@react-three/fiber', '@react-three/drei', '@react-three/rapier'],
           'ui-vendor': ['@fortawesome/react-fontawesome', '@fortawesome/free-solid-svg-icons', 'lucide-react'],
           'chart-vendor': ['chart.js', 'chartjs-plugin-zoom', 'react-chartjs-2'],
           'math-vendor': ['katex', 'jsxgraph'],

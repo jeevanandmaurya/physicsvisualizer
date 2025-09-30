@@ -22,6 +22,7 @@ export function WorkspaceProvider({ children }) {
   const [openGraphs, setOpenGraphs] = useState([]);
   const [resetTrigger, setResetTrigger] = useState(0);
   const [objectHistory, setObjectHistory] = useState({});
+  const [loopMode, setLoopMode] = useState('none'); // 'none', '5sec', '10sec'
 
   const togglePlayPause = useCallback(() => {
     setIsPlaying(prev => !prev);
@@ -41,6 +42,13 @@ export function WorkspaceProvider({ children }) {
     setFps(0);
     setResetTrigger(Date.now());
     // Note: Actual object reset happens in Visualizer
+  }, []);
+
+  const loopReset = useCallback(() => {
+    setSimulationTime(0);
+    setFps(0);
+    setResetTrigger(Date.now());
+    // Note: Keeps playing, just resets positions and time
   }, []);
 
   const updateSimulationTime = useCallback((time) => {
@@ -68,6 +76,15 @@ export function WorkspaceProvider({ children }) {
     setOpenGraphs(prev => prev.filter(g => g.id !== id));
   }, []);
 
+  const toggleLoop = useCallback(() => {
+    setLoopMode(prev => {
+      if (prev === 'none') return '5sec';
+      if (prev === '5sec') return '10sec';
+      if (prev === '10sec') return 'none';
+      return 'none';
+    });
+  }, []);
+
   const saveCurrentScene = useCallback(async (sceneData) => {
     try {
       const savedId = await database.saveScene(sceneData);
@@ -81,6 +98,16 @@ export function WorkspaceProvider({ children }) {
 
   // Initialize workspace manager listeners and create default workspace
   useEffect(() => {
+    const initializeWorkspace = async () => {
+      // For session-only mode we do not load a saved workspace from storage.
+      // Always create a fresh default workspace for the session.
+      if (!workspaceManager.getCurrentWorkspace()) {
+        const defaultWorkspace = workspaceManager.createWorkspace('Default Workspace');
+        workspaceManager.setCurrentWorkspace(defaultWorkspace);
+        console.log('Initialized fresh session workspace');
+      }
+    };
+
     const handleWorkspaceChange = (event, workspace) => {
       // Use the workspace object directly (it has methods)
       setCurrentWorkspace(workspace);
@@ -96,21 +123,18 @@ export function WorkspaceProvider({ children }) {
     workspaceManager.addListener(handleWorkspaceChange);
     workspaceManager.addListener(handleWorkspaceError);
 
-    // Create default workspace if none exists
-    if (!workspaceManager.getCurrentWorkspace()) {
-      const defaultWorkspace = workspaceManager.createWorkspace('Default Workspace');
-      workspaceManager.setCurrentWorkspace(defaultWorkspace);
-    }
+    initializeWorkspace();
 
-    // Start auto-save
-    workspaceManager.startAutoSave();
+  // NOTE: Auto-save is disabled for session-only mode.
 
     return () => {
       workspaceManager.removeListener(handleWorkspaceChange);
       workspaceManager.removeListener(handleWorkspaceError);
       workspaceManager.stopAutoSave();
     };
-  }, [workspaceManager]);
+  }, [workspaceManager, database]);
+
+  // No persistent saves in session-only mode
 
   // Workspace operations
   const createWorkspace = useCallback(async (name) => {
@@ -176,18 +200,52 @@ export function WorkspaceProvider({ children }) {
     updateWorkspace(workspace => workspace.addScene(sceneData));
   }, [updateWorkspace]);
 
-  const updateCurrentScene = useCallback((updates) => {
-    updateWorkspace(workspace => workspace.updateCurrentScene(updates));
-  }, [updateWorkspace]);
+  const updateCurrentScene = useCallback(async (updates) => {
+    updateWorkspace(workspace => {
+      const currentScene = workspace.getCurrentScene();
 
-  const replaceCurrentScene = useCallback((newScene) => {
+      // Keep the scene as "New Scene" - don't rename it
+      return workspace.updateCurrentScene(updates);
+    });
+
+    // Auto-save the scene after updates
+    const currentScene = getCurrentScene();
+    if (currentScene && currentScene.id) {
+      try {
+        await saveCurrentScene(currentScene);
+        console.log('Auto-saved updated scene:', currentScene.id);
+      } catch (error) {
+        console.warn('Auto-save failed:', error);
+      }
+    }
+  }, [updateWorkspace, getCurrentScene, saveCurrentScene]);
+
+  const replaceCurrentScene = useCallback(async (newScene) => {
     updateWorkspace(workspace => workspace.replaceCurrentScene(newScene));
-  }, [updateWorkspace]);
+
+    // Auto-save the scene if it's not the default empty scene
+    if (newScene && newScene.id && !newScene.id.startsWith('new-scene-')) {
+      try {
+        await saveCurrentScene(newScene);
+        console.log('Auto-saved scene:', newScene.id);
+      } catch (error) {
+        console.warn('Auto-save failed:', error);
+      }
+    }
+  }, [updateWorkspace, saveCurrentScene]);
 
 
 
   const deleteScene = useCallback((index) => {
     updateWorkspace(workspace => workspace.deleteScene(index));
+  }, [updateWorkspace]);
+
+  const clearScenes = useCallback(() => {
+    updateWorkspace(workspace => {
+      workspace.scenes = [];
+      workspace.currentSceneIndex = -1;
+      return workspace;
+    });
   }, [updateWorkspace]);
 
   // Legacy method for backward compatibility
@@ -196,8 +254,16 @@ export function WorkspaceProvider({ children }) {
   }, [updateCurrentScene]);
 
   const addMessage = useCallback((message) => {
-    updateWorkspace(workspace => workspace.addMessage(message));
-  }, [updateWorkspace]);
+    workspaceManager.updateCurrentWorkspace(workspace => {
+      // Only add message if it doesn't already exist
+      const exists = workspace.chat?.messages?.some(m => m.id === message.id);
+      if (!exists) {
+        return workspace.addMessage(message);
+      }
+      return workspace;
+    }, true); // Silent update for messages
+    // In session-only mode we do not persist to storage.
+  }, [workspaceManager]);
 
   const updateSettings = useCallback((settings) => {
     updateWorkspace(workspace => workspace.updateSettings(settings));
@@ -213,8 +279,8 @@ export function WorkspaceProvider({ children }) {
 
   // Scene-chat linking methods
   const linkSceneToChat = useCallback((sceneId, chatId) => {
-    updateWorkspace(workspace => workspace.linkSceneToChat(sceneId, chatId));
-  }, [updateWorkspace]);
+    workspaceManager.updateCurrentWorkspace(workspace => workspace.linkSceneToChat(sceneId, chatId), true); // Silent update
+  }, [workspaceManager]);
 
   const getChatForScene = useCallback((sceneId) => {
     if (!currentWorkspace || typeof currentWorkspace.getChatForScene !== 'function') {
@@ -243,6 +309,7 @@ export function WorkspaceProvider({ children }) {
     resetTrigger,
     objectHistory,
     setObjectHistory,
+    loopMode,
 
     // View management
     setCurrentView,
@@ -264,6 +331,7 @@ export function WorkspaceProvider({ children }) {
     updateCurrentScene,
     replaceCurrentScene,
     deleteScene,
+    clearScenes,
 
     // Convenience methods
     updateScene,
@@ -277,6 +345,7 @@ export function WorkspaceProvider({ children }) {
     play,
     pause,
     resetSimulation,
+    loopReset,
     updateSimulationTime,
     updateFps,
     toggleVelocityVectors,
@@ -285,6 +354,7 @@ export function WorkspaceProvider({ children }) {
     removeGraph,
     saveCurrentScene,
     setIsPlaying,
+    toggleLoop,
 
     // Scene-chat linking methods
     linkSceneToChat,

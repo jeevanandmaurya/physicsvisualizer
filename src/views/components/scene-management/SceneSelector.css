@@ -112,6 +112,45 @@
   transform: translateY(0);
 }
 
+/* New Scene Button */
+.new-scene-section {
+  margin-bottom: 15px;
+  padding: 0 15px;
+}
+
+.new-scene-btn {
+  width: 100%;
+  padding: 12px 16px;
+  background-color: var(--primary-color);
+  color: #ffffff;
+  border: none;
+  border-radius: 6px;
+  cursor: pointer;
+  font-size: 14px;
+  font-weight: 600;
+  transition: all 0.2s ease;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
+}
+
+.new-scene-btn:hover {
+  background-color: var(--primary-hover);
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.25);
+}
+
+.new-scene-btn:active {
+  transform: translateY(0);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
+}
+
+.new-scene-btn svg {
+  font-size: 16px;
+}
+
 .scene-list, .scene-details {
   flex: 1;
   overflow-y: auto;
@@ -209,7 +248,7 @@
 .property-value textarea { resize: vertical; }
 
 .scene-section {
-  margin-bottom: 10px;
+  /* margin-bottom: 10px; */
 }
 
 .scene-section h4 {
@@ -232,6 +271,7 @@
 
 .scene-section.user-scenes h4 {
   background-color: var(--primary-color);
+  margin: 0px;
   color: #ffffff;
 }
 
@@ -379,7 +419,6 @@ li.scene-item { list-style: none; display: block; }
 }
 
 .scene-item.selected {
-  border-left: 3px solid var(--primary-color);
   background-color: var(--primary-color);
   color: #ffffff;
 }
@@ -497,6 +536,39 @@ li.scene-item { list-style: none; display: block; }
 
 .scene-item.selected .scene-details-toggle-btn {
   color: #ffffff;
+}
+
+.scene-delete-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 20px;
+  height: 20px;
+  background: none;
+  border: none;
+  color: var(--text-color);
+  cursor: pointer;
+  border-radius: 3px;
+  transition: all 0.2s ease;
+  font-size: 12px;
+  padding: 0;
+  margin-left: 4px;
+  flex-shrink: 0;
+  vertical-align: middle;
+}
+
+.scene-delete-btn:hover {
+  background-color: var(--error-color);
+  color: #ffffff;
+}
+
+.scene-item.selected .scene-delete-btn {
+  color: #ffffff;
+}
+
+.scene-item.selected .scene-delete-btn:hover {
+  background-color: #ffffff;
+  color: var(--error-color);
 }
 
 .scene-menu-dropdown {

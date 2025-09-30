@@ -149,6 +149,7 @@ const Workbench = () => {
         addMessage={addMessage}
         scene={scene}
         getChatForScene={getChatForScene}
+        workspaceMessages={messages}
         onSceneUpdate={(propertyPath, value, reason) => {
           console.log("Scene update:", propertyPath, value, reason);
         }}

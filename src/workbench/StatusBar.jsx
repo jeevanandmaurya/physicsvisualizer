@@ -1,10 +1,20 @@
 import React, { useState, useCallback } from 'react';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
-import { faPlay, faPause, faRedo, faCamera, faSave, faEye, faEyeSlash, faChartLine, faChevronDown, faChevronUp, faComments, faSlidersH } from '@fortawesome/free-solid-svg-icons';
+import { faPlay, faPause, faRedo, faCamera, faSave, faEye, faEyeSlash, faChartLine, faChevronDown, faChevronUp, faComments, faSlidersH, faRepeat } from '@fortawesome/free-solid-svg-icons';
 import { useWorkspace } from '../contexts/WorkspaceContext';
 
+
 const StatusBar = ({ activeView, chatOpen, onChatToggle, graphOpen, onGraphToggle, controllerOpen, onControllerToggle }) => {
-  const { workspaceScenes, workspaceChats, isPlaying, simulationTime, fps, showVelocityVectors, vectorScale, openGraphs, togglePlayPause, resetSimulation, updateVectorScale, toggleVelocityVectors, addGraph, getCurrentScene, saveCurrentScene } = useWorkspace();
+  const { workspaceScenes, workspaceChats, isPlaying, simulationTime, fps, showVelocityVectors, vectorScale, openGraphs, togglePlayPause, resetSimulation, updateVectorScale, toggleVelocityVectors, addGraph, getCurrentScene, saveCurrentScene, loopMode, toggleLoop } = useWorkspace();
+
+
+
+  const formatTime = useCallback((time) => {
+    const minutes = Math.floor(time / 60);
+    const seconds = Math.floor(time % 60);
+    const milliseconds = Math.floor((time % 1) * 100);
+    return `${minutes}:${seconds.toString().padStart(2, '0')}.${milliseconds.toString().padStart(2, '0')}`;
+  }, []);
 
   const handleGraphToggle = useCallback(() => {
     if (!graphOpen) {
@@ -139,7 +149,7 @@ const StatusBar = ({ activeView, chatOpen, onChatToggle, graphOpen, onGraphToggl
         <div className="status-bar-item" style={{ maxWidth: '400px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', marginLeft: '15px' }}>{getViewDetails()}</div>
       </div>
 
-      {activeView === 'visualizer' && (
+      {activeView === 'visualizer' && currentScene && (
         <div className="status-bar-controls">
           <button
             className="status-control-button"
@@ -154,6 +164,14 @@ const StatusBar = ({ activeView, chatOpen, onChatToggle, graphOpen, onGraphToggl
             title="Reset Simulation"
           >
             <FontAwesomeIcon icon={faRedo} style={{ fontSize: '22px' }} />
+          </button>
+          <button
+            className="status-control-button"
+            onClick={toggleLoop}
+            title={`Loop: ${loopMode === 'none' ? 'Off' : loopMode === '5sec' ? '5 seconds' : '10 seconds'} (Click to cycle)`}
+          >
+            <FontAwesomeIcon icon={faRepeat} style={{ fontSize: '22px' }} />
+            {loopMode !== 'none' && <span style={{ fontSize: '12px', marginLeft: '2px' }}>{loopMode === '5sec' ? '5s' : '10s'}</span>}
           </button>
           <div className="status-separator"></div>
           <button
@@ -208,11 +226,21 @@ const StatusBar = ({ activeView, chatOpen, onChatToggle, graphOpen, onGraphToggl
           >
             <FontAwesomeIcon icon={faSlidersH} style={{ fontSize: '22px' }} />
           </button>
+
         </div>
       )}
 
       <div className="status-bar-right">
-        <div className="status-bar-item">{isPlaying ? 'Running' : 'Ready'}</div>
+        {activeView === 'visualizer' && currentScene ? (
+          <>
+            <div className="status-bar-item" style={{ marginRight: '15px' }}>
+              Time: {formatTime(simulationTime)}
+            </div>
+            <div className="status-bar-item">{isPlaying ? 'Running' : 'Ready'}</div>
+          </>
+        ) : (
+          <div className="status-bar-item">No Scene</div>
+        )}
       </div>
 
       {/* Thumbnail Preview Modal */}
@@ -290,6 +318,8 @@ const StatusBar = ({ activeView, chatOpen, onChatToggle, graphOpen, onGraphToggl
           </div>
         </div>
       )}
+
+
     </div>
   );
 };

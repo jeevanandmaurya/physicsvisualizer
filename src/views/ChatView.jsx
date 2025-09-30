@@ -30,49 +30,15 @@ import {
 // Import the actual hooks
 import { useConversation } from '../ui-logic/chat/Conversation';
 import { useTheme } from '../contexts/ThemeContext';
+import { useWorkspace, useWorkspaceChat } from '../contexts/WorkspaceContext';
+import { useDatabase } from '../contexts/DatabaseContext';
 
-function ModernChatInterface() {
+function ModernChatInterface({ onViewChange }) {
   const { theme, setTheme } = useTheme();
-  const [chatHistory, setChatHistory] = useState([
-    {
-      id: '1',
-      title: 'Quantum Mechanics Basics',
-      timestamp: new Date(Date.now() - 86400000),
-      messages: [{
-        id: 1,
-        text: "Hello! I'm your Physics AI Assistant. I can help you with physics concepts, create 3D visualizations, and discuss scientific phenomena. What would you like to explore today?",
-        isUser: false,
-        timestamp: new Date(Date.now() - 86400000),
-      }],
-      category: 'quantum'
-    },
-    {
-      id: '2',
-      title: 'Newton\'s Laws Visualization',
-      timestamp: new Date(Date.now() - 172800000),
-      messages: [{
-        id: 2,
-        text: "Hello! I'm your Physics AI Assistant. I can help you with physics concepts, create 3D visualizations, and discuss scientific phenomena. What would you like to explore today?",
-        isUser: false,
-        timestamp: new Date(Date.now() - 172800000),
-      }],
-      category: 'mechanics'
-    },
-    {
-      id: '3',
-      title: 'Electromagnetic Fields',
-      timestamp: new Date(Date.now() - 259200000),
-      messages: [{
-        id: 3,
-        text: "Hello! I'm your Physics AI Assistant. I can help you with physics concepts, create 3D visualizations, and discuss scientific phenomena. What would you like to explore today?",
-        isUser: false,
-        timestamp: new Date(Date.now() - 259200000),
-      }],
-      category: 'electromagnetism'
-    }
-  ]);
+  const { messages: workspaceMessages, addMessage } = useWorkspaceChat();
+  const { getChatForScene } = useWorkspace();
+  const dataManager = useDatabase();
   
-  const [selectedChatId, setSelectedChatId] = useState('1');
   const [input, setInput] = useState('');
   const [searchQuery, setSearchQuery] = useState('');
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
@@ -84,24 +50,38 @@ function ModernChatInterface() {
   const inputRef = useRef(null);
   const previewRef = useRef(null);
 
-  // Get current chat messages from chatHistory
-  const currentChat = chatHistory.find(chat => chat.id === selectedChatId);
-  const currentMessages = currentChat?.messages || [];
+  // Get current messages from workspace
+  const currentMessages = workspaceMessages || [];
 
   const { isLoading, sendMessage, regenerateResponse, clearConversation } = useConversation({
-    initialMessage: "Hello! I'm your Physics AI Assistant. I can help you with physics concepts, create 3D visualizations, and discuss scientific phenomena. What would you like to explore today?",
-    chatId: selectedChatId,
+    initialMessage: null, // Don't initialize with greeting here, handled separately
+    chatId: 'workspace-chat', // Single chat per workspace
     currentScene: { id: 'chat-only', objects: [] }, // Dummy scene to prevent null errors
     onSceneUpdate: () => {}, // No scene updates needed in chat view
     updateConversation: (newMessages) => {
-      // Update chat history with new messages from the hook
-      setChatHistory(prev => prev.map(chat =>
-        chat.id === selectedChatId
-          ? { ...chat, messages: newMessages }
-          : chat
-      ));
+      // Sync with workspace by adding new messages
+      const existingMessageIds = new Set(currentMessages.map(m => m.id));
+      newMessages.forEach(message => {
+        if (!existingMessageIds.has(message.id)) {
+          addMessage(message);
+        }
+      });
     }
   });
+
+  // Add greeting when no messages exist
+  useEffect(() => {
+    if (currentMessages.length === 0) {
+      const greeting = {
+        id: 1,
+        text: "Hello! I'm your Physics AI Assistant. I can help you with physics concepts, create 3D visualizations, and discuss scientific phenomena. What would you like to explore today?",
+        isUser: false,
+        timestamp: new Date(),
+        sceneId: null
+      };
+      addMessage(greeting);
+    }
+  }, [currentMessages.length, addMessage]);
 
   const scrollToBottom = useCallback(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
@@ -110,16 +90,6 @@ function ModernChatInterface() {
   useEffect(() => {
     scrollToBottom();
   }, [currentMessages, scrollToBottom]);
-
-  // Load messages when switching chats
-  useEffect(() => {
-    const currentChat = chatHistory.find(chat => chat.id === selectedChatId);
-    if (currentChat && currentChat.messages && currentChat.messages.length > 0) {
-      // Load existing messages for this chat
-      // Note: This would require modifying the useConversation hook to accept initial messages
-      // For now, we'll rely on the chatHistory state to display messages
-    }
-  }, [selectedChatId, chatHistory]);
 
   // Trigger KaTeX rendering when messages change
   useEffect(() => {
@@ -156,23 +126,6 @@ function ModernChatInterface() {
       e.preventDefault();
       handleSend();
     }
-  };
-
-  const handleNewChat = () => {
-    const newChatId = Date.now().toString();
-    const newChat = {
-      id: newChatId,
-      title: 'New Conversation',
-      timestamp: new Date(),
-      messages: [],
-      category: 'general'
-    };
-
-    setChatHistory(prev => [newChat, ...prev]);
-    setSelectedChatId(newChatId);
-    clearConversation();
-    setInput('');
-    inputRef.current?.focus();
   };
 
   const handleCopyMessage = async (text) => {
@@ -350,10 +303,7 @@ function ModernChatInterface() {
       });
   };
 
-  const filteredChats = chatHistory.filter(chat =>
-    !searchQuery ||
-    chat.title?.toLowerCase().includes(searchQuery.toLowerCase())
-  );
+  const filteredChats = []; // No multiple chats in workspace system
 
   const openPreview = (message) => {
     setSelectedMessage(message);
@@ -694,34 +644,33 @@ function ModernChatInterface() {
           </button>
         </div>
 
-        {/* New Chat Button */}
+        {/* New Chat Button - Disabled since workspace has single chat */}
         <div style={{ padding: sidebarCollapsed ? '12px 8px' : '16px' }}>
           <button
-            onClick={handleNewChat}
+            disabled
             style={{
               width: '100%',
               padding: sidebarCollapsed ? '12px' : '12px 16px',
-              backgroundColor: theme === 'dark' ? '#2a2a2a' : '#007bff',
-              color: theme === 'dark' ? '#ffffff' : '#ffffff',
+              backgroundColor: theme === 'dark' ? '#333' : '#e0e0e0',
+              color: theme === 'dark' ? '#666' : '#999',
               border: 'none',
               borderRadius: '8px',
-              cursor: 'pointer',
+              cursor: 'not-allowed',
               display: 'flex',
               alignItems: 'center',
               justifyContent: sidebarCollapsed ? 'center' : 'flex-start',
               gap: '8px',
               fontSize: '14px',
-              fontWeight: '600',
-              transition: 'all 0.2s ease',
-              boxShadow: theme === 'dark' ? '0 2px 8px rgba(0,0,0,0.3)' : '0 2px 8px rgba(0,123,255,0.3)'
+              fontWeight: '600'
             }}
+            title="Workspace uses single chat"
           >
             <Plus size={16} />
-            {!sidebarCollapsed && 'New Conversation'}
+            {!sidebarCollapsed && 'Single Chat'}
           </button>
         </div>
 
-        {/* Search */}
+        {/* Search - Disabled */}
         {!sidebarCollapsed && (
           <div style={{ padding: '0 16px 16px' }}>
             <div style={{
@@ -736,95 +685,44 @@ function ModernChatInterface() {
               }} />
               <input
                 type="text"
-                placeholder="Search conversations..."
-                value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
+                placeholder="No chat search (single chat)"
+                value=""
+                disabled
                 style={{
                   width: '100%',
                   padding: '10px 12px 10px 36px',
                   border: `1px solid ${theme === 'dark' ? '#333' : '#e0e0e0'}`,
                   borderRadius: '8px',
-                  backgroundColor: theme === 'dark' ? '#1a1a1a' : '#fafafa',
-                  color: theme === 'dark' ? '#e0e0e0' : '#1a1a1a',
+                  backgroundColor: theme === 'dark' ? '#2a2a2a' : '#f5f5f5',
+                  color: theme === 'dark' ? '#666' : '#999',
                   fontSize: '14px',
-                  outline: 'none',
-                  transition: 'border-color 0.2s ease'
+                  outline: 'none'
                 }}
               />
             </div>
           </div>
         )}
 
-        {/* Chat List */}
+        {/* Chat List - Empty since single chat */}
         <div className="chat-list" style={{
           flex: 1,
           overflowY: 'auto',
           padding: sidebarCollapsed ? '0 8px' : '0 16px'
         }}>
-          {filteredChats.map(chat => (
-            <div
-              key={chat.id}
-              onClick={() => setSelectedChatId(chat.id)}
-              style={{
-                padding: sidebarCollapsed ? '12px 8px' : '12px 16px',
-                margin: '4px 0',
-                borderRadius: '8px',
-                cursor: 'pointer',
-                backgroundColor: selectedChatId === chat.id
-                  ? (theme === 'dark' ? '#2a2a2a' : '#e7f3ff')
-                  : 'transparent',
-                border: selectedChatId === chat.id
-                  ? `2px solid ${theme === 'dark' ? '#007bff' : '#007bff'}`
-                  : '2px solid transparent',
-                transition: 'all 0.2s ease',
-                position: 'relative'
-              }}
-            >
-              {sidebarCollapsed ? (
-                <div style={{
-                  width: '12px',
-                  height: '12px',
-                  borderRadius: '50%',
-                  backgroundColor: '#10a37f',
-                  margin: '0 auto'
-                }} />
-              ) : (
-                <div>
-                  <div style={{
-                    fontSize: '14px',
-                    fontWeight: '600',
-                    color: theme === 'dark' ? '#ffffff' : '#1a1a1a',
-                    marginBottom: '4px',
-                    display: '-webkit-box',
-                    WebkitLineClamp: 1,
-                    WebkitBoxOrient: 'vertical',
-                    overflow: 'hidden'
-                  }}>
-                    {chat.title}
-                  </div>
-                  <div style={{
-                    fontSize: '12px',
-                    color: theme === 'dark' ? '#888' : '#666',
-                    display: 'flex',
-                    justifyContent: 'space-between',
-                    alignItems: 'center'
-                  }}>
-                    <span>{new Date(chat.timestamp).toLocaleDateString()}</span>
-                    <div style={{
-                      padding: '2px 6px',
-                      backgroundColor: theme === 'dark' ? '#333' : '#e9ecef',
-                      borderRadius: '10px',
-                      fontSize: '10px',
-                      textTransform: 'uppercase',
-                      fontWeight: '600'
-                    }}>
-                      {chat.category}
-                    </div>
-                  </div>
-                </div>
-              )}
+          {!sidebarCollapsed && (
+            <div style={{
+              padding: '20px 16px',
+              textAlign: 'center',
+              color: theme === 'dark' ? '#666' : '#999',
+              fontSize: '14px'
+            }}>
+              <MessageSquare size={48} style={{ margin: '0 auto 16px', opacity: 0.5 }} />
+              <p>Workspace Chat</p>
+              <p style={{ fontSize: '12px', marginTop: '8px' }}>
+                All messages are saved automatically
+              </p>
             </div>
-          ))}
+          )}
         </div>
 
         {/* Sidebar Footer */}
@@ -949,7 +847,7 @@ function ModernChatInterface() {
           padding: '24px',
           backgroundColor: theme === 'dark' ? '#0a0a0a' : '#fafafa'
         }}>
-          {currentMessages.length <= 1 && !isLoading && (
+          {currentMessages.length === 0 && !isLoading && (
             <div className="welcome-section" style={{
               textAlign: 'center',
               maxWidth: '600px',
@@ -1022,7 +920,7 @@ function ModernChatInterface() {
             </div>
           )}
 
-          {currentMessages.slice(1).map((message, index) => (
+          {currentMessages.map((message, index) => (
             <div
               key={message.id}
               className="message"
@@ -1098,7 +996,7 @@ function ModernChatInterface() {
                   }}
                 >
                   <button onClick={() => handleCopyMessage(message.text)} title="Copy" style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'inherit' }}><Copy size={16} /></button>
-                  {!message.isUser && <button onClick={() => regenerateResponse(index + 1)} title="Regenerate" style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'inherit' }}><RotateCcw size={16} /></button>}
+                  {!message.isUser && <button title="Regenerate (coming soon)" disabled style={{ background: 'none', border: 'none', cursor: 'not-allowed', color: 'inherit', opacity: 0.5 }}><RotateCcw size={16} /></button>}
                   <button title="Like" style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'inherit' }}><ThumbsUp size={16} /></button>
                   <button title="Dislike" style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'inherit' }}><ThumbsDown size={16} /></button>
                   {message.hasPreview && <button onClick={() => openPreview(message)} title="Preview" style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'inherit' }}><Eye size={16} /></button>}

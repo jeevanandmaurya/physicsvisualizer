@@ -1,0 +1,38 @@
+[
+  {
+    "task": "Rewrite ConstraintPhysics using Rapier's native joints and remove separate joints system",
+    "status": "completed",
+    "subtasks": [
+      {
+        "description": "Analyze Rapier joint implementation - consolidate systems",
+        "status": "completed",
+        "details": "Rewrote ConstraintPhysics to handle both per-object constraints and scene.joints using Rapier's native JointData methods. Removed the separate Joints React component."
+      },
+      {
+        "description": "Fix revolute joint parameter parsing for pendulum scenes",
+        "status": "completed",
+        "details": "Fixed 'Cannot read properties of undefined' error by properly extracting axisA/B from params[2] in revolute joints: params: [anchorA, anchorB, axis]."
+      },
+      {
+        "description": "Updated ConstraintPhysics to handle scene.joints initialization",
+        "status": "completed",
+        "details": "Modified setWorld and initializeConstraints to trigger on both constraints.enabled and scene.joints presence. Added proper scene key handling for joints."
+      },
+      {
+        "description": "Removed separate Joints component - consolidated into ConstraintPhysics",
+        "status": "completed",
+        "details": "Removed Joints React component from PhysicsWorld render and deleted joints.jsx file. All joint creation now happens directly through Rapier's native APIs in ConstraintPhysics."
+      },
+      {
+        "description": "Fixed pendulum scene parameters for proper revolute joints",
+        "status": "completed",
+        "details": "Ensured pendulum scenes use correct revolute joint parameters: [localAnchorA, localAnchorB, axis] where axis defines the rotation axis (Z-axis for pendulums)."
+      },
+      {
+        "description": "Clean up imports and dependencies",
+        "status": "completed",
+        "details": "Removed unused Joint import from engine.jsx and cleaned up duplicate logging that could cause infinite renders."
+      }
+    ]
+  }
+]

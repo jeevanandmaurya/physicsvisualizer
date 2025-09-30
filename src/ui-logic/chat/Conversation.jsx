@@ -9,21 +9,22 @@ export function useConversation({
   currentScene,
   onSceneUpdate,
   chatId,
-  updateConversation
+  updateConversation,
+  dataManager,
+  workspaceMessages = [] // Add workspace messages as fallback
 }) {
-  const { linkSceneToChat, updateCurrentScene } = useWorkspace();
-  const [messages, setMessages] = useState([
-    {
-      id: 1,
-      text: initialMessage || "Hello! I'm a Physics AI Agent. I can help you with physics questions and also discuss how to represent described scenes in a 3D visualizer JSON format. How can I assist you with physics today?",
-      isUser: false,
-      timestamp: new Date(),
-      sceneId: currentScene?.id
-    }
-  ]);
+  const { linkSceneToChat, updateCurrentScene, updateWorkspace, addScene } = useWorkspace();
+  const [messages, setMessages] = useState([]); // Don't initialize with messages here - handled by parent components
   const [isLoading, setIsLoading] = useState(false);
   const aiManager = useRef(new GeminiAIManager());
   const scenePatcher = useRef(new ScenePatcher());
+
+  // Only sync messages if we actually manage state (not when parent component handles it)
+  useEffect(() => {
+    if (messages && messages.length > 0 && updateConversation && typeof updateConversation === 'function') {
+      updateConversation(messages);
+    }
+  }, [messages, updateConversation]);
 
   // Update messages when conversationHistory changes or scene switches
   useEffect(() => {
@@ -32,24 +33,151 @@ export function useConversation({
     }
   }, [updateConversation]);
 
-  // Handle scene switching - reset chat for new scenes
+  // Helper function to load existing conversation for a scene
+  const loadExistingConversationForScene = async (sceneId) => {
+    if (!sceneId || !dataManager) return null;
+
+    try {
+      if (chatId) {
+        // Try to load the chat from database
+        if (dataManager.getChatById) {
+          const chat = await dataManager.getChatById(chatId);
+          if (chat && chat.messages) {
+            return chat.messages;
+          }
+        }
+
+        // Fallback: try to load from workspace if it's using that
+        if (dataManager.get && dataManager.get('workspaces')) {
+          const workspaces = await dataManager.get('workspaces');
+          for (const workspace of workspaces) {
+            if (workspace.chat?.messages?.some(msg => msg.sceneId === sceneId)) {
+              return workspace.chat.messages.filter(msg => msg.sceneId === sceneId || !msg.sceneId);
+            }
+          }
+        }
+      }
+
+      // Last resort: check localStorage directly
+      const chats = dataManager.getChatHistory ? await dataManager.getChatHistory() : [];
+      const relevantChat = chats.find(chat => chat.sceneId === sceneId);
+      if (relevantChat && relevantChat.messages) {
+        return relevantChat.messages;
+      }
+    } catch (error) {
+      console.warn('Failed to load existing conversation:', error);
+    }
+
+    return null;
+  };
+
+  // Handle scene switching - load existing chat or reset for new scenes
   const prevSceneIdRef = useRef(currentScene?.id);
   useEffect(() => {
     if (prevSceneIdRef.current !== currentScene?.id) {
-      console.log(`🔄 Scene switched from ${prevSceneIdRef.current} to ${currentScene?.id}, resetting chat`);
-      setMessages([{
-        id: Date.now(),
-        text: initialMessage || "Hello! I'm a Physics AI Agent. I can help you with physics questions and also simulate scenes in a 3D visualizer.",
-        isUser: false,
-        timestamp: new Date(),
-        sceneId: currentScene?.id
-      }]);
+      console.log(`🔄 Scene switched from ${prevSceneIdRef.current} to ${currentScene?.id}`);
+
+      // Function to load conversation - try chatId first, then sceneId
+      const loadConversation = async () => {
+        // First try to load by chatId if available
+        if (chatId && dataManager) {
+          try {
+            if (dataManager.getChatById) {
+              const chat = await dataManager.getChatById(chatId);
+              if (chat && chat.messages) {
+                console.log(`📚 Loaded ${chat.messages.length} existing messages by chatId ${chatId}`);
+                return chat.messages;
+              }
+            }
+            if (dataManager.getChatHistory) {
+              const chats = await dataManager.getChatHistory();
+              const relevantChat = chats.find(chat => chat.id === chatId);
+              if (relevantChat && relevantChat.messages) {
+                console.log(`📚 Loaded ${relevantChat.messages.length} existing messages by chatId ${chatId}`);
+                return relevantChat.messages;
+              }
+            }
+          } catch (error) {
+            console.warn('Failed to load conversation for chatId:', chatId, error);
+          }
+        }
+
+        // If no chatId or not found, try loading by sceneId
+        if (currentScene?.id && dataManager) {
+          const conversationsByScene = await loadExistingConversationForScene(currentScene.id);
+          if (conversationsByScene) {
+            console.log(`📚 Loaded ${conversationsByScene.length} existing messages by sceneId ${currentScene.id}`);
+            return conversationsByScene;
+          }
+        }
+
+        return null;
+      };
+
+      loadConversation().then(existingConversation => {
+        if (existingConversation && existingConversation.length > 0) {
+          setMessages(existingConversation);
+          if (updateConversation && typeof updateConversation === 'function') {
+            updateConversation(existingConversation);
+          }
+          prevSceneIdRef.current = currentScene?.id;
+          return;
+        }
+
+        // No existing conversation found in database, try workspace messages
+        if (workspaceMessages && workspaceMessages.length > 0) {
+          // Filter messages for current scene if they have sceneId
+          const sceneMessages = workspaceMessages.filter(msg =>
+            !msg.sceneId || msg.sceneId === currentScene?.id
+          );
+          if (sceneMessages.length > 0) {
+            console.log(`📚 Loaded ${sceneMessages.length} existing messages from workspace for scene ${currentScene?.id}`);
+            setMessages(sceneMessages);
+            if (updateConversation && typeof updateConversation === 'function') {
+              updateConversation(sceneMessages);
+            }
+            prevSceneIdRef.current = currentScene?.id;
+            return;
+          }
+        }
+
+        // No existing conversation found, start fresh
+        console.log(`🆕 Starting fresh conversation for scene ${currentScene?.id}`);
+        const newMessages = initialMessage ? [{
+          id: Date.now(),
+          text: initialMessage,
+          isUser: false,
+          timestamp: new Date(),
+          sceneId: currentScene?.id
+        }] : [];
+
+        setMessages(newMessages);
+        if (updateConversation && typeof updateConversation === 'function') {
+          updateConversation(newMessages);
+        }
+      });
+
       prevSceneIdRef.current = currentScene?.id;
     }
-  }, [currentScene?.id, initialMessage]);
+  }, [currentScene?.id, chatId, initialMessage, dataManager, updateConversation, loadExistingConversationForScene, workspaceMessages]);
 
   const sendMessage = async (inputText) => {
     if (!inputText.trim() || isLoading) return false;
+
+    // Check if this scene doesn't have a chat yet - create one
+    let currentChatId = chatId;
+    if (currentScene && currentScene.id && !currentChatId && dataManager) {
+      try {
+        console.log('🆕 First interaction with scene, creating chat...');
+        currentChatId = await dataManager.getOrCreateChatForScene(currentScene.id, currentScene.name);
+        console.log('✅ Created new chat:', currentChatId);
+
+        // Link the scene to the new chat
+        linkSceneToChat(currentScene.id, currentChatId);
+      } catch (error) {
+        console.warn('⚠️ Failed to create chat for scene:', error);
+      }
+    }
 
     const userMessage = {
       id: Date.now(),
@@ -104,33 +232,70 @@ export function useConversation({
         sceneContext
       );
 
-      let sceneUpdateError = null;
-      if (aiResponse.sceneModifications && aiResponse.sceneModifications.length > 0) {
-        console.log('AI Scene Update Detected');
-        console.log('Applying', aiResponse.sceneModifications.length, 'modifications');
+        let sceneUpdateError = null;
 
-        if (chatId && currentScene?.id) {
-          linkSceneToChat(currentScene.id, chatId);
-          console.log(`🔗 Linked scene ${currentScene.id} to chat ${chatId}`);
-        }
+        // Handle scene generation (replace current scene - for full scene replacement)
+        if (aiResponse.metadata?.mode === 'generation' && aiResponse.updatedScene) {
+          console.log('🎨 AI Scene Generation Detected - Replacing current scene');
 
-        try {
-          const patchResult = scenePatcher.current.applyPatches(currentScene, aiResponse.sceneModifications);
+          try {
+            // Replace the entire current scene
+            updateCurrentScene(aiResponse.updatedScene);
+            console.log('✅ Successfully generated and replaced scene');
 
-          if (patchResult.success) {
-            console.log(`✅ Successfully applied ${patchResult.appliedPatches}/${patchResult.totalPatches} patches`);
-            updateCurrentScene(patchResult.scene);
-          } else {
-            console.error('❌ Failed to apply scene patches:', patchResult.error);
-            sceneUpdateError = `⚠️ I tried to modify the scene, but encountered an error: ${patchResult.error}`;
+          } catch (error) {
+            console.error('❌ Exception updating generated scene:', error);
+            sceneUpdateError = `⚠️ I tried to replace the current scene, but encountered an unexpected error.`;
           }
-        } catch (error) {
-          console.error('❌ Exception applying scene patches:', error);
-          sceneUpdateError = `⚠️ I tried to modify the scene, but encountered an unexpected error.`;
         }
-      } else {
-        console.log('No scene modifications detected in AI response');
-      }
+
+        // Handle scene creation (add new scene to workspace)
+        else if (aiResponse.type === 'create_scene' || aiResponse.type === 'create') {
+          console.log('➕ AI Scene Creation Detected - Adding new scene to workspace');
+
+          try {
+            // Add new scene to workspace
+            const newScene = addScene(aiResponse.updatedScene || aiResponse.scene);
+            console.log('✅ Successfully created new scene in workspace:', newScene.id);
+
+            // If we have a chatId, link the new scene to it
+            if (chatId && newScene.id) {
+              linkSceneToChat(newScene.id, chatId);
+              console.log(`🔗 Linked new scene ${newScene.id} to chat ${chatId}`);
+            }
+
+          } catch (error) {
+            console.error('❌ Exception creating new scene:', error);
+            sceneUpdateError = `⚠️ I tried to create a new scene, but encountered an unexpected error.`;
+          }
+        }
+        // Handle scene modifications (patching existing scene)
+        else if (aiResponse.sceneModifications && aiResponse.sceneModifications.length > 0) {
+          console.log('🔧 AI Scene Modification Detected');
+          console.log('Applying', aiResponse.sceneModifications.length, 'modifications');
+
+          if (chatId && currentScene?.id) {
+            linkSceneToChat(currentScene.id, chatId);
+            console.log(`🔗 Linked scene ${currentScene.id} to chat ${chatId}`);
+          }
+
+          try {
+            const patchResult = scenePatcher.current.applyPatches(currentScene, aiResponse.sceneModifications);
+
+            if (patchResult.success) {
+              console.log(`✅ Successfully applied ${patchResult.appliedPatches}/${patchResult.totalPatches} patches`);
+              updateCurrentScene(patchResult.scene);
+            } else {
+              console.error('❌ Failed to apply scene patches:', patchResult.error);
+              sceneUpdateError = `⚠️ I tried to modify the scene, but encountered an error: ${patchResult.error}`;
+            }
+          } catch (error) {
+            console.error('❌ Exception applying scene patches:', error);
+            sceneUpdateError = `⚠️ I tried to modify the scene, but encountered an unexpected error.`;
+          }
+        } else {
+          console.log('💬 No scene modifications detected in AI response');
+        }
 
       const aiMessage = {
         id: Date.now() + 1,
@@ -226,7 +391,44 @@ export function useConversation({
         );
 
         let sceneUpdateError = null;
-        if (aiResponse.sceneModifications && aiResponse.sceneModifications.length > 0) {
+
+        // Handle scene generation (replace current scene)
+        if (aiResponse.metadata?.mode === 'generation' && aiResponse.updatedScene) {
+          console.log('🎨 AI Scene Generation Detected (regeneration) - Replacing current scene');
+
+          try {
+            // Replace the entire current scene
+            updateCurrentScene(aiResponse.updatedScene);
+            console.log('✅ Successfully regenerated and replaced scene');
+          } catch (error) {
+            console.error('❌ Exception updating regenerated scene:', error);
+            sceneUpdateError = `⚠️ I tried to replace the scene, but encountered an unexpected error.`;
+          }
+        }
+
+        // Handle scene creation (add new scene to workspace) - regeneration
+        else if (aiResponse.type === 'create_scene' || aiResponse.type === 'create') {
+          console.log('➕ AI Scene Creation Detected (regeneration) - Adding new scene to workspace');
+
+          try {
+            // Add new scene to workspace
+            const newScene = addScene(aiResponse.updatedScene || aiResponse.scene);
+            console.log('✅ Successfully created new scene in workspace:', newScene.id);
+
+            // If we have a chatId, link the new scene to it
+            if (chatId && newScene.id) {
+              linkSceneToChat(newScene.id, chatId);
+              console.log(`🔗 Linked new scene ${newScene.id} to chat ${chatId}`);
+            }
+
+          } catch (error) {
+            console.error('❌ Exception creating new scene:', error);
+            sceneUpdateError = `⚠️ I tried to create a new scene, but encountered an unexpected error.`;
+          }
+        }
+
+        // Handle scene modifications (patching existing scene)
+        else if (aiResponse.sceneModifications && aiResponse.sceneModifications.length > 0) {
           if (chatId && currentScene?.id) {
             linkSceneToChat(currentScene.id, chatId);
           }
@@ -286,13 +488,13 @@ export function useConversation({
   };
 
   const clearConversation = () => {
-    const initialMessages = [{
+    const initialMessages = initialMessage ? [{
       id: Date.now(),
-      text: initialMessage || "Hello! I'm a Physics AI Agent. I can help you with physics questions and also discuss how to represent described scenes in a 3D visualizer JSON format. How can I assist you with physics today?",
+      text: initialMessage,
       isUser: false,
       timestamp: new Date(),
       sceneId: currentScene?.id
-    }];
+    }] : [];
     setMessages(initialMessages);
 
     if (updateConversation && typeof updateConversation === 'function') {

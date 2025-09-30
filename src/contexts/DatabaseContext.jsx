@@ -9,6 +9,7 @@ export function useDatabase() {
 
 const LOCAL_STORAGE_KEY = 'physicsVisualizerScenes';
 const CHAT_HISTORY_KEY = 'physicsVisualizerChatHistory';
+const WORKSPACE_KEY = 'physicsVisualizerWorkspace';
 
 // Helper function to get scenes from localStorage
 const getLocalScenes = () => {
@@ -137,6 +138,14 @@ export function DatabaseProvider({ children }) {
   }, []);
 
   /**
+   * Gets a specific chat by ID
+   */
+  const getChatById = useCallback(async (chatId) => {
+    const chats = getChatHistoryFromStorage();
+    return chats.find(chat => chat.id === chatId) || null;
+  }, []);
+
+  /**
    * Saves a new chat or updates an existing one
    */
   const saveChat = useCallback(async (chatData) => {
@@ -197,6 +206,39 @@ export function DatabaseProvider({ children }) {
   }, []);
 
   /**
+   * Saves a workspace
+   */
+  const saveWorkspace = useCallback(async (workspaceData) => {
+    try {
+      localStorage.setItem(WORKSPACE_KEY, JSON.stringify(workspaceData));
+      return workspaceData.id;
+    } catch (error) {
+      console.error("Error saving workspace to localStorage", error);
+      throw error;
+    }
+  }, []);
+
+  /**
+   * Gets the current workspace
+   */
+  const getWorkspace = useCallback(async (workspaceId) => {
+    try {
+      const workspaceJson = localStorage.getItem(WORKSPACE_KEY);
+      if (workspaceJson) {
+        const workspace = JSON.parse(workspaceJson);
+        // If workspaceId is provided, check if it matches, otherwise return the saved workspace
+        if (!workspaceId || workspace.id === workspaceId) {
+          return workspace;
+        }
+      }
+      return null;
+    } catch (error) {
+      console.error("Error reading workspace from localStorage", error);
+      return null;
+    }
+  }, []);
+
+  /**
    * Gets the list of recently viewed scenes from localStorage.
    * @returns {Array} An array of up to 10 recently viewed scene objects.
    */
@@ -218,6 +260,8 @@ export function DatabaseProvider({ children }) {
     saveChat,
     deleteChat,
     getOrCreateChatForScene,
+    saveWorkspace,
+    getWorkspace,
     getRecentScenes,
   };
 

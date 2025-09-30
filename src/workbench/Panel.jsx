@@ -5,7 +5,7 @@ import SceneSelectorUI from '../views/components/scene-management/SceneSelectorU
 import SceneDetailsUI from '../views/components/scene-management/SceneDetailsUI';
 
 const SidePanel = ({ showSceneDetails = false, onToggleSceneDetails, onClosePanel }) => {
-  const { setCurrentView } = useWorkspace();
+  const { setCurrentView, workspaceScenes, clearScenes } = useWorkspace();
   const { scene, replaceCurrentScene } = useWorkspaceScene();
   const { messages, addMessage } = useWorkspaceChat();
   const { uiMode } = useWorkspaceSettings();
@@ -17,6 +17,7 @@ const SidePanel = ({ showSceneDetails = false, onToggleSceneDetails, onClosePane
   const [userScenes, setUserScenes] = useState([]);
   const [loadingUserScenes, setLoadingUserScenes] = useState(false);
   const [activeTab, setActiveTab] = useState(uiMode === 'simple' ? 'examples' : 'chats');
+  const [sceneListRefreshTrigger, setSceneListRefreshTrigger] = useState(0);
 
   // Load user scenes
   useEffect(() => {
@@ -37,12 +38,50 @@ const SidePanel = ({ showSceneDetails = false, onToggleSceneDetails, onClosePane
     };
 
     loadUserScenes();
-  }, [dataManager]);
+  }, [dataManager]); // Only depend on dataManager, not workspaceScenes
+
+  // Refresh user scenes when workspaceScenes change (new scene saved)
+  useEffect(() => {
+    if (workspaceScenes && workspaceScenes.length > 0) {
+      const loadUserScenes = async () => {
+        if (!dataManager) return;
+        try {
+          const scenes = await dataManager.getScenes('user', {
+            orderBy: { field: 'updatedAt', direction: 'desc' }
+          });
+          setUserScenes(scenes || []);
+        } catch (error) {
+          console.error('Error refreshing user scenes:', error);
+        }
+      };
+      loadUserScenes();
+    }
+  }, [workspaceScenes, dataManager]);
 
   const handleSceneChange = useCallback((newScene) => {
     console.log('Changing scene to:', newScene);
+
+    // If this is a new scene (not from saved scenes), clear workspace scenes
+    if (newScene.id.startsWith('new-scene-')) {
+      clearScenes(); // Clear all workspace scenes
+      console.log('Cleared workspace scenes for new scene');
+    }
+
     replaceCurrentScene(newScene);
-  }, [replaceCurrentScene]);
+  }, [replaceCurrentScene, clearScenes]);
+
+  const refreshSceneList = useCallback(async () => {
+    if (!dataManager) return;
+    try {
+      const scenes = await dataManager.getScenes('user', {
+        orderBy: { field: 'updatedAt', direction: 'desc' }
+      });
+      setUserScenes(scenes || []);
+      console.log('Refreshed scene list:', scenes?.length || 0, 'scenes');
+    } catch (error) {
+      console.error('Error refreshing scene list:', error);
+    }
+  }, [dataManager]);
 
   const handleChatSelect = useCallback((chat) => {
     if (chat === null) {
@@ -147,6 +186,8 @@ const SidePanel = ({ showSceneDetails = false, onToggleSceneDetails, onClosePane
           onTabChange={setActiveTab}
           onToggleSceneDetails={onToggleSceneDetails}
           onClose={onClosePanel}
+          onRefreshSceneList={refreshSceneList}
+          workspaceScenes={workspaceScenes} // Pass workspace scenes
         />
       </div>
       {showSceneDetails && (

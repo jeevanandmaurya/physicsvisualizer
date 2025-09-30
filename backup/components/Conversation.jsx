@@ -103,10 +103,18 @@ function Conversation({
       );
 
       // Handle scene modifications if AI provided any
-      if (aiResponse.updatedScene && aiResponse.sceneModifications && aiResponse.sceneModifications.length > 0) {
-        console.log('AI Scene Update Detected');
-        console.log('Original scene objects:', currentScene?.objects?.length || 0);
-        console.log('Updated scene objects:', aiResponse.updatedScene.objects?.length || 0);
+      if (aiResponse.metadata?.mode === 'generation' && aiResponse.updatedScene) {
+        console.log('🎨 AI Scene Generation Detected');
+        console.log('Replacing current scene with generated scene');
+
+        // For generation, directly update the scene
+        if (onSceneUpdate) {
+          onSceneUpdate(aiResponse.updatedScene);
+        }
+        console.log('✅ Successfully generated and loaded new scene');
+      } else if (aiResponse.sceneModifications && aiResponse.sceneModifications.length > 0) {
+        console.log('🔧 AI Scene Modification Detected');
+        console.log('Applying', aiResponse.sceneModifications.length, 'modifications');
 
         // Pass changes to parent for preview
         if (onPendingChanges) {
@@ -117,7 +125,7 @@ function Conversation({
         }
         console.log(`📋 Showing preview for ${aiResponse.sceneModifications.length} changes`);
       } else {
-        console.log('No scene modifications detected in AI response');
+        console.log('💬 No scene modifications detected in AI response');
       }
 
       // Add AI response

@@ -18,7 +18,8 @@ export function useSceneSelector({
     externalActiveTab,
     externalOnTabChange,
     dataManager,
-    GEMINI_API_KEY
+    GEMINI_API_KEY,
+    workspaceScenes // Add workspace scenes
 }) {
     // Use external tab state if provided, otherwise use internal state
     const [internalActiveTab, setInternalActiveTab] = useState('examples');
@@ -100,21 +101,8 @@ export function useSceneSelector({
     // --- Handlers ---
 
     const getCombinedUserScenes = () => {
-        // Always include a default empty scene at the top
-        const defaultEmptyScene = {
-            id: 'default-empty',
-            name: 'New Scene',
-            description: 'Start with an empty scene to build your physics simulation.',
-            isTemporary: true,
-            gravity: [0, -9.81, 0],
-            hasGround: true,
-            simulationScale: 'terrestrial',
-            gravitationalPhysics: { enabled: false },
-            objects: []
-        };
-
-        // Return default empty scene followed by user's saved scenes
-        return [defaultEmptyScene, ...fetchedUserScenes];
+        // Only show database scenes in "Your Scenes" - workspace scenes are temporary
+        return fetchedUserScenes || [];
     };
 
     // This function now correctly calls the prop passed from the parent.

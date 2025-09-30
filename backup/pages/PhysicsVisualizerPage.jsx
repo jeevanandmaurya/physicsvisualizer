@@ -81,7 +81,7 @@ const StatusBar = ({ scene, uiMode }) => (
 
 // Lazy load non-critical components
 const SceneDetails = React.lazy(() => import('../features/collection/components/SceneDetails'));
-const Conversation = React.lazy(() => import('../features/chat/components/Conversation'));
+const Conversation = React.lazy(() => import('../components/Conversation'));
 const IntegratedPanel = React.lazy(() => import('../features/chat/components/IntegratedPanel'));
 
 // Loading component for lazy-loaded components

@@ -58,11 +58,25 @@ function DashboardView() {
         loadData();
     }, [dataManager]);
 
-    const handleCreateNewScene = useCallback(() => {
+    const handleCreateNewScene = useCallback(async () => {
         const newScene = createNewScene();
-        updateScene(newScene);
-        setCurrentView('visualizer');
-    }, [createNewScene, updateScene, setCurrentView]);
+        try {
+            const savedId = await dataManager.saveScene(newScene);
+            newScene.id = savedId;
+            newScene.isTemporary = false; // Mark as saved
+
+            // Create and link a chat for this scene
+            await dataManager.getOrCreateChatForScene(savedId, newScene.name);
+
+            updateScene(newScene);
+            setCurrentView('visualizer');
+        } catch (error) {
+            console.error('Error saving new scene:', error);
+            // Fallback to temporary scene
+            updateScene(newScene);
+            setCurrentView('visualizer');
+        }
+    }, [createNewScene, updateScene, setCurrentView, dataManager]);
 
     const handleOpenScene = useCallback(async (sceneId) => {
         try {

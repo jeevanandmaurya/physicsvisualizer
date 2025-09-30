@@ -5,17 +5,43 @@ class ScenePatcher {
       // Scene property validations
       gravity: (value) => Array.isArray(value) && value.length === 3 && value.every(v => typeof v === 'number'),
       hasGround: (value) => typeof value === 'boolean',
-      contactMaterial: (value) => typeof value === 'object' && value !== null,
+      contactMaterial: (value) => typeof value === 'object' && value !== null &&
+        (value.friction === undefined || (typeof value.friction === 'number' && value.friction >= 0 && value.friction <= 1)) &&
+        (value.restitution === undefined || (typeof value.restitution === 'number' && value.restitution >= 0 && value.restitution <= 1)),
+      gravitationalPhysics: (value) => typeof value === 'object' && value !== null &&
+        typeof value.enabled === 'boolean',
+      constraints: (value) => typeof value === 'object' && value !== null &&
+        typeof value.enabled === 'boolean',
+      fluid: (value) => typeof value === 'object' && value !== null &&
+        typeof value.enabled === 'boolean',
+      joints: (value) => Array.isArray(value),
 
       // Object property validations
       position: (value) => Array.isArray(value) && value.length === 3 && value.every(v => typeof v === 'number'),
       velocity: (value) => Array.isArray(value) && value.length === 3 && value.every(v => typeof v === 'number'),
+      rotation: (value) => Array.isArray(value) && value.length === 3 && value.every(v => typeof v === 'number'),
+      angularVelocity: (value) => Array.isArray(value) && value.length === 3 && value.every(v => typeof v === 'number'),
       mass: (value) => typeof value === 'number' && value > 0,
       radius: (value) => typeof value === 'number' && value > 0,
+      height: (value) => typeof value === 'number' && value > 0,
       color: (value) => typeof value === 'string' && /^#[0-9A-Fa-f]{6}$/.test(value),
+      opacity: (value) => typeof value === 'number' && value >= 0 && value <= 1,
+      restitution: (value) => typeof value === 'number' && value >= 0 && value <= 1,
+      friction: (value) => typeof value === 'number' && value >= 0 && value <= 1,
       dimensions: (value) => value === null || (Array.isArray(value) && value.length === 3 && value.every(v => typeof v === 'number')),
-      type: (value) => ['Sphere', 'Box', 'Cylinder', 'Plane'].includes(value),
-      id: (value) => typeof value === 'string' && value.length > 0
+      type: (value) => ['Sphere', 'Box', 'Cylinder', 'Cone', 'Capsule', 'ConvexPolyhedron'].includes(value),
+      id: (value) => typeof value === 'string' && value.length > 0,
+      isStatic: (value) => typeof value === 'boolean',
+      gravitationalMass: (value) => typeof value === 'number' && value > 0,
+      constraints: (value) => Array.isArray(value),
+
+      // Joint property validations
+      bodyA: (value) => typeof value === 'string' && value.length > 0,
+      bodyB: (value) => typeof value === 'string' && value.length > 0,
+      anchorA: (value) => Array.isArray(value) && value.length === 3 && value.every(v => typeof v === 'number'),
+      anchorB: (value) => Array.isArray(value) && value.length === 3 && value.every(v => typeof v === 'number'),
+      axis: (value) => Array.isArray(value) && value.length === 3 && value.every(v => typeof v === 'number'),
+      distance: (value) => typeof value === 'number' && value > 0,
     };
   }
 

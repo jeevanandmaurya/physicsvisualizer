@@ -1,146 +1,536 @@
-// Physics Forces and Components - Extracted from Visualizer.jsx
+// Physics Engine using @react-three/rapier
 import React, { useRef, useEffect } from 'react';
 import { useFrame } from '@react-three/fiber';
-import { useSphere, useBox, useCylinder, usePlane } from '@react-three/cannon';
+import { Physics, RigidBody, CuboidCollider, BallCollider, CylinderCollider, ConeCollider, CapsuleCollider, useRapier } from '@react-three/rapier';
 import * as THREE from 'three';
+import { GravitationalPhysics } from './gravitation/calculations.js';
+import { ConstraintPhysics } from './constraints/calculations.js';
+import { FluidPhysics } from './fluid/calculations.js';
 
-// Physics Force Application Component
-export function PhysicsForceApplier({ scene, objectApis, gravitationalPhysics, isPlaying, onPhysicsDataCalculated }) {
+// Dummy class to maintain API compatibility - Rapier handles physics automatically
+export class PhysicsEngine {
+    constructor(scene) {
+        this.scene = scene;
+    }
+
+    loadScene(scene) {
+        this.scene = scene;
+    }
+
+    step(deltaTime) {
+        // Rapier handles this automatically
+    }
+
+    getObjectStates() {
+        return {};
+    }
+
+    getPerformanceStats() {
+        return {
+            stepTime: 0,
+            averageStepTime: 0,
+            stepCount: 0,
+            bodyCount: this.scene?.objects?.length || 0,
+            constraintCount: 0
+        };
+    }
+
+    clear() {}
+    destroy() {}
+}
+
+// Component to handle gravitational forces, must be inside Physics
+function GravitationalForces({ scene, isPlaying }) {
+    const { rapier, world } = useRapier();
+    const gpRef = useRef();
+
+    // Initialize gravitational physics when scene changes
+    React.useEffect(() => {
+        const gravitationalPhysicsEnabled = scene?.gravitationalPhysics?.enabled;
+        if (gravitationalPhysicsEnabled) {
+            gpRef.current = new GravitationalPhysics(scene);
+        } else {
+            gpRef.current = null;
+        }
+    }, [scene]);
+
+    // Handle gravitational forces
     useFrame(() => {
-        if (!isPlaying || !scene?.objects) return;
-        const forces = gravitationalPhysics.current.enabled ? gravitationalPhysics.current.calculateGravitationalForces(scene.objects, objectApis.current) : {};
-        const velocities = {};
-        scene.objects.forEach(obj => {
-            const id = obj.id;
-            if (objectApis.current[id] && !obj.isStatic) {
-                velocities[id] = gravitationalPhysics.current.currentVelocities[id] || [0, 0, 0];
+        if (!isPlaying || !gpRef.current || !world || !scene?.objects) return;
+
+        // Create body map for efficient lookup
+        const bodyMap = new Map();
+        world.forEachRigidBody((body, handle) => {
+            if (body.userData) {
+                bodyMap.set(body.userData, body);
             }
         });
-        onPhysicsDataCalculated({ velocities });
-        Object.entries(forces).forEach(([objectId, force]) => {
-            const api = objectApis.current[objectId];
-            if (api && force && force.some(f => f !== 0)) {
-                try { api.applyForce(force, [0, 0, 0]); } catch (e) { console.warn(`Failed to apply force to ${objectId}:`, e); }
+
+        // Update positions in gravitational physics
+        scene.objects.forEach(obj => {
+            if (obj.mass > 0 && bodyMap.has(obj.id)) {
+                const body = bodyMap.get(obj.id);
+                const pos = body.translation();
+                gpRef.current.updatePosition(obj.id, [pos.x, pos.y, pos.z]);
+            }
+        });
+
+        // Calculate gravitational forces
+        const forces = gpRef.current.calculateGravitationalForces(scene.objects, {});
+
+        // Apply forces to bodies
+        Object.keys(forces).forEach(id => {
+            if (bodyMap.has(id)) {
+                const body = bodyMap.get(id);
+                if (!body.isFixed()) {
+                    const force = forces[id];
+                    body.addForce(new rapier.Vector3(force[0], force[1], force[2]), true);
+                }
             }
         });
     });
-    return null;
+
+    return null; // Invisible component
 }
 
-// Base Object Component for Physics Objects
-export function ObjectComponent({ usePhysicsHook, config, id, setApi, onPhysicsUpdate, gravitationalPhysics, isPlaying, children, args }) {
-  const { mass, position, velocity, rotation = [0, 0, 0], restitution = 0.7, isStatic = false } = config;
-  const [ref, api] = usePhysicsHook(() => ({
-    mass: isStatic ? 0 : mass,
-    position,
-    velocity,
-    rotation,
-    args,
-    material: { restitution },
-    type: isStatic ? 'Static' : 'Dynamic'
-  }));
+// Component to handle physics constraints, must be inside Physics
+function Constraints({ scene, isPlaying }) {
+    const { rapier, world } = useRapier();
+    const cpRef = useRef();
 
-  const posRef = useRef(position || [0, 0, 0]);
-  const velRef = useRef(velocity || [0, 0, 0]);
+    // Initialize constraint physics when scene changes
+    React.useEffect(() => {
+        const sceneConstraintsEnabled = scene?.constraints?.enabled;
+        const anyObjectHasConstraints = scene?.objects?.some(obj => obj.constraints && Array.isArray(obj.constraints) && obj.constraints.length > 0);
+        const hasSceneJoints = scene?.joints && Array.isArray(scene.joints) && scene.joints.length > 0;
+        const constraintPhysicsEnabled = sceneConstraintsEnabled || anyObjectHasConstraints || hasSceneJoints;
 
-  useEffect(() => {
-    if (api) {
-      setApi(id, api);
-      const unsubPos = api.position.subscribe(p => {
-        posRef.current = [...p];
-        gravitationalPhysics.current?.updatePosition(id, p);
-      });
-      const unsubVel = api.velocity.subscribe(v => {
-        velRef.current = [...v];
-        gravitationalPhysics.current?.updateVelocity(id, v);
-      });
+        if (constraintPhysicsEnabled) {
+            cpRef.current = new ConstraintPhysics(scene);
+            cpRef.current.setWorld(world, rapier);
+        } else {
+            if (cpRef.current) {
+                cpRef.current.destroy();
+            }
+            cpRef.current = null;
+        }
+    }, [scene, world, rapier]);
 
-      // Apply initial velocity if provided
-      if (velocity && velocity.some(v => v !== 0)) {
-        api.velocity.set(...velocity);
-      }
+    // Initialize constraints once bodies are created
+    React.useEffect(() => {
+        const sceneConstraintsEnabled = scene?.constraints?.enabled;
+        const anyObjectHasConstraints = scene?.objects?.some(obj => obj.constraints && Array.isArray(obj.constraints) && obj.constraints.length > 0);
+        const hasSceneJoints = scene?.joints && Array.isArray(scene.joints) && scene.joints.length > 0;
+        const constraintPhysicsEnabled = sceneConstraintsEnabled || anyObjectHasConstraints || hasSceneJoints;
 
-      return () => { unsubPos(); unsubVel(); };
+        if (cpRef.current && world && constraintPhysicsEnabled) {
+            // Delay to ensure all bodies are created and registered in physics world
+            const timer = setTimeout(() => {
+                cpRef.current.initializeConstraints();
+            }, 500); // Further increased delay for proper body initialization
+            return () => clearTimeout(timer);
+        }
+    }, [scene, world]);
+
+    // Constraints are initialized once and persist during simulation
+    useFrame(() => {
+        // Constraints are handled by Rapier automatically once created
+        // No per-frame updates needed for basic constraints
+    });
+
+    return null; // Invisible component
+}
+
+// Component to handle fluid dynamics forces, must be inside Physics
+function FluidForces({ scene, isPlaying }) {
+    const { rapier, world } = useRapier();
+    const fpRef = useRef();
+
+    // Initialize fluid physics when scene changes
+    React.useEffect(() => {
+        const fluidPhysicsEnabled = scene?.fluid?.enabled;
+        if (fluidPhysicsEnabled) {
+            fpRef.current = new FluidPhysics(scene);
+        } else {
+            fpRef.current = null;
+        }
+    }, [scene]);
+
+    // Handle fluid forces
+    useFrame(() => {
+        if (!isPlaying || !fpRef.current || !world || !scene?.objects) return;
+
+        // Create body map for efficient lookup
+        const bodyMap = new Map();
+        const objectStates = {};
+
+        world.forEachRigidBody((body, handle) => {
+            if (body.userData) {
+                const position = body.translation();
+                const velocity = body.linvel();
+                bodyMap.set(body.userData, body);
+                objectStates[body.userData] = {
+                    position: [position.x, position.y, position.z],
+                    velocity: [velocity.x, velocity.y, velocity.z]
+                };
+            }
+        });
+
+        // Calculate fluid forces
+        const forces = fpRef.current.calculateFluidForces(scene.objects, objectStates);
+
+        // Apply forces to bodies
+        Object.keys(forces).forEach(id => {
+            if (bodyMap.has(id)) {
+                const body = bodyMap.get(id);
+                if (!body.isFixed()) {
+                    const force = forces[id];
+                    body.addForce(new rapier.Vector3(force[0], force[1], force[2]), true);
+                }
+            }
+        });
+    });
+
+    return null; // Invisible component
+}
+
+// Component to render joints between bodies
+const Joints = React.memo(function Joints({ scene, bodyRefs, physicsResetKey }) {
+    const [jointsReady, setJointsReady] = React.useState(false);
+    const jointsRerenderKey = React.useRef(0);
+
+    const initialLoadRef = React.useRef(true);
+
+    // Only log on first load, not on every render
+    if (initialLoadRef.current) {
+        console.log('🏗️ Joints component initialized', {
+            sceneId: scene?.id,
+            hasJoints: !!scene?.joints,
+            jointsCount: scene?.joints?.length || 0
+        });
+        initialLoadRef.current = false;
     }
-  }, [id, api, setApi, gravitationalPhysics]);
 
-  // Update velocity when config changes
-  useEffect(() => {
-    if (api && velocity) {
-      const currentVel = velRef.current;
-      const newVel = velocity;
+    // Check if all body refs needed for joints are available
+    // Use a ref to track the last body refs state to avoid dependency array issues
+    const lastBodiesStateRef = React.useRef('');
 
-      // Check if velocity actually changed
-      const hasChanged = !currentVel || currentVel.some((v, i) => Math.abs(v - newVel[i]) > 0.001);
+    React.useEffect(() => {
+        console.log('🔄 Joints: useEffect running', { jointsReady, bodyRefsKeys: Object.keys(bodyRefs.current) });
 
-      if (hasChanged) {
-        api.velocity.set(...newVel);
-        velRef.current = [...newVel];
-        gravitationalPhysics.current?.updateVelocity(id, newVel);
-      }
+        if (!scene?.joints || !Array.isArray(scene.joints)) {
+            console.log('❌ Joints: No joints in scene or joints not array');
+            setJointsReady(false);
+            return;
+        }
+
+        // Create a stable string representation of the body refs state
+        const currentBodiesState = JSON.stringify(Object.keys(bodyRefs.current).sort());
+
+        // Only check joints if bodies state has actually changed or jointsReady has changed
+        if (currentBodiesState === lastBodiesStateRef.current && jointsReady === false) {
+            // Bodies haven't changed and we're already not ready, no need to check again
+            return;
+        }
+
+        lastBodiesStateRef.current = currentBodiesState;
+
+        const allBodiesReady = scene.joints.every(jointConfig => {
+            const { bodyA: bodyAId, bodyB: bodyBId } = jointConfig;
+            const aReady = !!bodyRefs.current[bodyAId];
+            const bReady = !!bodyRefs.current[bodyBId];
+
+            if (!aReady || !bReady) {
+                console.log(`⏳ Joints: Waiting for body refs - ${bodyAId}: ${aReady}, ${bodyBId}: ${bReady}`);
+                console.log('📋 Available bodies:', Object.keys(bodyRefs.current));
+            } else {
+                console.log(`✅ Joints: Bodies ready for joint - ${bodyAId} ✓, ${bodyBId} ✓`);
+            }
+
+            return aReady && bReady;
+        });
+
+        console.log('🎯 Joints: All bodies ready?', allBodiesReady);
+
+        if (allBodiesReady && !jointsReady) {
+            console.log('🚀 Joints: Setting joints ready - about to create joints!');
+            setJointsReady(true);
+            jointsRerenderKey.current++;
+        } else if (!allBodiesReady && jointsReady) {
+            console.log('⏸️ Joints: Setting joints not ready');
+            setJointsReady(false);
+        }
+    }, [scene, jointsReady, physicsResetKey]);
+
+    console.log('🎨 Joints: About to render', { jointsReady, jointsCount: scene?.joints?.length, availableBodies: Object.keys(bodyRefs.current) });
+
+    if (!scene?.joints || !Array.isArray(scene.joints) || !jointsReady) {
+        console.log('🙅 Joints: Not rendering joints', { jointsReady, hasJoints: !!scene?.joints });
+        return null;
     }
-  }, [velocity, api, id, gravitationalPhysics]);
 
-  useFrame((state) => {
-    if (isPlaying) onPhysicsUpdate({ id, time: state.clock.elapsedTime, position: posRef.current });
-  });
+    console.log('🎪 Joints: Rendering joints - creating joint components!');
 
-  return (
-    <mesh ref={ref} castShadow>
-      {children}
-      <meshStandardMaterial
-        color={config.color}
-        opacity={config.opacity || 1.0}
-        transparent={(config.opacity || 1.0) < 1.0}
-      />
-    </mesh>
-  );
-}
+    return scene.joints.map((jointConfig, index) => {
+        const { bodyA: bodyAId, bodyB: bodyBId, ...jointParams } = jointConfig;
 
-// Physics Object Components
-export function Sphere(props) {
+        console.log(`🔗 Joints: Creating joint ${index + 1}/${scene.joints.length}`, {
+            type: jointParams.type,
+            bodyAId: bodyAId,
+            bodyBId: bodyBId,
+            params: jointParams.params
+        });
+
+        const bodyARef = bodyRefs.current[bodyAId];
+        const bodyBRef = bodyRefs.current[bodyBId];
+
+        if (!bodyARef || !bodyBRef) {
+            console.error(`❗ Joint ${index}: Could not find body refs for ${bodyAId} or ${bodyBId} (this should not happen)`, {
+                availableBodies: Object.keys(bodyRefs.current)
+            });
+            return null;
+        }
+
+        console.log(`✅ Joint ${index}: Body refs found, creating Joint component`);
+
+        // Use physicsResetKey to ensure joints are recreated when physics world resets
+        return (
+            <Joint
+                key={`joint-${scene.id}-${bodyAId}-${bodyBId}-${physicsResetKey}`}
+                jointConfig={{
+                    ...jointParams,
+                    bodyA: bodyARef,
+                    bodyB: bodyBRef
+                }}
+            />
+        );
+    });
+});
+
+// React PhysicsWorld component that uses Physics paused prop for proper state preservation
+
+// React PhysicsWorld component that uses Physics paused prop for proper state preservation
+export function PhysicsWorld({ scene, isPlaying, onPhysicsDataCalculated, resetTrigger }) {
+    const [physicsResetKey, setPhysicsResetKey] = React.useState(0);
+    const bodyRefs = useRef({}); // Store body refs for joints
+
+    // Patch scene: ensure bodies referenced by joints/constraints exist
+    // Only patch once per scene objects array to avoid re-patching every render
+    const patchedScenes = React.useRef(new WeakSet());
+    React.useEffect(() => {
+        if (!scene) return;
+        scene.objects = scene.objects || [];
+
+        // Use the scene.objects array as the key; ensure we only patch each unique array once
+        if (patchedScenes.current.has(scene.objects)) return;
+
+        const hasObject = id => scene.objects.some(o => o.id === id);
+
+        // Ensure scene.joints referenced bodies exist
+        if (Array.isArray(scene.joints)) {
+            scene.joints.forEach(j => {
+                if (j && j.bodyA && !hasObject(j.bodyA)) {
+                    scene.objects.push({ id: j.bodyA, type: 'Sphere', mass: 0, radius: 0.1, position: j.anchorA || [0,0,0], color: '#888888', isStatic: true });
+                }
+                if (j && j.bodyB && !hasObject(j.bodyB)) {
+                    scene.objects.push({ id: j.bodyB, type: 'Sphere', mass: 0, radius: 0.1, position: j.anchorB || [0,0,0], color: '#888888', isStatic: true });
+                }
+            });
+        }
+
+        // Ensure per-object constraints target bodies exist
+        scene.objects.forEach(obj => {
+            if (obj.constraints && Array.isArray(obj.constraints)) {
+                obj.constraints.forEach(c => {
+                    if (c && c.targetId && c.targetId !== 'ground' && !hasObject(c.targetId)) {
+                        scene.objects.push({ id: c.targetId, type: 'Sphere', mass: 0, radius: 0.1, position: c.anchorB || [0,0,0], color: '#888888', isStatic: true });
+                    }
+                });
+            }
+        });
+
+        patchedScenes.current.add(scene.objects);
+    }, [scene]);
+
+    const renderObjects = () => {
+        if (!scene?.objects) return null;
+
+        return scene.objects.map((obj, index) => {
+            const key = obj.id || `obj-${index}`;
+
+            return <PhysicsObject
+                key={key}
+                config={obj}
+                isPlaying={isPlaying}
+                physicsResetKey={physicsResetKey}
+                bodyRefs={bodyRefs}
+                onPhysicsDataCalculated={onPhysicsDataCalculated}
+            />;
+        });
+    };
+
+    // Reset physics world when resetTrigger changes (like when scene changes or reset button is pressed)
+    React.useEffect(() => {
+        if (resetTrigger !== undefined && resetTrigger !== null) {
+            console.log('PhysicsWorld: Reset triggered, key:', physicsResetKey + 1);
+            setPhysicsResetKey(prev => prev + 1);
+            bodyRefs.current = {}; // Clear body refs on physics reset
+        }
+    }, [resetTrigger]);
+
+    const effectiveGravity = scene?.gravity || [0, -9.81, 0];
+
+    // Use paused prop to control physics simulation - when paused, rigid bodies maintain their state
+    // Note: Ground planes are defined as objects in each scene, not automatically added here
     return (
-        <ObjectComponent {...props} usePhysicsHook={useSphere} args={[props.config.radius]}>
-            <sphereGeometry args={[props.config.radius, 32, 32]} />
-        </ObjectComponent>
+        <Physics
+            key={`physics-${physicsResetKey}`}
+            gravity={effectiveGravity}
+            paused={!isPlaying}
+        >
+            <GravitationalForces scene={scene} isPlaying={isPlaying} />
+            <Constraints scene={scene} isPlaying={isPlaying} />
+            <FluidForces scene={scene} isPlaying={isPlaying} />
+            {renderObjects()}
+
+        </Physics>
     );
 }
 
-export function Box(props) {
+// Individual physics object component (only rendered when playing)
+function PhysicsObject({ config, isPlaying, physicsResetKey, bodyRefs, onPhysicsDataCalculated }) {
+    const bodyRef = useRef();
+
+    // Store body ref for joints when it becomes available
+    React.useEffect(() => {
+        if (bodyRef.current && config.id) {
+            bodyRefs.current[config.id] = bodyRef.current;
+        }
+    }, [bodyRef.current, config.id]);
+
+    // --- Handle initial velocity when simulation starts ---
+    // This fixes Rapier's aggressive sleeping algorithm that ignores linvel when unpausing
+    React.useEffect(() => {
+        if (isPlaying && bodyRef.current) {
+            const velocity = config.velocity || [0, 0, 0];
+            // Imperatively set velocity and wake the body
+            bodyRef.current.setLinvel({ x: velocity[0], y: velocity[1], z: velocity[2] }, true);
+            bodyRef.current.wakeUp();
+        }
+    }, [isPlaying, config.velocity, physicsResetKey]); // Dependencies ensure this runs when simulation starts
+
+    // Get collider based on shape type with proper friction and restitution
+    const createCollider = () => {
+        const restitution = config.restitution !== undefined ? config.restitution : 0.7;
+        const friction = config.friction !== undefined ? config.friction : 0.5;
+
+        switch (config.type) {
+            case 'Sphere':
+                return <BallCollider args={[config.radius || 0.5]} restitution={restitution} friction={friction} />;
+            case 'Box':
+                const dims = config.dimensions || [1, 1, 1];
+                return <CuboidCollider args={dims.map(d => d / 2)} restitution={restitution} friction={friction} />;
+            case 'Cylinder':
+                return <CylinderCollider args={[config.radius || 0.5, config.height || 1]} restitution={restitution} friction={friction} />;
+            case 'Cone':
+                return <ConeCollider args={[config.radius || 0.5, config.height || 1]} restitution={restitution} friction={friction} />;
+            case 'Capsule':
+                return <CapsuleCollider args={[config.radius || 0.5, config.radius || 0.5, config.height || 1]} restitution={restitution} friction={friction} />;
+            case 'ConvexPolyhedron':
+                // Use capsule as approximation for complex shapes
+                return <CapsuleCollider args={[config.radius || 0.8, (config.height || 2)/2]} restitution={restitution} friction={friction} />;
+            default:
+                return <CuboidCollider args={[0.5, 0.5, 0.5]} restitution={restitution} friction={friction} />;
+        }
+    };
+
+    // Get geometry based on shape type
+    const createGeometry = () => {
+        switch (config.type) {
+            case 'Sphere':
+                return <sphereGeometry args={[config.radius || 0.5, 32, 32]} />;
+            case 'Box':
+                return <boxGeometry args={config.dimensions || [1, 1, 1]} />;
+            case 'Cylinder':
+                return <cylinderGeometry args={[config.radius || 0.5, config.radius || 0.5, config.height || 1, 16]} />;
+            case 'Cone':
+                return <coneGeometry args={[config.radius || 0.5, config.height || 1, 8]} />;
+            case 'Capsule':
+                return <capsuleGeometry args={[config.radius || 0.5, config.height || 1, 4, 8]} />;
+            default:
+                return <boxGeometry args={[1, 1, 1]} />;
+        }
+    };
+
+    // Report velocity data for visualization
+    useFrame(() => {
+        if (bodyRef.current && onPhysicsDataCalculated && isPlaying) {
+            try {
+                // Get velocity from RigidBody
+                if (bodyRef.current.linvel) {
+                    const vel = bodyRef.current.linvel;
+                    onPhysicsDataCalculated({ [config.id]: [vel.x, vel.y, vel.z] });
+                }
+            } catch (error) {
+                // Silently handle velocity access errors
+            }
+        }
+    });
+
     return (
-        <ObjectComponent {...props} usePhysicsHook={useBox} args={props.config.dimensions || [1, 1, 1]}>
-            <boxGeometry args={props.config.dimensions || [1, 1, 1]} />
-        </ObjectComponent>
+        <RigidBody
+            ref={bodyRef}
+            userData={config.id}
+            type={config.isStatic ? "fixed" : "dynamic"}
+            position={config.position || [0, 0, 0]}
+            rotation={config.rotation || [0, 0, 0]}
+            linvel={config.velocity || [0, 0, 0]}
+        >
+            {createCollider()}
+            <mesh castShadow>
+                {createGeometry()}
+                <meshStandardMaterial
+                    color={config.color || "#ffffff"}
+                    opacity={config.opacity || 1.0}
+                    transparent={config.opacity < 1.0}
+                />
+            </mesh>
+        </RigidBody>
     );
 }
 
-export function Cylinder(props) {
-    return (
-        <ObjectComponent {...props} usePhysicsHook={useCylinder} args={[props.config.radius, props.config.radius, props.config.height, 16]}>
-            <cylinderGeometry args={[props.config.radius, props.config.radius, props.config.height, 16]} />
-        </ObjectComponent>
-    );
-}
+// Static visual mesh component (rendered when paused for dynamic objects)
+function PhysicsObjectVisual({ config }) {
+    // Get geometry based on shape type
+    const createGeometry = () => {
+        switch (config.type) {
+            case 'Sphere':
+                return <sphereGeometry args={[config.radius || 0.5, 32, 32]} />;
+            case 'Box':
+                return <boxGeometry args={config.dimensions || [1, 1, 1]} />;
+            case 'Cylinder':
+                return <cylinderGeometry args={[config.radius || 0.5, config.radius || 0.5, config.height || 1, 16]} />;
+            case 'Cone':
+                return <coneGeometry args={[config.radius || 0.5, config.height || 1, 8]} />;
+            case 'Capsule':
+                return <capsuleGeometry args={[config.radius || 0.5, config.height || 1, 4, 8]} />;
+            default:
+                return <boxGeometry args={[1, 1, 1]} />;
+        }
+    };
 
-// Scene Elements
-export function SceneBox({ config, id, setApi }) {
-    const { mass = 0, dimensions = [10, 0.2, 10], position = [0, 0, 0], velocity = [0, 0, 0], rotation = [0, 0, 0], color = "#88aa88", restitution = 0.3, opacity = 1.0 } = config;
-    const [ref, api] = useBox(() => ({ mass, position, velocity, rotation, args: dimensions, material: { friction: 0.5, restitution } }));
-    useEffect(() => { if (api) { setApi(id, api); } }, [id, api, setApi]);
     return (
-        <mesh ref={ref} receiveShadow castShadow>
-            <boxGeometry args={dimensions} />
-            <meshStandardMaterial color={color} opacity={opacity} transparent={opacity < 1.0} />
-        </mesh>
-    );
-}
-
-export function GroundPlane() {
-    const [ref] = usePlane(() => ({ mass: 0, rotation: [-Math.PI / 2, 0, 0], position: [0, 0, 0], material: { friction: 0.5, restitution: 0.3 } }));
-    return (
-        <mesh ref={ref} receiveShadow>
-            <planeGeometry args={[1000, 1000]} />
-            <meshStandardMaterial color="#ffffff" side={THREE.DoubleSide} />
+        <mesh
+            position={config.position || [0, 0, 0]}
+            rotation={config.rotation || [0, 0, 0]}
+            castShadow
+        >
+            {createGeometry()}
+            <meshStandardMaterial
+                color={config.color || "#ffffff"}
+                opacity={config.opacity || 1.0}
+                transparent={config.opacity < 1.0}
+            />
         </mesh>
     );
 }

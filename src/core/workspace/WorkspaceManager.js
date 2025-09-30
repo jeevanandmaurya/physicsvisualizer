@@ -43,17 +43,7 @@ class Workspace {
       gravity: [0, -9.81, 0],
       hasGround: true,
       contactMaterial: { friction: 0.5, restitution: 0.7 },
-      objects: [
-        {
-          id: 'test-box',
-          type: 'Box',
-          mass: 1,
-          dimensions: [2, 2, 2],
-          position: [0, 5, 0],
-          velocity: [0, 0, 0],
-          color: '#ff0000'
-        }
-      ],
+      objects: [],
       camera: { position: [10, 5, 25], fov: 50 }
     };
   }
@@ -295,7 +285,7 @@ class WorkspaceManager {
   }
 
   // Update current workspace
-  updateCurrentWorkspace(updater) {
+  updateCurrentWorkspace(updater, silent = false) {
     if (!this.currentWorkspace) return;
 
     if (typeof updater === 'function') {
@@ -305,7 +295,11 @@ class WorkspaceManager {
     }
 
     this.currentWorkspace.metadata.updatedAt = new Date().toISOString();
-    this.notifyListeners('workspaceUpdated', this.currentWorkspace);
+
+    // Only notify listeners if not silent (for UI-triggered updates like adding messages)
+    if (!silent) {
+      this.notifyListeners('workspaceUpdated', this.currentWorkspace);
+    }
   }
 
 

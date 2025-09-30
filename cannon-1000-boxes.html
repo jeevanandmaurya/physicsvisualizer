@@ -1,0 +1,202 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Cannon.js Performance Test - 1000 Boxes</title>
+    <style>
+        body {
+            margin: 0;
+            overflow: hidden;
+            font-family: Arial, sans-serif;
+        }
+        canvas { display: block; }
+        #info {
+            position: absolute;
+            top: 10px;
+            left: 10px;
+            color: white;
+            background: rgba(0,0,0,0.5);
+            padding: 10px;
+            border-radius: 5px;
+            z-index: 100;
+        }
+        #fps {
+            position: absolute;
+            top: 10px;
+            right: 10px;
+            color: white;
+            background: rgba(0,0,0,0.5);
+            padding: 10px;
+            border-radius: 5px;
+            z-index: 100;
+        }
+    </style>
+</head>
+<body>
+    <div id="info">Cannon.js: 1000 boxes falling on ground</div>
+    <div id="fps">FPS: --</div>
+
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/cannon.js/0.6.2/cannon.min.js"></script>
+    <script src="https://unpkg.com/three@0.128.0/examples/js/controls/OrbitControls.js"></script>
+
+    <script type="module">
+        // Initialize Three.js
+        const scene = new THREE.Scene();
+        scene.background = new THREE.Color(0x87CEEB);
+
+        // Camera
+        const camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000);
+        camera.position.set(20, 10, 20);
+        camera.lookAt(0, 0, 0);
+
+        // Renderer
+        const renderer = new THREE.WebGLRenderer({ antialias: true });
+        renderer.setSize(window.innerWidth, window.innerHeight);
+        renderer.shadowMap.enabled = true;
+        document.body.appendChild(renderer.domElement);
+
+        // Orbit Controls
+        const controls = new THREE.OrbitControls(camera, renderer.domElement);
+        controls.enableDamping = true;
+        controls.dampingFactor = 0.05;
+        controls.target.set(0, 0, 0);
+
+        // Lights
+        scene.add(new THREE.AmbientLight(0x404040, 0.5));
+
+        const light = new THREE.DirectionalLight(0xffffff, 0.8);
+        light.position.set(10, 10, 5);
+        light.castShadow = true;
+        light.shadow.mapSize.width = 2048;
+        light.shadow.mapSize.height = 2048;
+        scene.add(light);
+
+        // Initialize Cannon.js
+        const world = new CANNON.World();
+        world.gravity.set(0, -9.81, 0);
+        world.defaultContactMaterial.friction = 0.5;
+        world.defaultContactMaterial.restitution = 0.1;
+
+        // Ground
+        const groundMesh = new THREE.Mesh(
+            new THREE.PlaneGeometry(200, 200),
+            new THREE.MeshLambertMaterial({ color: 0x888888 })
+        );
+        groundMesh.rotation.x = -Math.PI / 2;
+        groundMesh.receiveShadow = true;
+        scene.add(groundMesh);
+
+        // Ground physics
+        const groundBody = new CANNON.Body({ mass: 0, type: CANNON.Body.KINEMATIC });
+        groundBody.addShape(new CANNON.Plane());
+        groundBody.quaternion.setFromAxisAngle(new CANNON.Vec3(1, 0, 0), -Math.PI / 2);
+        world.addBody(groundBody);
+
+        let meshes = [];
+        let bodies = [];
+
+        // Performance tracking
+        let fps = 0;
+        let lastTime = performance.now();
+
+        function add1000Boxes() {
+            console.log('Adding 1000 boxes...');
+            const startTime = performance.now();
+
+            // Generate 1000 boxes in a grid pattern
+            const boxesPerRow = 10;
+            const rows = 10;
+            const layers = 10;
+            const spacing = 1.0;
+            const startY = 5;
+
+            let boxCount = 0;
+            for (let layer = 0; layer < layers; layer++) {
+                for (let row = 0; row < rows; row++) {
+                    for (let col = 0; col < boxesPerRow; col++) {
+                        if (boxCount >= 1000) break;
+
+                        addSingleBox(
+                            (col - boxesPerRow/2) * spacing,
+                            startY + layer * spacing * 0.8,
+                            (row - rows/2) * spacing,
+                            boxCount
+                        );
+                        boxCount++;
+                    }
+                }
+            }
+
+            const endTime = performance.now();
+            console.log(`Added 1000 boxes in ${(endTime - startTime).toFixed(2)}ms`);
+        }
+
+        function addSingleBox(x, y, z, index) {
+            // Three.js mesh
+            const mesh = new THREE.Mesh(
+                new THREE.BoxGeometry(0.5, 0.5, 0.5),
+                new THREE.MeshLambertMaterial({
+                    color: new THREE.Color().setHSL((index % 360) / 360, 0.7, 0.6)
+                })
+            );
+            mesh.castShadow = true;
+            scene.add(mesh);
+
+            // Cannon.js rigid body
+            const body = new CANNON.Body({
+                mass: 0.1,
+                position: new CANNON.Vec3(x, y, z),
+                velocity: new CANNON.Vec3(0, 0, 0)
+            });
+            body.addShape(new CANNON.Box(new CANNON.Vec3(0.25, 0.25, 0.25)));
+            body.material = new CANNON.Material({ restitution: 0.1 });
+
+            world.addBody(body);
+
+            meshes.push(mesh);
+            bodies.push(body);
+        }
+
+        function animate() {
+            requestAnimationFrame(animate);
+
+            // Step physics
+            world.step(1/60);
+
+            // Sync meshes with physics bodies
+            for (let i = 0; i < bodies.length; i++) {
+                const body = bodies[i];
+                const mesh = meshes[i];
+
+                mesh.position.copy(body.position);
+                mesh.quaternion.copy(body.quaternion);
+            }
+
+            controls.update();
+
+            // Update FPS display
+            const currentTime = performance.now();
+            const deltaTime = currentTime - lastTime;
+            lastTime = currentTime;
+            fps = 1000 / deltaTime;
+
+            document.getElementById('fps').textContent = `FPS: ${fps.toFixed(1)}`;
+
+            renderer.render(scene, camera);
+        }
+
+        // Add boxes and start animation
+        add1000Boxes();
+        animate();
+
+        // Handle resize
+        window.addEventListener('resize', () => {
+            camera.aspect = window.innerWidth / window.innerHeight;
+            camera.updateProjectionMatrix();
+            renderer.setSize(window.innerWidth, window.innerHeight);
+        });
+    </script>
+</body>
+</html>

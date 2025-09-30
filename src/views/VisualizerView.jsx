@@ -54,36 +54,6 @@ function VisualizerView() {
   // Use workspace scene directly
   const scene = workspaceScene;
 
-  // Initialize with a simple test scene if none exists in workspace
-  useEffect(() => {
-    if (!scene && !loading) {
-      console.log('🎯 Loading simple test scene for debugging');
-      const testScene = {
-        id: 'test-scene',
-        name: 'Test Scene',
-        description: 'Simple test scene with one red sphere',
-        gravity: [0, -9.81, 0],
-        hasGround: true,
-        simulationScale: 'terrestrial',
-        gravitationalPhysics: { enabled: false },
-        objects: [
-          {
-            id: 'test-sphere',
-            type: 'Sphere',
-            mass: 1,
-            radius: 1,
-            position: [0, 5, 0],
-            velocity: [0, 0, 0],
-            color: '#ff0000'
-          }
-        ]
-      };
-      updateWorkspaceScene(testScene);
-    }
-  }, [scene, loading, updateWorkspaceScene]);
-
-
-
   // --- Scene Manipulation Handlers ---
   const handleSceneUpdate = useCallback((updatedScene) => {
     // Update workspace scene

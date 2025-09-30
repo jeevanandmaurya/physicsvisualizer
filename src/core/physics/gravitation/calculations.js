@@ -21,7 +21,7 @@ export class GravitationalPhysics {
         const masses = {};
 
         objects.forEach(obj => {
-            if (obj.mass > 0 && objectApis[obj.id]) {
+            if (obj.mass > 0) {
                 forces[obj.id] = [0, 0, 0];
                 masses[obj.id] = obj.gravitationalMass || obj.mass;
                 positions[obj.id] = this.currentPositions[obj.id] || obj.position || [0, 0, 0];

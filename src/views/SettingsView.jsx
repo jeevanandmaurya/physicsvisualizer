@@ -1,5 +1,8 @@
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import { useTheme } from '../contexts/ThemeContext';
+
+// Physics settings components
+import PhysicsSettingsContent from './components/scene-management/PhysicsSettingsContent';
 
 function SettingsView() {
   const { theme, toggleTheme, overlayOpacity, updateOverlayOpacity } = useTheme();
@@ -68,6 +71,11 @@ function SettingsView() {
             style={{ width: '100%', maxWidth: '300px' }}
           />
         </div>
+      </div>
+
+      {/* Physics Settings */}
+      <div style={{ marginBottom: '30px' }}>
+        <PhysicsSettingsContent />
       </div>
 
       <p>Other application preferences and settings will be configured here.</p>
