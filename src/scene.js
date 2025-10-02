@@ -104,15 +104,15 @@ export const mechanicsExamples = [
     "name": "Solar System Basics",
     "description": "Simplified solar system showing orbital mechanics with a central sun and orbiting planets.",
     "objects": [
-      { "id": "sun", "type": "Sphere", "mass": 1000, "gravitationalMass": 10000, "position": [0, 0, 0], "radius": 8, "isStatic": true, "color": "#FDB813" },
-      { "id": "mercury", "type": "Sphere", "mass": 0.055, "position": [15, 0, 0], "radius": 0.4, "velocity": [0, 0, 25], "color": "#8C7853" },
-      { "id": "venus", "type": "Sphere", "mass": 0.815, "position": [-22, 0, 5], "radius": 0.95, "velocity": [-4, 0, -18], "color": "#FFC649" },
-      { "id": "earth", "type": "Sphere", "mass": 1, "position": [0, 0, 30], "radius": 1, "velocity": [-15, 0, 0], "color": "#4169E1" },
-      { "id": "mars", "type": "Sphere", "mass": 0.107, "position": [40, 0, -8], "radius": 0.53, "velocity": [2.5, 0, 12.5], "color": "#CD5C5C" }
+      { "id": "sun", "type": "Sphere", "mass": 1000, "gravitationalMass": 10000, "position": [0, 0, 0], "radius": 8, "isStatic": true, "color": "#FDB813", "friction": 0, "restitution": 0 },
+      { "id": "mercury", "type": "Sphere", "mass": 0.055, "position": [15, 0, 0], "radius": 0.4, "velocity": [0, 0, 25], "color": "#8C7853", "friction": 0, "restitution": 0 },
+      { "id": "venus", "type": "Sphere", "mass": 0.815, "position": [-22, 0, 5], "radius": 0.95, "velocity": [-4, 0, -18], "color": "#FFC649", "friction": 0, "restitution": 0 },
+      { "id": "earth", "type": "Sphere", "mass": 1, "position": [0, 0, 30], "radius": 1, "velocity": [-15, 0, 0], "color": "#4169E1", "friction": 0, "restitution": 0 },
+      { "id": "mars", "type": "Sphere", "mass": 0.107, "position": [40, 0, -8], "radius": 0.53, "velocity": [2.5, 0, 12.5], "color": "#CD5C5C", "friction": 0, "restitution": 0 }
     ],
     "gravity": [0, 0, 0],
     "hasGround": false,
-    "contactMaterial": { "friction": 0.1, "restitution": 0.3 },
+    "contactMaterial": { "friction": 0, "restitution": 0 },
     "gravitationalPhysics": { "enabled": true, "gravitationalConstant": 1, "minDistance": 1, "softening": 0.1 },
     "simulationScale": "solar_system"
   },
@@ -1611,7 +1611,8 @@ export const mechanicsExamples = [
         "isStatic": true,
         "color": "#FDB813",
         "opacity": 1,
-        "restitution": 0.1
+        "friction": 0,
+        "restitution": 0
       },
       {
         "id": "mercury",
@@ -1622,7 +1623,9 @@ export const mechanicsExamples = [
         "radius": 0.4,
         "velocity": [0, 0, 31.62],
         "color": "#8C7853",
-        "opacity": 1
+        "opacity": 1,
+        "friction": 0,
+        "restitution": 0
       },
       {
         "id": "venus",
@@ -1633,7 +1636,9 @@ export const mechanicsExamples = [
         "radius": 0.95,
         "velocity": [-5.77, 0, -25.82],
         "color": "#FFC649",
-        "opacity": 1
+        "opacity": 1,
+        "friction": 0,
+        "restitution": 0
       },
       {
         "id": "earth",
@@ -1644,7 +1649,9 @@ export const mechanicsExamples = [
         "radius": 1,
         "velocity": [-22.36, 0, 0],
         "color": "#4169E1",
-        "opacity": 1
+        "opacity": 1,
+        "friction": 0,
+        "restitution": 0
       },
       {
         "id": "moon",
@@ -1655,7 +1662,9 @@ export const mechanicsExamples = [
         "radius": 0.27,
         "velocity": [-24.5, 0, 0],
         "color": "#C0C0C0",
-        "opacity": 1
+        "opacity": 1,
+        "friction": 0,
+        "restitution": 0
       },
       {
         "id": "mars",
@@ -1666,7 +1675,9 @@ export const mechanicsExamples = [
         "radius": 0.53,
         "velocity": [3.65, 0, 19.07],
         "color": "#CD5C5C",
-        "opacity": 1
+        "opacity": 1,
+        "friction": 0,
+        "restitution": 0
       },
       {
         "id": "jupiter",
@@ -1677,7 +1688,9 @@ export const mechanicsExamples = [
         "radius": 5,
         "velocity": [0, 0, 14.91],
         "color": "#DAA520",
-        "opacity": 1
+        "opacity": 1,
+        "friction": 0,
+        "restitution": 0
       },
       {
         "id": "io",
@@ -1688,7 +1701,9 @@ export const mechanicsExamples = [
         "radius": 0.3,
         "velocity": [0, 0, 17.5],
         "color": "#FFFF99",
-        "opacity": 1
+        "opacity": 1,
+        "friction": 0,
+        "restitution": 0
       },
       {
         "id": "saturn",
@@ -1699,7 +1714,9 @@ export const mechanicsExamples = [
         "radius": 4.5,
         "velocity": [-2.36, 0, -12.91],
         "color": "#F4A460",
-        "opacity": 1
+        "opacity": 1,
+        "friction": 0,
+        "restitution": 0
       },
       {
         "id": "uranus",
@@ -1710,7 +1727,9 @@ export const mechanicsExamples = [
         "radius": 2.5,
         "velocity": [-11.18, 0, 0],
         "color": "#4FD0E0",
-        "opacity": 1
+        "opacity": 1,
+        "friction": 0,
+        "restitution": 0
       },
       {
         "id": "neptune",
@@ -1721,14 +1740,16 @@ export const mechanicsExamples = [
         "radius": 2.4,
         "velocity": [10.25, 0, 0],
         "color": "#4169E1",
-        "opacity": 0.9
+        "opacity": 0.9,
+        "friction": 0,
+        "restitution": 0
       }
     ],
     "gravity": [0, 0, 0],
     "hasGround": false,
     "contactMaterial": {
-      "friction": 0.1,
-      "restitution": 0.3
+      "friction": 0,
+      "restitution": 0
     },
     "gravitationalPhysics": {
       "enabled": true,

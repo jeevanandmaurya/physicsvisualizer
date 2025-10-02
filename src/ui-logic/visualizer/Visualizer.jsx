@@ -255,6 +255,7 @@ function Visualizer({ scene, showSceneDetails, onToggleSceneDetails }) {
                             isPlaying={isPlaying}
                             onPhysicsDataCalculated={handlePhysicsDataCalculated}
                             resetTrigger={resetTrigger}
+                            defaultContactMaterial={defaultContactMaterial}
                         />
                         <VelocityVectorVisuals show={showVelocityVectors} velocities={physicsData.velocities} velocityScale={vectorScale} sceneObjects={objectsToRender} />
                         <OrbitControls />

@@ -130,10 +130,21 @@ const ControllerOverlay = ({
       const value = current[pathParts[pathParts.length - 1]];
       return value !== undefined ? value : controller.value;
     } else if (controller.objectId && controller.property) {
-      // Handle object property
+      // Handle object property (including array properties like "velocity[0]")
       const object = scene.objects?.find(obj => obj.id === controller.objectId);
-      if (object && object[controller.property] !== undefined) {
-        return object[controller.property];
+      if (object) {
+        // Check if property contains array index notation
+        if (controller.property.includes('[')) {
+          const propParts = controller.property.split(/\[|\]/).filter(p => p !== '');
+          const propName = propParts[0];
+          const arrayIndex = parseInt(propParts[1]);
+          
+          if (object[propName] && Array.isArray(object[propName])) {
+            return object[propName][arrayIndex] !== undefined ? object[propName][arrayIndex] : controller.value;
+          }
+        } else if (object[controller.property] !== undefined) {
+          return object[controller.property];
+        }
       }
     }
 
@@ -188,13 +199,35 @@ const ControllerOverlay = ({
         current[lastPart] = value;
       }
     } else if (controller.objectId && controller.property) {
-      // Handle object property
+      // Handle object property (including array properties like "velocity[0]")
       const objectIndex = updatedScene.objects.findIndex(obj => obj.id === controller.objectId);
       if (objectIndex !== -1) {
-        updatedScene.objects[objectIndex] = {
-          ...updatedScene.objects[objectIndex],
-          [controller.property]: value
-        };
+        const obj = updatedScene.objects[objectIndex];
+        
+        // Check if property contains array index notation like "velocity[0]"
+        if (controller.property.includes('[')) {
+          const propParts = controller.property.split(/\[|\]/).filter(p => p !== '');
+          const propName = propParts[0];
+          const arrayIndex = parseInt(propParts[1]);
+          
+          // Create a copy of the array and update the specific index
+          const newArray = [...(obj[propName] || [])];
+          while (newArray.length <= arrayIndex) {
+            newArray.push(0);
+          }
+          newArray[arrayIndex] = value;
+          
+          updatedScene.objects[objectIndex] = {
+            ...obj,
+            [propName]: newArray
+          };
+        } else {
+          // Simple property update
+          updatedScene.objects[objectIndex] = {
+            ...obj,
+            [controller.property]: value
+          };
+        }
       }
     }
 

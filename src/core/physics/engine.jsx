@@ -310,7 +310,7 @@ const Joints = React.memo(function Joints({ scene, bodyRefs, physicsResetKey }) 
 // React PhysicsWorld component that uses Physics paused prop for proper state preservation
 
 // React PhysicsWorld component that uses Physics paused prop for proper state preservation
-export function PhysicsWorld({ scene, isPlaying, onPhysicsDataCalculated, resetTrigger }) {
+export function PhysicsWorld({ scene, isPlaying, onPhysicsDataCalculated, resetTrigger, defaultContactMaterial }) {
     const [physicsResetKey, setPhysicsResetKey] = React.useState(0);
     const bodyRefs = useRef({}); // Store body refs for joints
 
@@ -365,6 +365,7 @@ export function PhysicsWorld({ scene, isPlaying, onPhysicsDataCalculated, resetT
                 physicsResetKey={physicsResetKey}
                 bodyRefs={bodyRefs}
                 onPhysicsDataCalculated={onPhysicsDataCalculated}
+                defaultContactMaterial={defaultContactMaterial}
             />;
         });
     };
@@ -398,7 +399,7 @@ export function PhysicsWorld({ scene, isPlaying, onPhysicsDataCalculated, resetT
 }
 
 // Individual physics object component (only rendered when playing)
-function PhysicsObject({ config, isPlaying, physicsResetKey, bodyRefs, onPhysicsDataCalculated }) {
+function PhysicsObject({ config, isPlaying, physicsResetKey, bodyRefs, onPhysicsDataCalculated, defaultContactMaterial }) {
     const bodyRef = useRef();
 
     // Store body ref for joints when it becomes available
@@ -421,8 +422,11 @@ function PhysicsObject({ config, isPlaying, physicsResetKey, bodyRefs, onPhysics
 
     // Get collider based on shape type with proper friction and restitution
     const createCollider = () => {
-        const restitution = config.restitution !== undefined ? config.restitution : 0.7;
-        const friction = config.friction !== undefined ? config.friction : 0.5;
+        // Use object-specific values first, then default from scene contactMaterial
+        const restitution = config.restitution !== undefined ? config.restitution : 
+                           (defaultContactMaterial?.restitution !== undefined ? defaultContactMaterial.restitution : 0.5);
+        const friction = config.friction !== undefined ? config.friction : 
+                        (defaultContactMaterial?.friction !== undefined ? defaultContactMaterial.friction : 0.5);
 
         switch (config.type) {
             case 'Sphere':
@@ -431,14 +435,14 @@ function PhysicsObject({ config, isPlaying, physicsResetKey, bodyRefs, onPhysics
                 const dims = config.dimensions || [1, 1, 1];
                 return <CuboidCollider args={dims.map(d => d / 2)} restitution={restitution} friction={friction} />;
             case 'Cylinder':
-                return <CylinderCollider args={[config.radius || 0.5, config.height || 1]} restitution={restitution} friction={friction} />;
+                return <CylinderCollider args={[config.height / 2 || 0.5, config.radius || 0.5]} restitution={restitution} friction={friction} />;
             case 'Cone':
-                return <ConeCollider args={[config.radius || 0.5, config.height || 1]} restitution={restitution} friction={friction} />;
+                return <ConeCollider args={[config.height / 2 || 0.5, config.radius || 0.5]} restitution={restitution} friction={friction} />;
             case 'Capsule':
-                return <CapsuleCollider args={[config.radius || 0.5, config.radius || 0.5, config.height || 1]} restitution={restitution} friction={friction} />;
+                return <CapsuleCollider args={[config.height / 2 || 0.5, config.radius || 0.5]} restitution={restitution} friction={friction} />;
             case 'ConvexPolyhedron':
                 // Use capsule as approximation for complex shapes
-                return <CapsuleCollider args={[config.radius || 0.8, (config.height || 2)/2]} restitution={restitution} friction={friction} />;
+                return <CapsuleCollider args={[(config.height || 2) / 2, config.radius || 0.8]} restitution={restitution} friction={friction} />;
             default:
                 return <CuboidCollider args={[0.5, 0.5, 0.5]} restitution={restitution} friction={friction} />;
         }
