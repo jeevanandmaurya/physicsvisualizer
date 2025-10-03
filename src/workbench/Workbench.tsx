@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import { useState, useEffect } from "react";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import {
   faChevronLeft,
@@ -16,6 +16,7 @@ import {
   useWorkspaceScene,
   useWorkspaceChat,
 } from "../contexts/WorkspaceContext";
+import { SceneData } from "../contexts/DatabaseContext"; // Import SceneData for type safety
 
 import "./Workbench.css";
 
@@ -30,7 +31,7 @@ const Workbench = () => {
   const [panelOpen, setPanelOpen] = useState(true);
 
   // VS Code-inspired layout configuration for each view
-  const getLayoutConfig = (view) => {
+  const getLayoutConfig = (view: string) => { // Added type for view
     const configs = {
       // Dashboard: Clean welcome/overview (like VS Code's welcome)
       dashboard: {
@@ -76,7 +77,7 @@ const Workbench = () => {
 
   // Keyboard shortcuts for view switching (VS Code style: Ctrl+1,2,3...)
   useEffect(() => {
-    const handleKeyDown = (e) => {
+    const handleKeyDown = (e: React.KeyboardEvent<Document>) => { // Added type for event
       if (e.ctrlKey || e.metaKey) {
         switch (e.key) {
           case "1":
@@ -115,32 +116,30 @@ const Workbench = () => {
 
   return (
     <div className="workbench">
-      <ActivityBar activeView={currentView} onViewChange={setCurrentView} />
-      {currentView === "visualizer" && !panelOpen && (
-        <button
-          className="panel-toggle-attached"
-          onClick={() => setPanelOpen(!panelOpen)}
-          title={panelOpen ? "Hide Scene Selector" : "Show Scene Selector"}
-        >
-          {!panelOpen && <FontAwesomeIcon icon={faChevronRight} />}
-        </button>
-      )}
-      <div className="workbench-main">
-        <div className="workbench-content">
-            {currentView === "visualizer" && panelOpen && (
-       
-       
-                  <Panel
-                    showSceneDetails={showSceneDetails}
-                    onToggleSceneDetails={() =>
-                      setShowSceneDetails(!showSceneDetails)
-                    }
-                    onClosePanel={() => setPanelOpen(false)}
-                  />
-               
-            )}
-
-          <EditorArea activeView={currentView} onViewChange={setCurrentView} />
+      <div className="workbench-body">
+        <ActivityBar activeView={currentView} onViewChange={setCurrentView} />
+        {currentView === "visualizer" && !panelOpen && (
+          <button
+            className="panel-toggle-attached"
+            onClick={() => setPanelOpen(!panelOpen)}
+            title={panelOpen ? "Hide Scene Selector" : "Show Scene Selector"}
+          >
+            {!panelOpen && <FontAwesomeIcon icon={faChevronRight} />}
+          </button>
+        )}
+        <div className="workbench-main">
+          <div className="workbench-content">
+              {currentView === "visualizer" && panelOpen && (
+                    <Panel
+                      showSceneDetails={showSceneDetails}
+                      onToggleSceneDetails={() =>
+                        setShowSceneDetails(!showSceneDetails)
+                      }
+                      onClosePanel={() => setPanelOpen(false)}
+                    />
+              )}
+            <EditorArea activeView={currentView} onViewChange={setCurrentView} />
+          </div>
         </div>
       </div>
       <StatusBar
@@ -160,7 +159,7 @@ const Workbench = () => {
         scene={scene}
         getChatForScene={getChatForScene}
         workspaceMessages={messages}
-        onSceneUpdate={(propertyPath, value, reason) => {
+        onSceneUpdate={(propertyPath: string, value: any, reason: string) => { // Added types
           console.log("Scene update:", propertyPath, value, reason);
         }}
       />
@@ -172,8 +171,8 @@ const Workbench = () => {
         key={`controller-${scene?.id}-${scene?.controllers?.length || 0}`}
         isOpen={controllerOpen}
         onToggle={() => setControllerOpen(!controllerOpen)}
-        scene={scene}
-        onSceneUpdate={(updatedScene) => {
+        scene={scene as SceneData} // Cast scene to SceneData to satisfy type checker
+        onSceneUpdate={(updatedScene: SceneData) => { // Added type for updatedScene
           replaceCurrentScene(updatedScene);
           resetSimulation();
         }}
@@ -187,7 +186,8 @@ const Workbench = () => {
           if (!label) return;
 
           const propertyPath = prompt('Enter property path (e.g., gravity[0], or leave empty for object property):');
-          let objectId, property;
+          let objectId: string | null = null; // Added type
+          let property: string | null = null; // Added type
 
           if (!propertyPath) {
             objectId = prompt('Enter object ID:');
@@ -211,13 +211,15 @@ const Workbench = () => {
             ...(propertyPath ? { propertyPath } : { objectId, property })
           };
 
-          const updatedScene = {
-            ...scene,
-            controllers: [...(scene.controllers || []), newController]
-          };
-
-          console.log('Workbench: Adding new controller, updated scene:', updatedScene.controllers);
-          updateScene(updatedScene);
+          // Ensure scene and scene.controllers are defined before updating
+          if (scene) {
+            const updatedScene: SceneData = {
+              ...scene,
+              controllers: [...(scene.controllers || []), newController]
+            };
+            console.log('Workbench: Adding new controller, updated scene:', updatedScene.controllers);
+            updateScene(updatedScene);
+          }
         }}
       />
     </div>

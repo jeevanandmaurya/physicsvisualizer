@@ -1,20 +1,21 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { faPlus, faFolderOpen, faCompass, faClockRotateLeft, faSpinner, faComments } from '@fortawesome/free-solid-svg-icons';
 
 import logo from '../assets/physicsvisualizer.svg';
 
-import { useDatabase } from '../contexts/DatabaseContext';
+import { useDatabase, SceneData } from '../contexts/DatabaseContext';
 import { useWorkspace, useWorkspaceScene } from '../contexts/WorkspaceContext';
 
 function DashboardView() {
     const { setCurrentView } = useWorkspace();
     const { updateScene } = useWorkspaceScene();
+    
     const dataManager = useDatabase();
 
-    const [recentScenes, setRecentScenes] = useState([]);
-    const [yourScenes, setYourScenes] = useState([]);
-    const [exampleScenes, setExampleScenes] = useState([]);
+    const [recentScenes, setRecentScenes] = useState<SceneData[]>([]);
+    const [yourScenes, setYourScenes] = useState<SceneData[]>([]);
+    const [exampleScenes, setExampleScenes] = useState<SceneData[]>([]);
     const [loading, setLoading] = useState(true);
 
     // Helper to generate a default new scene
@@ -36,7 +37,8 @@ function DashboardView() {
         const loadData = async () => {
             try {
                 // Load recent scenes
-                setRecentScenes(dataManager.getRecentScenes() || []);
+                const recentScenesData = dataManager.getRecentScenes();
+                setRecentScenes(recentScenesData || []);
 
                 // Load user scenes
                 const userScenesData = await dataManager.getScenes('user', {
@@ -59,6 +61,7 @@ function DashboardView() {
     }, [dataManager]);
 
     const handleCreateNewScene = useCallback(async () => {
+        if (!dataManager) return;
         const newScene = createNewScene();
         try {
             const savedId = await dataManager.saveScene(newScene);
@@ -66,7 +69,7 @@ function DashboardView() {
             newScene.isTemporary = false; // Mark as saved
 
             // Create and link a chat for this scene
-            await dataManager.getOrCreateChatForScene(savedId, newScene.name);
+            await dataManager.getOrCreateChatForScene(savedId, newScene.name || 'New Scene');
 
             updateScene(newScene);
             setCurrentView('visualizer');
@@ -78,7 +81,8 @@ function DashboardView() {
         }
     }, [createNewScene, updateScene, setCurrentView, dataManager]);
 
-    const handleOpenScene = useCallback(async (sceneId) => {
+    const handleOpenScene = useCallback(async (sceneId: string) => {
+        if (!dataManager) return;
         try {
             const sceneData = await dataManager.getSceneById(sceneId);
             if (sceneData) {
@@ -171,7 +175,7 @@ function DashboardView() {
                                     <div
                                         key={scene.id}
                                         className="recent-item"
-                                        onClick={() => handleOpenScene(scene.id)}
+                                        onClick={() => scene.id && handleOpenScene(scene.id)}
                                     >
                                         <FontAwesomeIcon icon={faClockRotateLeft} className="recent-icon" />
                                         <span className="recent-name">{scene.name || 'Untitled Scene'}</span>
@@ -189,12 +193,12 @@ function DashboardView() {
                                     <div
                                         key={scene.id}
                                         className="recent-item"
-                                        onClick={() => handleOpenScene(scene.id)}
+                                        onClick={() => scene.id && handleOpenScene(scene.id)}
                                     >
                                         <FontAwesomeIcon icon={faFolderOpen} className="recent-icon" />
                                         <span className="recent-name">{scene.name || 'Untitled Scene'}</span>
                                         <span className="recent-date">
-                                            {new Date(scene.updatedAt).toLocaleDateString()}
+                                            {new Date(scene.updatedAt || 0).toLocaleDateString()}
                                         </span>
                                     </div>
                                 ))}

@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useMemo, useRef } from 'react';
+import { useState, useEffect, useMemo, useRef } from 'react';
 import { Rnd } from 'react-rnd';
 import { Chart as ChartJS, CategoryScale, LinearScale, PointElement, LineElement, Title, Tooltip, Legend } from 'chart.js';
 import { Scatter } from 'react-chartjs-2';
@@ -7,8 +7,37 @@ import '../../../shared/ui/components/Graph.css';
 
 ChartJS.register(CategoryScale, LinearScale, PointElement, LineElement, Title, Tooltip, Legend, zoomPlugin);
 
+// Type definitions
+interface PositionData {
+  t: number;
+  x: number;
+  y: number;
+  z: number;
+  vx?: number;
+  vy?: number;
+  vz?: number;
+}
 
-function OverlayGraph({ id, initialType, data, onClose }) {
+interface OverlayGraphProps {
+  id: string;
+  initialType: string;
+  data: Record<string, PositionData[]>;
+  onClose: (id: string) => void;
+}
+
+interface ChartLabels {
+  title: string;
+  xlabel: string;
+  ylabel: string;
+}
+
+interface PlotDataPoint {
+  x: number;
+  y: number;
+}
+
+
+function OverlayGraph({ id, initialType, data, onClose }: OverlayGraphProps) {
   const chartRef = useRef(null); // Ref to access the chart instance directly
   const objectIds = useMemo(() => Object.keys(data), [data]);
 
@@ -32,7 +61,7 @@ function OverlayGraph({ id, initialType, data, onClose }) {
     if (!selectedObjectId || !data[selectedObjectId]) return { plotData: [], labels: newLabels };
     const history = data[selectedObjectId];
     
-    let newPlotData = [];
+    let newPlotData: PlotDataPoint[] = [];
     // Correctly map data based on type
     if (initialType === 'yvx') {
         newPlotData = history.map(p => ({ x: p.x, y: p.y }));

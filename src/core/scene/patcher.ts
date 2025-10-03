@@ -1,5 +1,25 @@
+interface ValidationRule {
+  [key: string]: (value: any) => boolean;
+}
+
+interface Patch {
+  op: 'add' | 'replace' | 'remove';
+  path: string;
+  value?: any;
+}
+
+interface PatchResult {
+  success: boolean;
+  scene: Scene;
+  error?: string;
+}
+
+type Scene = any;
+
 // Scene Patcher Utility for JSON Patch Operations
 class ScenePatcher {
+  validationRules: ValidationRule;
+
   constructor() {
     this.validationRules = {
       // Scene property validations
@@ -10,8 +30,8 @@ class ScenePatcher {
         (value.restitution === undefined || (typeof value.restitution === 'number' && value.restitution >= 0 && value.restitution <= 1)),
       gravitationalPhysics: (value) => typeof value === 'object' && value !== null &&
         typeof value.enabled === 'boolean',
-      constraints: (value) => typeof value === 'object' && value !== null &&
-        typeof value.enabled === 'boolean',
+      constraints: (value) => (typeof value === 'object' && value !== null &&
+        typeof value.enabled === 'boolean') || Array.isArray(value),
       fluid: (value) => typeof value === 'object' && value !== null &&
         typeof value.enabled === 'boolean',
       joints: (value) => Array.isArray(value),
@@ -33,7 +53,6 @@ class ScenePatcher {
       id: (value) => typeof value === 'string' && value.length > 0,
       isStatic: (value) => typeof value === 'boolean',
       gravitationalMass: (value) => typeof value === 'number' && value > 0,
-      constraints: (value) => Array.isArray(value),
 
       // Joint property validations
       bodyA: (value) => typeof value === 'string' && value.length > 0,
@@ -46,7 +65,7 @@ class ScenePatcher {
   }
 
   // Validate a single patch operation
-  validatePatch(patch) {
+  validatePatch(patch: Patch) {
     console.log('🔍 Validating patch:', patch);
 
     if (!patch || typeof patch !== 'object') {
@@ -88,7 +107,7 @@ class ScenePatcher {
   }
 
   // Validate an array of patches
-  validatePatches(patches) {
+  validatePatches(patches: Patch[]) {
     if (!Array.isArray(patches)) {
       return { valid: false, error: 'Patches must be an array' };
     }
@@ -108,7 +127,7 @@ class ScenePatcher {
   }
 
   // Apply patches with validation and error recovery
-  applyPatches(scene, patches) {
+  applyPatches(scene: Scene, patches: Patch[]) {
     console.log('🔧 ScenePatcher: Applying patches...');
 
     // Handle empty or invalid inputs
@@ -157,12 +176,13 @@ class ScenePatcher {
           appliedCount++;
           console.log(`✅ Applied patch ${i + 1}: ${patch.op} ${patch.path}`);
         } else {
-          const errorMsg = `Failed to apply patch ${i + 1}: ${result.error}`;
+          const errorMsg = `Failed to apply patch ${i + 1}: ${result.error || 'Unknown error'}`;
           console.error(`❌ ${errorMsg}`);
           errors.push(errorMsg);
         }
       } catch (error) {
-        const errorMsg = `Exception applying patch ${i + 1}: ${error.message}`;
+        const message = error instanceof Error ? error.message : String(error);
+        const errorMsg = `Exception applying patch ${i + 1}: ${message}`;
         console.error(`❌ ${errorMsg}`);
         errors.push(errorMsg);
       }
@@ -186,7 +206,7 @@ class ScenePatcher {
   }
 
   // Apply a single patch operation
-  applySinglePatch(scene, patch) {
+  applySinglePatch(scene: Scene, patch: Patch): PatchResult {
     const { op, path, value } = patch;
 
     try {
@@ -217,12 +237,13 @@ class ScenePatcher {
 
       return { success: false, scene, error: `Unsupported operation: ${op}` };
     } catch (error) {
-      return { success: false, scene, error: error.message };
+      const message = error instanceof Error ? error.message : String(error);
+      return { success: false, scene, error: message };
     }
   }
 
   // Set value by JSON path (supports add/replace)
-  setValueByPath(obj, path, value) {
+  setValueByPath(obj: Scene, path: string, value: any): PatchResult {
     const pathParts = path.substring(1).split('/').filter(p => p);
     let current = obj;
 
@@ -310,7 +331,7 @@ class ScenePatcher {
   }
 
   // Remove value by JSON path
-  removeValueByPath(obj, path) {
+  removeValueByPath(obj: Scene, path: string): PatchResult {
     const pathParts = path.substring(1).split('/').filter(p => p);
     let current = obj;
 
@@ -324,8 +345,9 @@ class ScenePatcher {
 
     const lastPart = pathParts[pathParts.length - 1];
 
-    if (Array.isArray(current) && !isNaN(lastPart)) {
-      current.splice(parseInt(lastPart), 1);
+    const numLastPart = parseInt(lastPart);
+    if (Array.isArray(current) && !isNaN(numLastPart)) {
+      current.splice(numLastPart, 1);
     } else {
       delete current[lastPart];
     }
@@ -334,13 +356,18 @@ class ScenePatcher {
   }
 
   // Helper to get value by path (for validation)
-  getValueByPath(obj, path) {
+  getValueByPath(obj: any, path: string): any {
     const pathParts = path.substring(1).split('/').filter(p => p);
     let current = obj;
 
     for (const part of pathParts) {
       if (Array.isArray(current) && !isNaN(part)) {
-        current = current[parseInt(part)];
+        const index = parseInt(part);
+        if (!isNaN(index)) {
+          current = current[index];
+        } else {
+          current = undefined;
+        }
       } else {
         current = current[part];
       }
@@ -351,12 +378,12 @@ class ScenePatcher {
   }
 
   // Create a diff between two scenes
-  createDiff(oldScene, newScene) {
+  createDiff(oldScene: any, newScene: any): Patch[] {
     // This is a simplified diff - in production you'd use a proper diff library
-    const patches = [];
+    const patches: Patch[] = [];
 
     // Compare top-level properties
-    const compareObjects = (oldObj, newObj, currentPath = '') => {
+    const compareObjects = (oldObj: any, newObj: any, currentPath = '') => {
       for (const key in newObj) {
         const fullPath = currentPath + '/' + key;
 

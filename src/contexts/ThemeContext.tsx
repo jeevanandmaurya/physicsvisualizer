@@ -1,10 +1,34 @@
-import { createContext, useContext, useState, useEffect } from 'react';
+import React, { createContext, useContext, useState, useEffect } from 'react';
 
-const ThemeContext = createContext();
+// Define types for ThemeContext
+export interface OverlayOpacitySettings {
+  chat: number;
+  graph: number;
+  controller: number;
+}
 
-export const useTheme = () => useContext(ThemeContext);
+export interface ThemeContextType {
+  theme: string;
+  toggleTheme: () => void;
+  overlayOpacity: OverlayOpacitySettings;
+  updateOverlayOpacity: (type: keyof OverlayOpacitySettings, value: number) => void;
+}
 
-export const ThemeProvider = ({ children }) => {
+const ThemeContext = createContext<ThemeContextType | null>(null);
+
+export const useTheme = (): ThemeContextType => {
+  const context = useContext(ThemeContext);
+  if (!context) {
+    throw new Error('useTheme must be used within a ThemeProvider');
+  }
+  return context;
+};
+
+interface ThemeProviderProps {
+  children: React.ReactNode;
+}
+
+export const ThemeProvider = ({ children }: ThemeProviderProps) => {
   const [theme, setTheme] = useState('light');
   const [overlayOpacity, setOverlayOpacity] = useState({
     chat: 0.8,
@@ -48,7 +72,7 @@ export const ThemeProvider = ({ children }) => {
     setTheme(prev => prev === 'light' ? 'dark' : 'light');
   };
 
-  const updateOverlayOpacity = (type, value) => {
+  const updateOverlayOpacity = (type: keyof OverlayOpacitySettings, value: number) => {
     setOverlayOpacity(prev => {
       const newOpacity = { ...prev, [type]: value };
       localStorage.setItem(`${type}Opacity`, value.toString());

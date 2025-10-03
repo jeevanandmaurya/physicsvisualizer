@@ -1,7 +1,56 @@
 import React, { createContext, useContext, useCallback } from 'react';
 import { mechanicsExamples } from '../scenes.js';
 
-const DatabaseContext = createContext();
+// Define types for DatabaseContext
+export interface SceneData {
+  id?: string;
+  name?: string;
+  description?: string;
+  objects?: any[];
+  forces?: any[];
+  constraints?: any[];
+  settings?: any;
+  camera?: any;
+  createdAt?: string;
+  updatedAt?: string;
+  isExtracted?: boolean;
+  isTemporary?: boolean;
+  controllers?: any[]; // Added controllers property
+}
+
+export interface ChatData {
+  id?: string;
+  sceneId?: string;
+  sceneName?: string;
+  messages?: any[];
+  createdAt?: string;
+  updatedAt?: string;
+}
+
+export interface WorkspaceData {
+  id: string;
+  name?: string;
+  scenes?: SceneData[];
+  settings?: any;
+  chat?: any;
+  [key: string]: any;
+}
+
+export interface DatabaseContextType {
+  getScenes: (type: string, options?: { orderBy?: { field: string; direction: string }; limitTo?: number }) => Promise<SceneData[]>;
+  getSceneById: (sceneId: string) => Promise<SceneData | null>;
+  saveScene: (sceneObject: SceneData) => Promise<string>;
+  deleteScene: (sceneId: string) => Promise<void>;
+  getChatHistory: () => Promise<ChatData[]>;
+  saveChat: (chatData: ChatData) => Promise<string>;
+  deleteChat: (chatId: string) => Promise<void>;
+  getOrCreateChatForScene: (sceneId: string, sceneName?: string) => Promise<string>;
+  saveWorkspace: (workspaceData: WorkspaceData) => Promise<string>;
+  getWorkspace: (workspaceId?: string) => Promise<WorkspaceData | null>;
+  getRecentScenes: () => SceneData[];
+}
+
+const DatabaseContext = createContext<DatabaseContextType | null>(null);
 
 export function useDatabase() {
   return useContext(DatabaseContext);
@@ -12,7 +61,7 @@ const CHAT_HISTORY_KEY = 'physicsVisualizerChatHistory';
 const WORKSPACE_KEY = 'physicsVisualizerWorkspace';
 
 // Helper function to get scenes from localStorage
-const getLocalScenes = () => {
+const getLocalScenes = (): SceneData[] => {
     try {
         const scenesJson = localStorage.getItem(LOCAL_STORAGE_KEY);
         return scenesJson ? JSON.parse(scenesJson) : [];
@@ -23,7 +72,7 @@ const getLocalScenes = () => {
 };
 
 // Helper function to save scenes to localStorage
-const saveLocalScenes = (scenes) => {
+const saveLocalScenes = (scenes: SceneData[]) => {
     try {
         localStorage.setItem(LOCAL_STORAGE_KEY, JSON.stringify(scenes));
     } catch (error) {
@@ -32,7 +81,7 @@ const saveLocalScenes = (scenes) => {
 };
 
 // Helper function to get chat history from localStorage
-const getChatHistoryFromStorage = () => {
+const getChatHistoryFromStorage = (): ChatData[] => {
     try {
         const chatHistoryJson = localStorage.getItem(CHAT_HISTORY_KEY);
         return chatHistoryJson ? JSON.parse(chatHistoryJson) : [];
@@ -43,7 +92,7 @@ const getChatHistoryFromStorage = () => {
 };
 
 // Helper function to save chat history to localStorage
-const saveChatHistoryToStorage = (chatHistory) => {
+const saveChatHistoryToStorage = (chatHistory: ChatData[]) => {
     try {
         localStorage.setItem(CHAT_HISTORY_KEY, JSON.stringify(chatHistory));
     } catch (error) {
@@ -54,20 +103,20 @@ const saveChatHistoryToStorage = (chatHistory) => {
 
 
 
-export function DatabaseProvider({ children }) {
+export function DatabaseProvider({ children }: { children: React.ReactNode }) {
   /**
    * Fetches scenes from various sources based on type.
    */
-  const getScenes = useCallback(async (type, options = {}) => {
+  const getScenes = useCallback(async (type: string, options: { orderBy?: { field: string; direction: string }; limitTo?: number } = {}) => {
     switch (type) {
       case 'user':
       case 'local':
         let scenes = getLocalScenes();
         if (options.orderBy?.field === 'updatedAt') {
-          scenes.sort((a, b) => {
-            const dateA = new Date(a.updatedAt);
-            const dateB = new Date(b.updatedAt);
-            return options.orderBy.direction === 'desc' ? dateB - dateA : dateA - dateB;
+          scenes.sort((a: SceneData, b: SceneData) => {
+            const dateA = new Date(a.updatedAt || 0);
+            const dateB = new Date(b.updatedAt || 0);
+            return options.orderBy!.direction === 'desc' ? dateB.getTime() - dateA.getTime() : dateA.getTime() - dateB.getTime();
           });
         }
         if (options.limitTo) {
@@ -148,7 +197,7 @@ export function DatabaseProvider({ children }) {
   /**
    * Saves a new chat or updates an existing one
    */
-  const saveChat = useCallback(async (chatData) => {
+  const saveChat = useCallback(async (chatData: ChatData): Promise<string> => {
     const chats = getChatHistoryFromStorage();
     const now = new Date().toISOString();
 
@@ -157,15 +206,15 @@ export function DatabaseProvider({ children }) {
     const existingIndex = chats.findIndex(c => c.id === chatData.id);
 
     if (existingIndex !== -1) {
-      chats[existingIndex] = { ...chats[existingIndex], ...chatToSave };
+      chats[existingIndex] = { ...chats[existingIndex], ...chatToSave } as ChatData;
     } else {
       chatToSave.id = chatToSave.id || `chat-${Date.now()}`;
       chatToSave.createdAt = now;
-      chats.push(chatToSave);
+      chats.push(chatToSave as ChatData);
     }
 
     saveChatHistoryToStorage(chats);
-    return chatToSave.id;
+    return chatToSave.id!;
   }, []);
 
   /**

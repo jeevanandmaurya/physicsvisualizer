@@ -4,14 +4,50 @@ import { faChevronUp, faChevronDown, faTimes, faPlus } from '@fortawesome/free-s
 import { useTheme } from '../../../contexts/ThemeContext';
 import './ControllerOverlay.css';
 
+// Type definitions
+interface ControllerItem {
+  id: string;
+  label: string;
+  type: 'slider' | 'number';
+  propertyPath?: string;
+  objectId?: string;
+  property?: string;
+  value: number;
+  min: number;
+  max: number;
+  step?: number;
+}
+
+interface SceneObject {
+  id: string;
+  [key: string]: any;
+}
+
+interface SceneData {
+  id?: string;
+  name?: string;
+  objects?: SceneObject[];
+  controllers?: ControllerItem[];
+  [key: string]: any;
+}
+
+interface ControllerOverlayProps {
+  isOpen: boolean;
+  onToggle: () => void;
+  scene?: SceneData | null;
+  onSceneUpdate?: (scene: SceneData) => void;
+  controllers?: ControllerItem[];
+  onAddController?: () => void;
+}
+
 const ControllerOverlay = ({
   isOpen,
   onToggle,
   scene,
   onSceneUpdate,
-  controllers = [],
+  controllers,
   onAddController
-}) => {
+}: ControllerOverlayProps) => {
   const { overlayOpacity, updateOverlayOpacity } = useTheme();
   const [isMinimized, setIsMinimized] = useState(false);
   const [position, setPosition] = useState({ x: 100, y: 100 });
@@ -181,7 +217,7 @@ const ControllerOverlay = ({
 
     if (!scene || !onSceneUpdate) return;
 
-    const controller = controllers.find(c => c.id === controllerId);
+    const controller = controllers?.find(c => c.id === controllerId);
     if (!controller) return;
 
     let updatedScene = JSON.parse(JSON.stringify(scene)); // Deep clone
@@ -382,13 +418,13 @@ const ControllerOverlay = ({
           <>
             <div className="controller-overlay-content">
               <div className="controller-list">
-                {controllers.length === 0 ? (
+                {(controllers || []).length === 0 ? (
                   <div className="no-controllers">
                     <p>No scene controllers configured.</p>
                     <p>Click + to add a controller.</p>
                   </div>
                 ) : (
-                  controllers.map(controller => (
+                  (controllers || []).map(controller => (
                     <div key={controller.id} className="controller-item">
                       <label className="controller-label">
                         {controller.label}

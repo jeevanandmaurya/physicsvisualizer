@@ -1,4 +1,4 @@
-import React from 'react';
+
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { faHome, faCube, faCompass, faCog, faComments, faInfoCircle } from '@fortawesome/free-solid-svg-icons';
 import logo from '../assets/icon-transparent.svg';

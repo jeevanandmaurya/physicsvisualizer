@@ -10,7 +10,7 @@ export default defineConfig({
   environment: 'node',
 
   // Setup test environment
-  setupFiles: ['./src/tests/setup-tests.js'],
+  setupFiles: ['./src/tests/setup-tests.ts'],
 
     // Test globals for easier testing
     globals: true,
@@ -35,11 +35,11 @@ export default defineConfig({
       reporter: ['text', 'json', 'html'],
       exclude: [
         'node_modules/',
-        'src/main.jsx',
-        'src/App.jsx',
-        'vite.config.js',
-        'vitest.config.js',
-        '**/*.test.js'  // Exclude test files from coverage
+        'src/main.tsx',
+        'src/App.tsx',
+        'vite.config.ts',
+        'vitest.config.ts',
+        '**/*.test.ts'  // Exclude test files from coverage
       ]
     }
   },

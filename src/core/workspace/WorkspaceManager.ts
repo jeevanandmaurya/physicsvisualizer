@@ -13,13 +13,13 @@ class Workspace {
     this.id = id;
     this.name = name;
 
-    // Multiple scenes per workspace (like current chat.scenes array)
+    // Multiple scenes per workspace
     this.scenes = [this.createDefaultScene()];
     this.currentSceneIndex = 0; // Active scene
 
-    this.chat = {
-      messages: []
-    };
+    // Multiple chat sessions per workspace
+    this.chats = [this.createDefaultChat()];
+    this.currentChatId = this.chats[0].id; // Active chat
 
     this.settings = {
       uiMode: 'simple', // 'simple' or 'advanced'
@@ -45,6 +45,16 @@ class Workspace {
       contactMaterial: { friction: 0.5, restitution: 0.7 },
       objects: [],
       camera: { position: [10, 5, 25], fov: 50 }
+    };
+  }
+
+  createDefaultChat() {
+    return {
+      id: `chat-${Date.now()}`,
+      name: 'New Chat',
+      messages: [],
+      createdAt: new Date().toISOString(),
+      updatedAt: new Date().toISOString()
     };
   }
 
@@ -91,8 +101,6 @@ class Workspace {
     return this;
   }
 
-
-
   // Delete scene by index
   deleteScene(index) {
     if (index >= 0 && index < this.scenes.length && this.scenes.length > 1) {
@@ -111,15 +119,67 @@ class Workspace {
     return this.updateCurrentScene(updates);
   }
 
-  // Add chat message
+  // Add chat message to the current chat
   addMessage(message) {
-    this.chat.messages.push({
-      ...message,
-      timestamp: new Date().toISOString(),
-      workspaceId: this.id
-    });
-    this.metadata.updatedAt = new Date().toISOString();
+    const currentChat = this.getChatById(this.currentChatId);
+    if (currentChat) {
+      currentChat.messages.push({
+        ...message,
+        id: message.id || `msg-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`, // Ensure message has an ID
+        timestamp: new Date().toISOString(),
+        workspaceId: this.id
+      });
+      currentChat.updatedAt = new Date().toISOString();
+      this.metadata.updatedAt = new Date().toISOString();
+    }
     return this;
+  }
+
+  // Add a new chat session
+  addChat(chatData = null) {
+    const newChat = chatData || this.createDefaultChat();
+    newChat.id = `chat-${Date.now()}-${this.chats.length}`;
+    newChat.name = newChat.name || `Chat ${this.chats.length + 1}`;
+    this.chats.push(newChat);
+    this.metadata.updatedAt = new Date().toISOString();
+    return newChat;
+  }
+
+  // Get a chat by its ID
+  getChatById(chatId) {
+    return this.chats.find(chat => chat.id === chatId);
+  }
+
+  // Set the current active chat
+  setCurrentChat(chatId) {
+    const chat = this.getChatById(chatId);
+    if (chat) {
+      this.currentChatId = chatId;
+      this.metadata.updatedAt = new Date().toISOString();
+      return true;
+    }
+    return false;
+  }
+
+  // Delete a chat session by ID
+  deleteChat(chatId) {
+    if (this.chats.length > 1) { // Prevent deleting the last chat
+      const index = this.chats.findIndex(chat => chat.id === chatId);
+      if (index !== -1) {
+        this.chats.splice(index, 1);
+        // If the deleted chat was the current one, switch to another
+        if (this.currentChatId === chatId && this.chats.length > 0) {
+          this.currentChatId = this.chats[0].id; // Switch to the first available chat
+        } else if (this.chats.length === 0) {
+          // Should not happen due to length check, but as a safeguard
+          this.chats.push(this.createDefaultChat());
+          this.currentChatId = this.chats[0].id;
+        }
+        this.metadata.updatedAt = new Date().toISOString();
+        return true;
+      }
+    }
+    return false;
   }
 
   // Update settings
@@ -151,8 +211,6 @@ class Workspace {
     return this.sceneChatLinks.get(sceneId);
   }
 
-
-
   // Export for saving
   toJSON() {
     return {
@@ -160,7 +218,8 @@ class Workspace {
       name: this.name,
       scenes: this.scenes,
       currentSceneIndex: this.currentSceneIndex,
-      chat: this.chat,
+      chats: this.chats, // Include chats array
+      currentChatId: this.currentChatId, // Include current chat ID
       settings: this.settings,
       metadata: this.metadata,
       sceneChatLinks: Object.fromEntries(this.sceneChatLinks) // Convert Map to object
@@ -181,12 +240,20 @@ class Workspace {
     }
 
     // Copy other properties
-    workspace.chat = data.chat || { messages: [] };
     workspace.settings = data.settings || { uiMode: 'simple', showVectors: false, vectorScale: 1.5, autoSave: true };
     workspace.metadata = data.metadata || {
       createdAt: new Date().toISOString(),
       updatedAt: new Date().toISOString()
     };
+
+    // Restore chats
+    if (data.chats && Array.isArray(data.chats)) {
+      workspace.chats = data.chats;
+    } else {
+      // If no chats found, ensure there's at least one default chat
+      workspace.chats = [workspace.createDefaultChat()];
+    }
+    workspace.currentChatId = data.currentChatId || (workspace.chats.length > 0 ? workspace.chats[0].id : null);
 
     // Restore scene-chat links
     if (data.sceneChatLinks) {
@@ -203,6 +270,7 @@ class WorkspaceManager {
     this.currentWorkspace = null;
     this.workspaces = new Map();
     this.listeners = new Set();
+    this.autoSaveInterval = null;
   }
 
   // Create new workspace
@@ -210,6 +278,7 @@ class WorkspaceManager {
     const id = `workspace-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
     const workspace = new Workspace(id, name);
     this.workspaces.set(id, workspace);
+    this.setCurrentWorkspace(workspace); // Set as current immediately
     this.notifyListeners('workspaceCreated', workspace);
     return workspace;
   }
@@ -252,10 +321,26 @@ class WorkspaceManager {
 
       const workspace = new Workspace(`workspace-${sceneId}`, scene.name);
       workspace.scenes = [scene];
-      if (chat) workspace.chat.messages = chat.messages || [];
+      if (chat) {
+        // Create a new chat object for the workspace
+        const workspaceChat = {
+          id: `chat-${Date.now()}`,
+          name: chat.name || 'Migrated Chat',
+          messages: chat.messages || [],
+          createdAt: chat.createdAt || new Date().toISOString(),
+          updatedAt: chat.updatedAt || new Date().toISOString()
+        };
+        workspace.chats = [workspaceChat];
+        workspace.currentChatId = workspaceChat.id;
+      } else {
+        // Ensure there's at least one chat if no legacy chat found
+        workspace.chats = [workspace.createDefaultChat()];
+        workspace.currentChatId = workspace.chats[0].id;
+      }
 
       return workspace;
     } catch (error) {
+      console.error('Migration failed:', error);
       return null;
     }
   }
@@ -302,9 +387,47 @@ class WorkspaceManager {
     }
   }
 
+  // Add a new chat session to the current workspace
+  addChatSession() {
+    if (!this.currentWorkspace) return null;
+    const newChat = this.currentWorkspace.addChat();
+    this.updateCurrentWorkspace(workspace => workspace); // Trigger update
+    this.notifyListeners('chatAdded', newChat);
+    return newChat;
+  }
 
+  // Delete a chat session from the current workspace
+  deleteChatSession(chatId) {
+    if (!this.currentWorkspace) return false;
+    const success = this.currentWorkspace.deleteChat(chatId);
+    if (success) {
+      this.updateCurrentWorkspace(workspace => workspace); // Trigger update
+      this.notifyListeners('chatDeleted', chatId);
+    }
+    return success;
+  }
 
+  // Set the active chat session for the current workspace
+  selectChatSession(chatId) {
+    if (!this.currentWorkspace) return false;
+    const success = this.currentWorkspace.setCurrentChat(chatId);
+    if (success) {
+      this.updateCurrentWorkspace(workspace => workspace); // Trigger update
+      this.notifyListeners('chatSelected', chatId);
+    }
+    return success;
+  }
 
+  // Get the current chat for the workspace
+  getCurrentChat() {
+    if (!this.currentWorkspace) return null;
+    return this.currentWorkspace.getChatById(this.currentChatId);
+  }
+
+  // Get all chats for the workspace
+  getAllChats() {
+    return this.currentWorkspace?.chats || [];
+  }
 
   // Event system for UI updates
   addListener(callback) {

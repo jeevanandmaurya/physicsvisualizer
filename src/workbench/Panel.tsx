@@ -1,6 +1,6 @@
 import React, { useState, useCallback, useEffect } from 'react';
 import { useWorkspace, useWorkspaceScene, useWorkspaceChat, useWorkspaceSettings } from '../contexts/WorkspaceContext';
-import { useDatabase } from '../contexts/DatabaseContext';
+import { useDatabase, SceneData } from '../contexts/DatabaseContext';
 import SceneSelectorUI from '../views/components/scene-management/SceneSelectorUI';
 import SceneDetailsUI from '../views/components/scene-management/SceneDetailsUI';
 
@@ -14,7 +14,7 @@ const SidePanel = ({ showSceneDetails = false, onToggleSceneDetails, onClosePane
   const [currentChatId, setCurrentChatId] = useState(null);
   const [conversationHistory, setConversationHistory] = useState([]);
   const [refreshTrigger, setRefreshTrigger] = useState(0);
-  const [userScenes, setUserScenes] = useState([]);
+    const [userScenes, setUserScenes] = useState<SceneData[]>([]);
   const [loadingUserScenes, setLoadingUserScenes] = useState(false);
   const [activeTab, setActiveTab] = useState(uiMode === 'simple' ? 'examples' : 'chats');
   const [sceneListRefreshTrigger, setSceneListRefreshTrigger] = useState(0);

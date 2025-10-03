@@ -1,13 +1,136 @@
 import React, { createContext, useContext, useEffect, useState, useCallback } from 'react';
-import { WorkspaceManager } from '../core/workspace/WorkspaceManager';
+import { WorkspaceManager, Workspace } from '../core/workspace/WorkspaceManager';
 import { useDatabase } from './DatabaseContext';
+import { SceneData } from './DatabaseContext';
 
-const WorkspaceContext = createContext(null);
+// Define types for WorkspaceContext
+export interface GraphData {
+  id: string;
+  initialType: string;
+}
 
-export function WorkspaceProvider({ children }) {
+export interface WorkspaceSettings {
+  uiMode?: string;
+  [key: string]: any;
+}
+
+export interface WorkspaceChatMessage {
+  id: string;
+  content?: string;
+  timestamp?: number;
+  [key: string]: any;
+}
+
+// Updated WorkspaceChat interface to match WorkspaceManager
+export interface WorkspaceChat {
+  id: string;
+  name: string;
+  messages: WorkspaceChatMessage[];
+  createdAt: string;
+  updatedAt: string;
+}
+
+// Updated WorkspaceObject interface to include chats and currentChatId
+export interface WorkspaceObject {
+  id: string;
+  name?: string;
+  settings?: WorkspaceSettings;
+  scenes?: SceneData[];
+  currentSceneIndex?: number;
+  chats: WorkspaceChat[]; // Array of chats
+  currentChatId: string | null; // ID of the currently active chat
+  getCurrentScene?: () => SceneData | null;
+  setCurrentScene?: (index: number) => void;
+  addScene?: (sceneData: SceneData) => void;
+  updateCurrentScene?: (updates: any) => void;
+  replaceCurrentScene?: (newScene: SceneData) => void;
+  deleteScene?: (index: number) => void;
+  updateSettings?: (settings: WorkspaceSettings) => void;
+  addMessage?: (message: WorkspaceChatMessage) => void;
+  addChat?: (chatData?: any) => WorkspaceChat; // Method to add a new chat
+  getChatById?: (chatId: string) => WorkspaceChat | undefined; // Method to get a chat by ID
+  setCurrentChat?: (chatId: string) => boolean; // Method to set the current chat
+  deleteChat?: (chatId: string) => boolean; // Method to delete a chat
+  linkSceneToChat?: (sceneId: string, chatId: string) => void;
+  getChatForScene?: (sceneId: string) => string | null;
+}
+
+export interface WorkspaceContextType {
+  // State
+  currentWorkspace: WorkspaceObject | null;
+  currentView: string;
+  workspaceUpdateTrigger: number;
+  loading: boolean;
+  error: string | null;
+  // Visualizer state
+  isPlaying: boolean;
+  simulationTime: number;
+  fps: number;
+  showVelocityVectors: boolean;
+  vectorScale: number;
+  openGraphs: GraphData[];
+  resetTrigger: number;
+  objectHistory: Record<string, any>;
+  loopMode: string;
+  dataTimeStep: number;
+  // View management
+  setCurrentView: (view: string) => void;
+  // Workspace data
+  workspaceScenes: SceneData[];
+  // Workspace operations
+  createWorkspace: (name: string) => Promise<WorkspaceObject>;
+  loadWorkspace: (id: string) => Promise<WorkspaceObject>;
+  saveWorkspace: () => Promise<void>;
+  updateWorkspace: (updater: (workspace: WorkspaceObject) => WorkspaceObject) => void;
+  // Scene management methods
+  getCurrentScene: () => SceneData | null;
+  setCurrentScene: (index: number) => void;
+  addScene: (sceneData: SceneData) => void;
+  updateCurrentScene: (updates: any) => Promise<void>;
+  replaceCurrentScene: (newScene: SceneData) => Promise<void>;
+  deleteScene: (index: number) => void;
+  clearScenes: () => void;
+  // Convenience methods
+  updateScene: (updates: any) => Promise<void>;
+  addMessage: (message: WorkspaceChatMessage) => void;
+  updateSettings: (settings: WorkspaceSettings) => void;
+  getUIMode: () => string;
+  setUIMode: (mode: string) => void;
+  // Visualizer actions
+  togglePlayPause: () => void;
+  play: () => void;
+  pause: () => void;
+  resetSimulation: () => void;
+  loopReset: () => void;
+  updateSimulationTime: (time: number) => void;
+  updateFps: (newFps: number) => void;
+  toggleVelocityVectors: () => void;
+  updateVectorScale: (scale: number) => void;
+  addGraph: (type: string) => void;
+  removeGraph: (id: string) => void;
+  saveCurrentScene: (sceneData: SceneData) => Promise<string>;
+  setIsPlaying: React.Dispatch<React.SetStateAction<boolean>>;
+  toggleLoop: () => void;
+  updateDataTimeStep: (step: number) => void;
+  // Chat management methods
+  addChatSession: () => WorkspaceChat | null;
+  deleteChatSession: (chatId: string) => boolean;
+  selectChatSession: (chatId: string) => boolean;
+  getCurrentChat: () => WorkspaceChat | null | undefined;
+  getAllChats: () => WorkspaceChat[];
+  // Scene-chat linking methods
+  linkSceneToChat: (sceneId: string, chatId: string) => void;
+  getChatForScene: (sceneId: string) => string | null;
+  // Direct access to manager for advanced operations
+  workspaceManager: WorkspaceManager;
+}
+
+const WorkspaceContext = createContext<WorkspaceContextType | null>(null);
+
+export function WorkspaceProvider({ children }: { children: React.ReactNode }) {
   const database = useDatabase();
   const [workspaceManager] = useState(() => new WorkspaceManager(database));
-  const [currentWorkspace, setCurrentWorkspace] = useState(null);
+  const [currentWorkspace, setCurrentWorkspace] = useState<WorkspaceObject | null>(null);
   const [currentView, setCurrentView] = useState('dashboard'); // Add currentView state
   const [workspaceUpdateTrigger, setWorkspaceUpdateTrigger] = useState(0); // Force re-renders
   const [loading, setLoading] = useState(false);
@@ -19,9 +142,9 @@ export function WorkspaceProvider({ children }) {
   const [fps, setFps] = useState(0);
   const [showVelocityVectors, setShowVelocityVectors] = useState(false);
   const [vectorScale, setVectorScale] = useState(1);
-  const [openGraphs, setOpenGraphs] = useState([]);
+  const [openGraphs, setOpenGraphs] = useState<GraphData[]>([]);
   const [resetTrigger, setResetTrigger] = useState(0);
-  const [objectHistory, setObjectHistory] = useState({});
+  const [objectHistory, setObjectHistory] = useState<Record<string, any>>({});
   const [loopMode, setLoopMode] = useState('none'); // 'none', '5sec', '10sec'
   const [dataTimeStep, setDataTimeStep] = useState(0.01); // Time step for data sampling in seconds
 
@@ -52,11 +175,11 @@ export function WorkspaceProvider({ children }) {
     // Note: Keeps playing, just resets positions and time
   }, []);
 
-  const updateSimulationTime = useCallback((time) => {
+  const updateSimulationTime = useCallback((time: number) => {
     setSimulationTime(time);
   }, []);
 
-  const updateFps = useCallback((newFps) => {
+  const updateFps = useCallback((newFps: number) => {
     setFps(newFps);
   }, []);
 
@@ -64,17 +187,17 @@ export function WorkspaceProvider({ children }) {
     setShowVelocityVectors(prev => !prev);
   }, []);
 
-  const updateVectorScale = useCallback((scale) => {
+  const updateVectorScale = useCallback((scale: number) => {
     setVectorScale(scale);
   }, []);
 
-  const addGraph = useCallback((type) => {
+  const addGraph = useCallback((type: string) => {
     const id = `graph-${Date.now()}`;
     setOpenGraphs(prev => [...prev, { id, initialType: type }]);
   }, []);
 
-  const removeGraph = useCallback((id) => {
-    setOpenGraphs(prev => prev.filter(g => g.id !== id));
+  const removeGraph = useCallback((id: string) => {
+    setOpenGraphs(prev => prev.filter((g: GraphData) => g.id !== id));
   }, []);
 
   const toggleLoop = useCallback(() => {
@@ -86,14 +209,13 @@ export function WorkspaceProvider({ children }) {
     });
   }, []);
 
-  const updateDataTimeStep = useCallback((step) => {
+  const updateDataTimeStep = useCallback((step: number) => {
     setDataTimeStep(step);
   }, []);
 
-  const saveCurrentScene = useCallback(async (sceneData) => {
+  const saveCurrentScene = useCallback(async (sceneData: SceneData): Promise<string> => {
     try {
       const savedId = await database.saveScene(sceneData);
-      console.log('Scene saved:', savedId);
       return savedId;
     } catch (err) {
       console.error('Save failed:', err);
@@ -109,11 +231,10 @@ export function WorkspaceProvider({ children }) {
       if (!workspaceManager.getCurrentWorkspace()) {
         const defaultWorkspace = workspaceManager.createWorkspace('Default Workspace');
         workspaceManager.setCurrentWorkspace(defaultWorkspace);
-        console.log('Initialized fresh session workspace');
       }
     };
 
-    const handleWorkspaceChange = (event, workspace) => {
+    const handleWorkspaceChange = (event: any, workspace: WorkspaceObject) => {
       // Use the workspace object directly (it has methods)
       setCurrentWorkspace(workspace);
       // Increment trigger to force re-renders
@@ -121,8 +242,8 @@ export function WorkspaceProvider({ children }) {
       setError(null);
     };
 
-    const handleWorkspaceError = (event, error) => {
-      setError(error.message);
+    const handleWorkspaceError = (event: any, error: any) => {
+      setError(error?.message || 'Unknown workspace error');
     };
 
     workspaceManager.addListener(handleWorkspaceChange);
@@ -194,8 +315,8 @@ export function WorkspaceProvider({ children }) {
 
   // Scene management methods
   const getCurrentScene = useCallback(() => {
-    return currentWorkspace?.getCurrentScene();
-  }, [currentWorkspace]);
+    return workspaceManager.getCurrentWorkspace()?.getCurrentScene();
+  }, [workspaceManager]);
 
   const setCurrentScene = useCallback((index) => {
     updateWorkspace(workspace => workspace.setCurrentScene(index));
@@ -218,7 +339,6 @@ export function WorkspaceProvider({ children }) {
     if (currentScene && currentScene.id) {
       try {
         await saveCurrentScene(currentScene);
-        console.log('Auto-saved updated scene:', currentScene.id);
       } catch (error) {
         console.warn('Auto-save failed:', error);
       }
@@ -232,7 +352,6 @@ export function WorkspaceProvider({ children }) {
     if (newScene && newScene.id && !newScene.id.startsWith('new-scene-')) {
       try {
         await saveCurrentScene(newScene);
-        console.log('Auto-saved scene:', newScene.id);
       } catch (error) {
         console.warn('Auto-save failed:', error);
       }
@@ -282,6 +401,27 @@ export function WorkspaceProvider({ children }) {
     updateSettings({ uiMode: mode });
   }, [updateSettings]);
 
+  // Chat management methods exposed from WorkspaceManager
+  const addChatSession = useCallback(() => {
+    return workspaceManager.addChatSession();
+  }, [workspaceManager]);
+
+  const deleteChatSession = useCallback((chatId) => {
+    return workspaceManager.deleteChatSession(chatId);
+  }, [workspaceManager]);
+
+  const selectChatSession = useCallback((chatId) => {
+    return workspaceManager.selectChatSession(chatId);
+  }, [workspaceManager]);
+
+  const getCurrentChat = useCallback(() => {
+    return workspaceManager.getCurrentChat();
+  }, [workspaceManager]);
+
+  const getAllChats = useCallback(() => {
+    return workspaceManager.getAllChats();
+  }, [workspaceManager]);
+
   // Scene-chat linking methods
   const linkSceneToChat = useCallback((sceneId, chatId) => {
     workspaceManager.updateCurrentWorkspace(workspace => workspace.linkSceneToChat(sceneId, chatId), true); // Silent update
@@ -322,7 +462,7 @@ export function WorkspaceProvider({ children }) {
 
     // Workspace data
     workspaceScenes: currentWorkspace?.scenes || [],
-    workspaceChats: currentWorkspace?.chat?.messages || [],
+    // workspaceChats: currentWorkspace?.chat?.messages || [], // This was for the old single chat structure
 
     // Workspace operations
     createWorkspace,
@@ -362,6 +502,13 @@ export function WorkspaceProvider({ children }) {
     setIsPlaying,
     toggleLoop,
     updateDataTimeStep,
+
+    // Chat management methods
+    addChatSession,
+    deleteChatSession,
+    selectChatSession,
+    getCurrentChat,
+    getAllChats,
 
     // Scene-chat linking methods
     linkSceneToChat,
@@ -404,12 +551,19 @@ export function useWorkspaceScene() {
 }
 
 export function useWorkspaceChat() {
-  const { currentWorkspace, addMessage } = useWorkspace();
+  const { currentWorkspace, addMessage, selectChatSession, getCurrentChat, getAllChats, addChatSession, deleteChatSession } = useWorkspace();
 
   return {
-    messages: currentWorkspace?.chat?.messages || [],
+    // Use the current chat's messages
+    messages: getCurrentChat()?.messages || [],
     addMessage,
-    chatSettings: currentWorkspace?.chat?.settings
+    chatSettings: getCurrentChat()?.settings,
+    // Expose chat management functions
+    selectChatSession,
+    getCurrentChat,
+    getAllChats,
+    addChatSession,
+    deleteChatSession
   };
 }
 

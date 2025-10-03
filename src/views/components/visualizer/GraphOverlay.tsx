@@ -11,7 +11,47 @@ import './GraphOverlay.css';
 
 ChartJS.register(CategoryScale, LinearScale, PointElement, LineElement, Title, Tooltip, Legend, zoomPlugin);
 
-function GraphOverlay({ isOpen, onToggle }) {
+// Type definitions
+interface PositionData {
+  t: number;
+  x: number;
+  y: number;
+  z: number;
+  vx?: number;
+  vy?: number;
+  vz?: number;
+}
+
+interface GraphConfig {
+  id: string;
+  initialType: string;
+}
+
+interface GraphOverlayProps {
+  isOpen: boolean;
+  onToggle: () => void;
+}
+
+interface OverlayGraphProps {
+  id: string;
+  initialType: string;
+  data: Record<string, PositionData[]>;
+  onClose: (id: string) => void;
+  initialPosition?: { x: number; y: number };
+}
+
+interface ChartLabels {
+  title: string;
+  xlabel: string;
+  ylabel: string;
+}
+
+interface PlotDataPoint {
+  x: number;
+  y: number;
+}
+
+function GraphOverlay({ isOpen, onToggle }: GraphOverlayProps) {
   const { openGraphs, removeGraph, objectHistory } = useWorkspace();
   const chartRef = useRef(null);
 
@@ -223,7 +263,7 @@ function OverlayGraph({ id, initialType, data, onClose }) {
     return {
       responsive: true,
       maintainAspectRatio: false,
-      animation: false,
+      animation: false as const,
       scales: {
         x: {
           title: { display: true, text: labels.xlabel, color: textColor },
@@ -254,7 +294,7 @@ function OverlayGraph({ id, initialType, data, onClose }) {
               const yVal = context.parsed.y.toFixed(3);
               return `(${labels.xlabel.split(' ')[0]}: ${xVal}, ${labels.ylabel.split(' ')[0]}: ${yVal})`;
             },
-            title: function() { return null; }
+            title: function() { return; }
           }
         },
         zoom: {
@@ -479,7 +519,7 @@ function OverlayGraph({ id, initialType, data, onClose }) {
                       ))
                     ) : (
                       <tr>
-                        <td colSpan="7" className="no-data">No data available</td>
+                        <td colSpan={7} className="no-data">No data available</td>
                       </tr>
                     )}
                   </tbody>

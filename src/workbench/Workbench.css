@@ -1,6 +1,13 @@
 .workbench {
   display: flex;
+  flex-direction: column;
   height: 100vh;
+  overflow: hidden;
+}
+
+.workbench-body {
+  display: flex;
+  flex: 1;
   overflow: hidden;
 }
 
@@ -235,10 +242,6 @@
 }
 
 .status-bar {
-  position: fixed;
-  bottom: 0;
-  left: 0;
-  right: 0;
   height: 35px;
   background-color: var(--primary-color);
   color: #ffffff;
@@ -247,9 +250,9 @@
   padding: 0px 10px;
   font-size: 12px;
   border-top: 1px solid var(--border-color);
-  z-index: 1000;
   overflow-x: auto;
   overflow-y: hidden;
+  flex-shrink: 0; /* Prevent status bar from shrinking */
 }
 
 .status-bar-left {

@@ -1,4 +1,4 @@
-import React from 'react';
+
 import DashboardView from '../views/DashboardView';
 import CollectionView from '../views/CollectionView';
 import VisualizerView from '../views/VisualizerView';

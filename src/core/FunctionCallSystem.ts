@@ -240,7 +240,6 @@ export class FunctionCallSystem {
       registeredAt: Date.now()
     };
 
-    console.log(`🔧 Registered object generator: ${name}`);
     return true;
   }
 

@@ -1,10 +1,24 @@
-import React, { useState, useEffect, useCallback, useRef, Suspense } from 'react';
+import { useState, useEffect, useCallback, useRef, Suspense } from 'react';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { faSpinner, faExclamationTriangle, faSquare, faSquareFull, faImage, faRocket } from '@fortawesome/free-solid-svg-icons';
 import Visualizer from '../ui-logic/visualizer/Visualizer';
-import { useDatabase } from '../contexts/DatabaseContext';
+import { useDatabase, SceneData } from '../contexts/DatabaseContext';
 import { useWorkspace, useWorkspaceScene, useWorkspaceChat, useWorkspaceSettings } from '../contexts/WorkspaceContext';
 import './VisualizerView.css';
+
+interface AIMessage {
+  role: string;
+  content: string;
+  id?: string;
+  timestamp?: number;
+}
+
+interface ChatData {
+  id: string;
+  messages: AIMessage[];
+  updatedAt: string;
+  [key: string]: any;
+}
 
 
 // Lazy load non-critical components (none needed currently)
@@ -34,30 +48,31 @@ function VisualizerView() {
   const dataManager = useDatabase();
 
   // Workspace hooks
-  const { createWorkspace, loadWorkspace, saveWorkspace, updateWorkspace } = useWorkspace();
-  const { scene: workspaceScene, updateScene: updateWorkspaceScene, scenes: workspaceScenes } = useWorkspaceScene();
+  const { createWorkspace: _createWorkspace, loadWorkspace: _loadWorkspace, saveWorkspace: _saveWorkspace, updateWorkspace: _updateWorkspace } = useWorkspace();
+  const { scene: workspaceScene, updateScene: updateWorkspaceScene, scenes: _workspaceScenes } = useWorkspaceScene();
   const { messages: workspaceMessages, addMessage: addWorkspaceMessage } = useWorkspaceChat();
   const { uiMode: workspaceUIMode, setUIMode: setWorkspaceUIMode } = useWorkspaceSettings();
 
-  const [loading, setLoading] = useState(true);
-  const [sceneSwitching, setSceneSwitching] = useState(false);
-  const [error, setError] = useState(null);
-  const [conversationHistory, setConversationHistory] = useState([]);
-  const [currentChatId, setCurrentChatId] = useState(null);
-  const [currentChat, setCurrentChat] = useState(null);
-  const [pendingChanges, setPendingChanges] = useState(null);
-  const [isPreviewMode, setIsPreviewMode] = useState(false);
-  const [capturedThumbnail, setCapturedThumbnail] = useState(null);
-  const [rightPanelView, setRightPanelView] = useState(workspaceUIMode === 'simple' ? 'integrated' : 'chat');
-  const [showSceneDetails, setShowSceneDetails] = useState(false);
+  const [loading, setLoading] = useState<boolean>(true);
+  const [sceneSwitching, setSceneSwitching] = useState<boolean>(false);
+  const [error, setError] = useState<string | null>(null);
+  const [conversationHistory, setConversationHistory] = useState<AIMessage[]>([]);
+  const [currentChatId, setCurrentChatId] = useState<string | null>(null);
+  const [currentChat, setCurrentChat] = useState<ChatData | null>(null);
+  const [pendingChanges, setPendingChanges] = useState<any>(null);
+  const [isPreviewMode, setIsPreviewMode] = useState<boolean>(false);
+  const [capturedThumbnail, setCapturedThumbnail] = useState<string | null>(null);
+  const [rightPanelView, setRightPanelView] = useState<string>(workspaceUIMode === 'simple' ? 'integrated' : 'chat');
+  const [showSceneDetails, setShowSceneDetails] = useState<boolean>(false);
   // Use workspace scene directly
   const scene = workspaceScene;
   // Determine initial background type from the scene JSON if provided.
   // Accept multiple possible keys for backward compatibility: scene.background or scene.backgroundType
-  const inferBackgroundFromScene = (s) => {
+  const inferBackgroundFromScene = (s: SceneData | null): string => {
     if (!s) return 'normal';
     // scene may store a simple string or an object like { type: 'space' }
-    const value = s.background || s.backgroundType || (s.bg && (typeof s.bg === 'string' ? s.bg : s.bg.type));
+    const sceneAny = s as any;
+    const value = sceneAny.background || sceneAny.backgroundType || (sceneAny.bg && (typeof sceneAny.bg === 'string' ? sceneAny.bg : sceneAny.bg.type));
     if (!value) return 'normal';
     // Normalize known values
     const v = String(value).toLowerCase();
@@ -86,7 +101,7 @@ function VisualizerView() {
     updateWorkspaceScene(newScene);
   }, [updateWorkspaceScene]);
 
-  const handleSaveScene = useCallback(async (sceneToSave = null) => {
+  const handleSaveScene = useCallback(async (sceneToSave: SceneData | null = null) => {
     const targetScene = sceneToSave || scene;
     if (!targetScene) return;
 

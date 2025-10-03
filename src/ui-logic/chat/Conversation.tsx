@@ -3,6 +3,15 @@ import GeminiAIManager from '../../core/ai/gemini';
 import ScenePatcher from '../../core/scene/patcher';
 import { useWorkspace } from '../../contexts/WorkspaceContext';
 
+interface Message {
+  id: number;
+  text: string;
+  isUser: boolean;
+  timestamp: Date;
+  sceneId?: string;
+  aiMetadata?: any;
+}
+
 // Pure backend hook for chat functionality
 export function useConversation({
   initialMessage,
@@ -12,9 +21,17 @@ export function useConversation({
   updateConversation,
   dataManager,
   workspaceMessages = [] // Add workspace messages as fallback
+}: {
+  initialMessage: string;
+  currentScene: any;
+  onSceneUpdate: any;
+  chatId: string;
+  updateConversation: any;
+  dataManager: any;
+  workspaceMessages: Message[];
 }) {
   const { linkSceneToChat, updateCurrentScene, updateWorkspace, addScene } = useWorkspace();
-  const [messages, setMessages] = useState([]); // Don't initialize with messages here - handled by parent components
+  const [messages, setMessages] = useState<Message[]>([]); // Don't initialize with messages here - handled by parent components
   const [isLoading, setIsLoading] = useState(false);
   const aiManager = useRef(new GeminiAIManager());
   const scenePatcher = useRef(new ScenePatcher());
@@ -75,8 +92,6 @@ export function useConversation({
   const prevSceneIdRef = useRef(currentScene?.id);
   useEffect(() => {
     if (prevSceneIdRef.current !== currentScene?.id) {
-      console.log(`🔄 Scene switched from ${prevSceneIdRef.current} to ${currentScene?.id}`);
-
       // Function to load conversation - try chatId first, then sceneId
       const loadConversation = async () => {
         // First try to load by chatId if available
@@ -85,7 +100,6 @@ export function useConversation({
             if (dataManager.getChatById) {
               const chat = await dataManager.getChatById(chatId);
               if (chat && chat.messages) {
-                console.log(`📚 Loaded ${chat.messages.length} existing messages by chatId ${chatId}`);
                 return chat.messages;
               }
             }
@@ -93,7 +107,6 @@ export function useConversation({
               const chats = await dataManager.getChatHistory();
               const relevantChat = chats.find(chat => chat.id === chatId);
               if (relevantChat && relevantChat.messages) {
-                console.log(`📚 Loaded ${relevantChat.messages.length} existing messages by chatId ${chatId}`);
                 return relevantChat.messages;
               }
             }
@@ -106,7 +119,6 @@ export function useConversation({
         if (currentScene?.id && dataManager) {
           const conversationsByScene = await loadExistingConversationForScene(currentScene.id);
           if (conversationsByScene) {
-            console.log(`📚 Loaded ${conversationsByScene.length} existing messages by sceneId ${currentScene.id}`);
             return conversationsByScene;
           }
         }
@@ -539,13 +551,5 @@ export function useConversation({
   };
 }
 
-// Legacy component for backward compatibility - now just a wrapper
-function Conversation(props) {
-  const conversation = useConversation(props);
-
-  // This component should not render UI anymore - it's just a backend hook
-  // The UI should be handled by ChatOverlay and ChatView components
-  return null;
-}
-
-export default Conversation;
+// Legacy component removed for Fast Refresh compatibility
+// Use the useConversation hook directly in UI components
