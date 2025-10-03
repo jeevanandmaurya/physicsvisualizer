@@ -1,9 +1,11 @@
 import React, { useState, useEffect } from 'react';
 import { configManager } from '../../../core/ConfigManager';
+import TimestepGuide from './TimestepGuide';
 import './PhysicsSettings.css';
 
 const PhysicsSettingsContent = () => {
     const [config, setConfig] = useState(configManager.config);
+    const [showTimestepGuide, setShowTimestepGuide] = useState(false);
 
     useEffect(() => {
         setConfig(configManager.config);
@@ -49,24 +51,47 @@ const PhysicsSettingsContent = () => {
     };
 
     return (
-        <div className="physics-settings-inline">
-            <h3>Physics Engine</h3>
+        <>
+            {showTimestepGuide && <TimestepGuide onClose={() => setShowTimestepGuide(false)} />}
+            
+            <div className="physics-settings-inline">
+                <h3>Physics Engine</h3>
 
-            <div className="settings-content">
+                <div className="settings-content">
                 {/* Physics Settings */}
                 <div className="settings-section">
                     <h4>Physics Engine</h4>
 
                     <div className="setting-group">
-                        <label>Timestep: {config.physics.timestep.toFixed(4)}s</label>
+                        <div style={{display: 'flex', alignItems: 'center', justifyContent: 'space-between'}}>
+                            <label>Timestep: {config.physics.timestep.toFixed(4)}s</label>
+                            <button 
+                                onClick={() => setShowTimestepGuide(true)}
+                                style={{
+                                    background: 'transparent',
+                                    border: '1px solid #4fc3f7',
+                                    color: '#4fc3f7',
+                                    padding: '4px 10px',
+                                    borderRadius: '4px',
+                                    cursor: 'pointer',
+                                    fontSize: '0.85em'
+                                }}
+                                title="Click for timestep selection guide"
+                            >
+                                ❓ Help
+                            </button>
+                        </div>
                         <input
                             type="range"
-                            min="0.008"
+                            min="0.0001"
                             max="0.02"
-                            step="0.001"
+                            step="0.0001"
                             value={config.physics.timestep}
                             onChange={(e) => updateConfig('physics.timestep', parseFloat(e.target.value))}
                         />
+                        <small style={{display: 'block', marginTop: '4px', color: '#888'}}>
+                            Recommended: 0.001s for orbits, 0.005s for general, 0.0166s (default)
+                        </small>
                     </div>
 
                     <div className="setting-group">
@@ -339,6 +364,7 @@ const PhysicsSettingsContent = () => {
                 </label>
             </div>
         </div>
+        </>
     );
 };
 

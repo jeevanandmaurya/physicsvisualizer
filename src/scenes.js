@@ -137,19 +137,23 @@ export const mechanicsExamples = [
   {
     "id": "gravitation",
     "name": "Gravitation (Two-Body Orbit)",
-    "description": "Two bodies orbiting under gravitational force.",
+    "description": "Stable circular orbit demonstration. v_circular = √(GM/r). Period T = 2π√(r³/GM). Shows conservation of angular momentum and energy. IMPORTANT: For stable orbits, reduce Physics Settings → Timestep to 0.001s or lower. Default timestep (0.0166s) causes numerical integration errors at these scales.",
     "objects": [
-      {"id": "body1", "type": "Sphere", "mass": 5, "radius": 1, "position": [0, 0, 0], "isStatic": true, "color": "#FFD700", "friction": 0.1, "restitution": 0.3},
-      {"id": "body2", "type": "Sphere", "mass": 1, "radius": 0.5, "position": [10, 0, 0], "velocity": [0, 0, 2], "color": "#4169E1", "friction": 0.1, "restitution": 0.3}
+      {"id": "body1", "type": "Sphere", "mass": 100, "gravitationalMass": 100, "radius": 1.5, "position": [0, 0, 0], "isStatic": true, "color": "#FFD700", "friction": 0, "restitution": 0},
+      {"id": "body2", "type": "Sphere", "mass": 1, "gravitationalMass": 1, "radius": 0.5, "position": [15, 0, 0], "velocity": [0, 0, 2.58], "color": "#4169E1", "friction": 0, "restitution": 0}
     ],
     "gravity": [0, 0, 0],
     "hasGround": false,
-    "contactMaterial": {"friction": 0.1, "restitution": 0},
-    "gravitationalPhysics": {"enabled": true, "gravitationalConstant": 10, "minDistance": 1, "softening": 0.1},
+    "contactMaterial": {"friction": 0, "restitution": 0},
+    "gravitationalPhysics": {"enabled": true, "gravitationalConstant": 1, "minDistance": 2.0, "softening": 0.8},
     "simulationScale": "solar_system",
+    "recommendedTimestep": 0.001,
     "controllers": [
-      {"id": "G", "label": "G Constant", "type": "slider", "min": 1, "max": 50, "step": 1, "value": 10, "propertyPath": "gravitationalPhysics.gravitationalConstant"},
-      {"id": "vel", "label": "Velocity", "type": "slider", "min": 1, "max": 5, "step": 0.5, "value": 2, "objectId": "body2", "property": "velocity[2]"}
+      {"id": "G", "label": "G Constant", "type": "slider", "min": 0.5, "max": 3, "step": 0.1, "value": 1, "propertyPath": "gravitationalPhysics.gravitationalConstant"},
+      {"id": "orbital_radius", "label": "Orbital Radius", "type": "slider", "min": 10, "max": 30, "step": 1, "value": 15, "objectId": "body2", "property": "position[0]"},
+      {"id": "vel", "label": "Orbital Velocity", "type": "slider", "min": 1, "max": 5, "step": 0.1, "value": 2.58, "objectId": "body2", "property": "velocity[2]"},
+      {"id": "central_mass", "label": "Central Mass", "type": "slider", "min": 50, "max": 500, "step": 10, "value": 100, "objectId": "body1", "property": "gravitationalMass"},
+      {"id": "planet_mass", "label": "Planet Mass", "type": "slider", "min": 0.5, "max": 5, "step": 0.5, "value": 1, "objectId": "body2", "property": "gravitationalMass"}
     ]
   },
   {
@@ -468,5 +472,102 @@ export const mechanicsExamples = [
       {"id": "softening", "label": "Softening Length", "type": "slider", "min": 0.3, "max": 2, "step": 0.1, "value": 0.8, "propertyPath": "gravitationalPhysics.softening"},
       {"id": "min_distance", "label": "Min Distance", "type": "slider", "min": 0.3, "max": 1.5, "step": 0.1, "value": 0.5, "propertyPath": "gravitationalPhysics.minDistance"}
     ]
+  },
+  {
+    "id": "kinetic-theory-diffusion",
+    "name": "Kinetic Theory of Diffusion",
+    "description": "Demonstrates diffusion in kinetic theory with particles of different densities mixing through random motion and collisions. Different numbers of red and yellow particles are placed in two regions separated by an imaginary partition. The particles diffuse and mix over time.",
+    "objects": [
+      {"id": "wall-left", "type": "Box", "mass": 0, "dimensions": [5, 40, 40], "position": [-22.5, 20, 0], "isStatic": true, "color": "#ffffff", "opacity": 0.1, "friction": 0, "restitution": 1},
+      {"id": "wall-right", "type": "Box", "mass": 0, "dimensions": [5, 40, 40], "position": [22.5, 20, 0], "isStatic": true, "color": "#ffffff", "opacity": 0.1, "friction": 0, "restitution": 1},
+      {"id": "wall-front", "type": "Box", "mass": 0, "dimensions": [40, 40, 5], "position": [0, 20, -22.5], "isStatic": true, "color": "#ffffff", "opacity": 0.1, "friction": 0, "restitution": 1},
+      {"id": "wall-back", "type": "Box", "mass": 0, "dimensions": [40, 40, 5], "position": [0, 20, 22.5], "isStatic": true, "color": "#ffffff", "opacity": 0.1, "friction": 0, "restitution": 1},
+      {"id": "wall-floor", "type": "Box", "mass": 0, "dimensions": [40, 5, 40], "position": [0, 2.5, 0], "isStatic": true, "color": "#ffffff", "opacity": 0.1, "friction": 0, "restitution": 1},
+      {"id": "wall-ceiling", "type": "Box", "mass": 0, "dimensions": [40, 5, 40], "position": [0, 37.5, 0], "isStatic": true, "color": "#ffffff", "opacity": 0.1, "friction": 0, "restitution": 1},
+      {"id": "red1", "type": "Sphere", "mass": 1, "radius": 0.3, "position": [-10, 15, 0], "velocity": [8, 0, 0], "color": "#ff0000", "friction": 0, "restitution": 1},
+      {"id": "red2", "type": "Sphere", "mass": 1, "radius": 0.3, "position": [-8, 25, 5], "velocity": [-5, 3, 4], "color": "#ff0000", "friction": 0, "restitution": 1},
+      {"id": "red3", "type": "Sphere", "mass": 1, "radius": 0.3, "position": [-12, 10, -8], "velocity": [6, -7, 2], "color": "#ff0000", "friction": 0, "restitution": 1},
+      {"id": "red4", "type": "Sphere", "mass": 1, "radius": 0.3, "position": [-6, 30, 8], "velocity": [-2, -9, 6], "color": "#ff0000", "friction": 0, "restitution": 1},
+      {"id": "yellow1", "type": "Sphere", "mass": 1, "radius": 0.3, "position": [10, 12, 3], "velocity": [-4, 8, -1], "color": "#ffff00", "friction": 0, "restitution": 1},
+      {"id": "yellow2", "type": "Sphere", "mass": 1, "radius": 0.3, "position": [12, 18, -4], "velocity": [7, -5, 3], "color": "#ffff00", "friction": 0, "restitution": 1},
+      {"id": "yellow3", "type": "Sphere", "mass": 1, "radius": 0.3, "position": [8, 27, 6], "velocity": [-6, 4, -8], "color": "#ffff00", "friction": 0, "restitution": 1},
+      {"id": "yellow4", "type": "Sphere", "mass": 1, "radius": 0.3, "position": [14, 22, -2], "velocity": [3, 2, -9], "color": "#ffff00", "friction": 0, "restitution": 1},
+      {"id": "yellow5", "type": "Sphere", "mass": 1, "radius": 0.3, "position": [6, 35, 7], "velocity": [9, -1, 5], "color": "#ffff00", "friction": 0, "restitution": 1},
+      {"id": "yellow6", "type": "Sphere", "mass": 1, "radius": 0.3, "position": [16, 16, -9], "velocity": [-8, 6, -4], "color": "#ffff00", "friction": 0, "restitution": 1},
+      {"id": "yellow7", "type": "Sphere", "mass": 1, "radius": 0.3, "position": [11, 29, 1], "velocity": [5, -3, -2], "color": "#ffff00", "friction": 0, "restitution": 1},
+      {"id": "yellow8", "type": "Sphere", "mass": 1, "radius": 0.3, "position": [13, 33, -5], "velocity": [-3, -8, 7], "color": "#ffff00", "friction": 0, "restitution": 1},
+      {"id": "yellow9", "type": "Sphere", "mass": 1, "radius": 0.3, "position": [9, 20, 4], "velocity": [6, 1, -6], "color": "#ffff00", "friction": 0, "restitution": 1},
+      {"id": "yellow10", "type": "Sphere", "mass": 1, "radius": 0.3, "position": [15, 24, 3], "velocity": [-1, -7, 8], "color": "#ffff00", "friction": 0, "restitution": 1}
+    ],
+    "gravity": [0, 0, 0],
+    "hasGround": false,
+    "contactMaterial": {"friction": 0, "restitution": 1},
+    "gravitationalPhysics": {"enabled": false},
+    "simulationScale": "terrestrial",
+    "controllers": []
+  },
+  {
+    "id": "gas-particles",
+    "name": "Gas Particle System",
+    "description": "Programmatically generated gas particles with Brownian motion. No individual JSON objects needed - particles generated based on parameters.",
+  
+    "objects": [
+      {"id": "left-wall", "type": "Box", "mass": 0, "dimensions": [0.5, 10, 10], "position": [-5.25, 5, 0], "color": "#666666", "opacity": 0.1, "transparent": true, "isStatic": true},
+      {"id": "right-wall", "type": "Box", "mass": 0, "dimensions": [0.5, 10, 10], "position": [5.25, 5, 0], "color": "#666666", "opacity": 0.1, "transparent": true, "isStatic": true},
+      {"id": "front-wall", "type": "Box", "mass": 0, "dimensions": [10, 10, 0.5], "position": [0, 5, -5.25], "color": "#666666", "opacity": 0.1, "transparent": true, "isStatic": true},
+      {"id": "back-wall", "type": "Box", "mass": 0, "dimensions": [10, 10, 0.5], "position": [0, 5, 5.25], "color": "#666666", "opacity": 0.1, "transparent": true, "isStatic": true},
+      {"id": "top-wall", "type": "Box", "mass": 0, "dimensions": [10, 0.5, 10], "position": [0, 10.25, 0], "color": "#666666", "opacity": 0.1, "transparent": true, "isStatic": true},
+      {"id": "bottom-wall", "type": "Box", "mass": 0, "dimensions": [10, 0.5, 10], "position": [0, -0.25, 0], "color": "#666666", "opacity": 0.1, "transparent": true, "isStatic": true}
+    ],
+  
+    "particles": {
+      "enabled": true,
+      "count": 100,
+      "type": "gas",
+      "position": [0, 5, 0],
+      "size": [10, 10, 10],
+      "mass": 0.001,
+      "radius": 0.15,
+      "temperature": 10.0,
+      "restitution": 0.9
+    },
+    "gravity": [0, 0, 0],
+    "hasGround": false,
+    "contactMaterial": {"friction": 0.1, "restitution": 0.9},
+    "gravitationalPhysics": {"enabled": false},
+    "simulationScale": "terrestrial",
+    "controllers": [
+      {"id": "particle_count", "label": "Particle Count", "type": "slider", "min": 10, "max": 200, "step": 10, "value": 100, "propertyPath": "particles.count"},
+      {"id": "particle_radius", "label": "Particle Radius", "type": "slider", "min": 0.01, "max": 0.3, "step": 0.01, "value": 0.15, "propertyPath": "particles.radius"},
+      {"id": "temperature", "label": "Temperature", "type": "slider", "min": 0, "max": 20, "step": 0.5, "value": 10.0, "propertyPath": "particles.temperature"},
+      {"id": "volume_size", "label": "Volume Size", "type": "slider", "min": 5, "max": 20, "step": 1, "value": 10, "propertyPath": "particles.size[0]"}
+    ]
+  },
+  {
+    "id": "function-test-sphere-ring",
+    "name": "Function Call Test: Sphere Ring",
+    "description": "Demonstrates dynamic object generation using function calls. Creates 20 spheres arranged in a ring pattern.",
+    "objects": [
+      {"id": "ground", "type": "Box", "mass": 0, "dimensions": [30, 1, 30], "position": [0, -0.5, 0], "color": "#8B4513", "isStatic": true}
+    ],
+    "functionCalls": [
+      {
+        "name": "generateSphereArray",
+        "parameters": {
+          "count": 20,
+          "center": [0, 5, 0],
+          "radius": 0.3,
+          "spread": 8,
+          "mass": 1,
+          "color": "#FF6347",
+          "velocityVariation": 0
+        }
+      }
+    ],
+    "gravity": [0, -9.81, 0],
+    "hasGround": true,
+    "contactMaterial": {"friction": 0.5, "restitution": 0.8},
+    "gravitationalPhysics": {"enabled": false},
+    "simulationScale": "terrestrial"
   }
 ];

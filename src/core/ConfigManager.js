@@ -12,9 +12,18 @@ export class ConfigManager {
         return {
             // Physics Engine Settings
             physics: {
-                timestep: 1/60, // Fixed timestep for physics simulation
-                maxSubSteps: 10, // Maximum substeps per frame
-                gravity: [0, -9.81, 0], // Default gravity vector
+                // Fixed timestep for physics simulation (in seconds)
+                // CRITICAL: Smaller timesteps = more accurate but slower simulation
+                // Recommended values:
+                //   - 0.0001-0.001s: Orbital mechanics, gravitational N-body (accurate integration)
+                //   - 0.001-0.005s: High-speed collisions, precise trajectories
+                //   - 0.005-0.01s: General simulations, complex constraints
+                //   - 0.0166s (1/60): Default, works for most terrestrial physics
+                //   - 0.02s (1/50): Slower, less accurate (use only for simple scenes)
+                // Rule of thumb: dt << T_orbital/100 for stable orbits
+                timestep: 1/60, // 0.0166s - default for general terrestrial simulations
+                maxSubSteps: 10, // Maximum substeps per frame (prevents spiral of death)
+                gravity: [0, -9.81, 0], // Default gravity vector (m/s²) - terrestrial
                 broadphase: 'SAP', // Broadphase algorithm: 'Naive', 'SAP', 'Grid'
                 solver: {
                     iterations: 10, // Constraint solver iterations

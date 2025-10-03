@@ -227,6 +227,82 @@ const PhysicsSettings = ({ isOpen, onClose }) => {
                         </div>
                     </div>
 
+                    {/* Particle Settings */}
+                    <div className="settings-section">
+                        <h3>Particle System</h3>
+
+                        <div className="setting-group">
+                            <label>
+                                <input
+                                    type="checkbox"
+                                    checked={config?.particles?.enabled || false}
+                                    onChange={(e) => updateConfig('particles.enabled', e.target.checked)}
+                                />
+                                Enable Particle System
+                            </label>
+                        </div>
+
+                        <div className="setting-group">
+                            <label>Default Particle Radius: {(config?.particles?.radius || 0.1).toFixed(2)}m</label>
+                            <input
+                                type="range"
+                                min="0.01"
+                                max="0.5"
+                                step="0.01"
+                                value={config?.particles?.radius || 0.1}
+                                onChange={(e) => {
+                                    const newRadius = parseFloat(e.target.value);
+                                    updateConfig('particles.radius', newRadius);
+                                }}
+                            />
+                        </div>
+
+                        <div className="setting-group">
+                            <label>Default Temperature: {config?.particles?.temperature || 1}</label>
+                            <input
+                                type="range"
+                                min="0"
+                                max="50"
+                                step="0.5"
+                                value={config?.particles?.temperature || 1}
+                                onChange={(e) => {
+                                    const newTemp = parseFloat(e.target.value);
+                                    updateConfig('particles.temperature', newTemp);
+                                }}
+                            />
+                        </div>
+
+                        <div className="setting-group">
+                            <label>Particle Count: {config?.particles?.count || 100}</label>
+                            <input
+                                type="range"
+                                min="10"
+                                max="1000"
+                                step="10"
+                                value={config?.particles?.count || 100}
+                                onChange={(e) => {
+                                    const newCount = parseInt(e.target.value);
+                                    updateConfig('particles.count', newCount);
+                                }}
+                            />
+                        </div>
+
+                        <div className="setting-group">
+                            <label>Particle Mass: {(config?.particles?.mass || 0.001).toFixed(4)}kg</label>
+                            <input
+                                type="range"
+                                min="0.0001"
+                                max="0.1"
+                                step="0.0001"
+                                value={config?.particles?.mass || 0.001}
+                                onChange={(e) => {
+                                    const newMass = parseFloat(e.target.value);
+                                    updateConfig('particles.mass', newMass);
+                                }}
+                            />
+                        </div>
+                    </div>
+
                     {/* Performance Settings */}
                     <div className="settings-section">
                         <h3>Performance</h3>

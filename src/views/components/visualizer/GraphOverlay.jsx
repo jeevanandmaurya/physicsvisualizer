@@ -34,7 +34,8 @@ function GraphOverlay({ isOpen, onToggle }) {
 }
 
 function OverlayGraph({ id, initialType, data, onClose }) {
-  const { overlayOpacity } = useTheme();
+  const { overlayOpacity, theme } = useTheme();
+  const { dataTimeStep, updateDataTimeStep } = useWorkspace();
   const chartRef = useRef(null);
   const objectIds = Object.keys(data);
 
@@ -43,6 +44,8 @@ function OverlayGraph({ id, initialType, data, onClose }) {
   const [connectPoints, setConnectPoints] = useState(false);
   const [isLive, setIsLive] = useState(true);
   const [liveWindowSeconds, setLiveWindowSeconds] = useState(10);
+  const [viewMode, setViewMode] = useState('graph'); // 'graph' or 'table'
+  const [maxTableRows, setMaxTableRows] = useState(20);
 
   // Minimize state (similar to ChatOverlay)
   const [isMinimized, setIsMinimized] = useState(false);
@@ -52,7 +55,7 @@ function OverlayGraph({ id, initialType, data, onClose }) {
   const [previousSize, setPreviousSize] = useState({ width: 550, height: 380 });
 
   // --- DATA PROCESSING ---
-  const { plotData, labels } = useMemo(() => {
+  const { plotData, labels, tableData } = useMemo(() => {
     const objectLabel = selectedObjectId ? `Object ${selectedObjectId}` : 'Select Object';
     let newLabels;
     switch (initialType) {
@@ -66,8 +69,11 @@ function OverlayGraph({ id, initialType, data, onClose }) {
       case 'energy': newLabels = { title: `Energy vs Time (${objectLabel})`, xlabel: 'Time (s)', ylabel: 'Energy (J)' }; break;
       default: newLabels = { title: 'Graph', xlabel: 'X', ylabel: 'Y' };
     }
-    if (!selectedObjectId || !data[selectedObjectId]) return { plotData: [], labels: newLabels };
+    if (!selectedObjectId || !data[selectedObjectId]) return { plotData: [], labels: newLabels, tableData: [] };
     const history = data[selectedObjectId];
+    
+    // Prepare table data (most recent rows first for live view)
+    const newTableData = [...history].reverse().slice(0, maxTableRows);
 
     let newPlotData = [];
     switch (initialType) {
@@ -123,8 +129,8 @@ function OverlayGraph({ id, initialType, data, onClose }) {
         break;
     }
 
-    return { plotData: newPlotData, labels: newLabels };
-  }, [selectedObjectId, data, initialType]);
+    return { plotData: newPlotData, labels: newLabels, tableData: newTableData };
+  }, [selectedObjectId, data, initialType, maxTableRows]);
 
   // --- CHART UPDATE EFFECT ---
   useEffect(() => {
@@ -161,48 +167,103 @@ function OverlayGraph({ id, initialType, data, onClose }) {
     setIsLive(true);
   }, [selectedObjectId, labels]);
 
+  // --- THEME CHANGE EFFECT ---
+  useEffect(() => {
+    const chart = chartRef.current;
+    if (!chart) return;
+
+    const isDark = document.documentElement.classList.contains('dark');
+    const textColor = isDark ? '#9ca3af' : '#4a5568';
+    const gridColor = isDark ? 'rgba(255, 255, 255, 0.1)' : 'rgba(0, 0, 0, 0.1)';
+
+    // Update chart colors based on theme
+    chart.options.scales.x.title.color = textColor;
+    chart.options.scales.x.ticks.color = textColor;
+    chart.options.scales.x.grid.color = gridColor;
+    chart.options.scales.y.title.color = textColor;
+    chart.options.scales.y.ticks.color = textColor;
+    chart.options.scales.y.grid.color = gridColor;
+    chart.options.plugins.tooltip.backgroundColor = isDark ? 'rgba(0, 0, 0, 0.9)' : 'rgba(50, 50, 50, 0.9)';
+    chart.options.plugins.tooltip.borderColor = isDark ? 'rgba(255, 255, 255, 0.2)' : 'rgba(0, 0, 0, 0.2)';
+
+    chart.update('none');
+
+    // Listen for theme changes
+    const observer = new MutationObserver(() => {
+      const isDark = document.documentElement.classList.contains('dark');
+      const textColor = isDark ? '#9ca3af' : '#4a5568';
+      const gridColor = isDark ? 'rgba(255, 255, 255, 0.1)' : 'rgba(0, 0, 0, 0.1)';
+
+      chart.options.scales.x.title.color = textColor;
+      chart.options.scales.x.ticks.color = textColor;
+      chart.options.scales.x.grid.color = gridColor;
+      chart.options.scales.y.title.color = textColor;
+      chart.options.scales.y.ticks.color = textColor;
+      chart.options.scales.y.grid.color = gridColor;
+      chart.options.plugins.tooltip.backgroundColor = isDark ? 'rgba(0, 0, 0, 0.9)' : 'rgba(50, 50, 50, 0.9)';
+      chart.options.plugins.tooltip.borderColor = isDark ? 'rgba(255, 255, 255, 0.2)' : 'rgba(0, 0, 0, 0.2)';
+
+      chart.update('none');
+    });
+
+    observer.observe(document.documentElement, {
+      attributes: true,
+      attributeFilter: ['class']
+    });
+
+    return () => observer.disconnect();
+  }, []);
+
   // --- CHART OPTIONS ---
-  const chartOptions = useMemo(() => ({
-    responsive: true,
-    maintainAspectRatio: false,
-    animation: false,
-    scales: {
-      x: {
-        title: { display: true, text: labels.xlabel, color: '#9ca3af' },
-        ticks: { color: '#9ca3af', font: { size: 10 } },
-        grid: { color: 'rgba(255, 255, 255, 0.1)' },
+  const chartOptions = useMemo(() => {
+    const isDark = document.documentElement.classList.contains('dark');
+    const textColor = isDark ? '#9ca3af' : '#4a5568';
+    const gridColor = isDark ? 'rgba(255, 255, 255, 0.1)' : 'rgba(0, 0, 0, 0.1)';
+    
+    return {
+      responsive: true,
+      maintainAspectRatio: false,
+      animation: false,
+      scales: {
+        x: {
+          title: { display: true, text: labels.xlabel, color: textColor },
+          ticks: { color: textColor, font: { size: 10 } },
+          grid: { color: gridColor },
+        },
+        y: {
+          title: { display: true, text: labels.ylabel, color: textColor },
+          ticks: { color: textColor, font: { size: 10 } },
+          grid: { color: gridColor },
+        },
       },
-      y: {
-        title: { display: true, text: labels.ylabel, color: '#9ca3af' },
-        ticks: { color: '#9ca3af', font: { size: 10 } },
-        grid: { color: 'rgba(255, 255, 255, 0.1)' },
+      plugins: {
+        legend: { display: false },
+        title: { display: false },
+        tooltip: {
+          enabled: true,
+          mode: 'nearest',
+          intersect: false,
+          backgroundColor: isDark ? 'rgba(0, 0, 0, 0.9)' : 'rgba(50, 50, 50, 0.9)',
+          titleColor: '#ffffff',
+          bodyColor: '#ffffff',
+          borderColor: isDark ? 'rgba(255, 255, 255, 0.2)' : 'rgba(0, 0, 0, 0.2)',
+          borderWidth: 1,
+          callbacks: {
+            label: function(context) {
+              const xVal = context.parsed.x.toFixed(3);
+              const yVal = context.parsed.y.toFixed(3);
+              return `(${labels.xlabel.split(' ')[0]}: ${xVal}, ${labels.ylabel.split(' ')[0]}: ${yVal})`;
+            },
+            title: function() { return null; }
+          }
+        },
+        zoom: {
+          pan: { enabled: true, mode: 'xy' },
+          zoom: { wheel: { enabled: true }, pinch: { enabled: true }, mode: 'xy' },
+        },
       },
-    },
-    plugins: {
-      legend: { display: false },
-      title: { display: false },
-      tooltip: {
-        enabled: true,
-        mode: 'nearest',
-        intersect: false,
-        backgroundColor: 'rgba(0, 0, 0, 0.8)',
-        titleColor: '#ffffff',
-        bodyColor: '#ffffff',
-        callbacks: {
-          label: function(context) {
-            const xVal = context.parsed.x.toFixed(3);
-            const yVal = context.parsed.y.toFixed(3);
-            return `(${labels.xlabel.split(' ')[0]}: ${xVal}, ${labels.ylabel.split(' ')[0]}: ${yVal})`;
-          },
-          title: function() { return null; }
-        }
-      },
-      zoom: {
-        pan: { enabled: true, mode: 'xy' },
-        zoom: { wheel: { enabled: true }, pinch: { enabled: true }, mode: 'xy' },
-      },
-    },
-  }), [labels.xlabel, labels.ylabel]);
+    };
+  }, [labels.xlabel, labels.ylabel]);
 
   const initialChartData = useMemo(() => ({
     datasets: [{
@@ -313,27 +374,118 @@ function OverlayGraph({ id, initialType, data, onClose }) {
                 <option value="" disabled>{objectIds.length === 0 ? 'No objects' : 'Select Object'}</option>
                 {objectIds.map(objId => <option key={objId} value={objId}>{`Object ${objId}`}</option>)}
               </select>
-              <label>
-                <input type="checkbox" checked={connectPoints} onChange={(e) => setConnectPoints(e.target.checked)} />
-                Connect Points
-              </label>
-              {initialType !== 'yvx' && (
-                <div className="live-controls">
-                  <span className={`live-indicator ${isLive ? 'active' : ''}`} title={isLive ? 'Live' : 'Paused'}></span>
-                  <button onClick={handleGoLive} disabled={isLive}>Go Live</button>
-                  <select value={liveWindowSeconds} onChange={(e) => setLiveWindowSeconds(Number(e.target.value))} aria-label="Live Window Size">
-                    <option value={5}>5s</option>
-                    <option value={10}>10s</option>
-                    <option value={30}>30s</option>
-                    <option value={60}>60s</option>
+              
+              <div className="view-mode-toggle">
+                <button 
+                  className={viewMode === 'graph' ? 'active' : ''} 
+                  onClick={() => setViewMode('graph')}
+                  title="Graph View"
+                >
+                  Graph
+                </button>
+                <button 
+                  className={viewMode === 'table' ? 'active' : ''} 
+                  onClick={() => setViewMode('table')}
+                  title="Table View"
+                >
+                  Table
+                </button>
+              </div>
+
+              <div className="time-step-control">
+                <label>
+                  Time Step:
+                  <select 
+                    value={dataTimeStep} 
+                    onChange={(e) => updateDataTimeStep(Number(e.target.value))}
+                    title="Data sampling interval"
+                  >
+                    <option value={0.001}>0.001s</option>
+                    <option value={0.01}>0.01s</option>
+                    <option value={0.05}>0.05s</option>
+                    <option value={0.1}>0.1s</option>
+                    <option value={0.5}>0.5s</option>
+                    <option value={1}>1s</option>
                   </select>
+                </label>
+              </div>
+
+              {viewMode === 'graph' && (
+                <>
+                  <label>
+                    <input type="checkbox" checked={connectPoints} onChange={(e) => setConnectPoints(e.target.checked)} />
+                    Connect Points
+                  </label>
+                  {initialType !== 'yvx' && (
+                    <div className="live-controls">
+                      <span className={`live-indicator ${isLive ? 'active' : ''}`} title={isLive ? 'Live' : 'Paused'}></span>
+                      <button onClick={handleGoLive} disabled={isLive}>Go Live</button>
+                      <select value={liveWindowSeconds} onChange={(e) => setLiveWindowSeconds(Number(e.target.value))} aria-label="Live Window Size">
+                        <option value={5}>5s</option>
+                        <option value={10}>10s</option>
+                        <option value={30}>30s</option>
+                        <option value={60}>60s</option>
+                      </select>
+                    </div>
+                  )}
+                </>
+              )}
+
+              {viewMode === 'table' && (
+                <div className="table-controls">
+                  <label>
+                    Max Rows:
+                    <select value={maxTableRows} onChange={(e) => setMaxTableRows(Number(e.target.value))}>
+                      <option value={10}>10</option>
+                      <option value={20}>20</option>
+                      <option value={50}>50</option>
+                      <option value={100}>100</option>
+                    </select>
+                  </label>
                 </div>
               )}
             </div>
 
-            <div className="chart-area-wrapper">
-              <Scatter ref={chartRef} data={initialChartData} options={chartOptions} />
-            </div>
+            {viewMode === 'graph' ? (
+              <div className="chart-area-wrapper">
+                <Scatter ref={chartRef} data={initialChartData} options={chartOptions} />
+              </div>
+            ) : (
+              <div className="table-area-wrapper">
+                <table className="stats-table">
+                  <thead>
+                    <tr>
+                      <th>Time (s)</th>
+                      <th>X (m)</th>
+                      <th>Y (m)</th>
+                      <th>Z (m)</th>
+                      <th>Vx (m/s)</th>
+                      <th>Vy (m/s)</th>
+                      <th>Vz (m/s)</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {tableData.length > 0 ? (
+                      tableData.map((row, idx) => (
+                        <tr key={`${row.t}-${idx}`}>
+                          <td>{row.t.toFixed(3)}</td>
+                          <td>{row.x.toFixed(3)}</td>
+                          <td>{row.y.toFixed(3)}</td>
+                          <td>{row.z.toFixed(3)}</td>
+                          <td>{(row.vx || 0).toFixed(3)}</td>
+                          <td>{(row.vy || 0).toFixed(3)}</td>
+                          <td>{(row.vz || 0).toFixed(3)}</td>
+                        </tr>
+                      ))
+                    ) : (
+                      <tr>
+                        <td colSpan="7" className="no-data">No data available</td>
+                      </tr>
+                    )}
+                  </tbody>
+                </table>
+              </div>
+            )}
           </div>
         )}
       </Rnd>

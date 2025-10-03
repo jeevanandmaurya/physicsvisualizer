@@ -6,6 +6,7 @@ import * as THREE from 'three';
 import { GravitationalPhysics } from './gravitation/calculations.js';
 import { ConstraintPhysics } from './constraints/calculations.js';
 import { FluidPhysics } from './fluid/calculations.js';
+import { ParticleSystem } from './ParticleSystem.jsx';
 
 // Dummy class to maintain API compatibility - Rapier handles physics automatically
 export class PhysicsEngine {
@@ -310,7 +311,7 @@ const Joints = React.memo(function Joints({ scene, bodyRefs, physicsResetKey }) 
 // React PhysicsWorld component that uses Physics paused prop for proper state preservation
 
 // React PhysicsWorld component that uses Physics paused prop for proper state preservation
-export function PhysicsWorld({ scene, isPlaying, onPhysicsDataCalculated, resetTrigger, defaultContactMaterial }) {
+export function PhysicsWorld({ scene, isPlaying, onPhysicsDataCalculated, resetTrigger, defaultContactMaterial, simulationTime }) {
     const [physicsResetKey, setPhysicsResetKey] = React.useState(0);
     const bodyRefs = useRef({}); // Store body refs for joints
 
@@ -366,6 +367,7 @@ export function PhysicsWorld({ scene, isPlaying, onPhysicsDataCalculated, resetT
                 bodyRefs={bodyRefs}
                 onPhysicsDataCalculated={onPhysicsDataCalculated}
                 defaultContactMaterial={defaultContactMaterial}
+                simulationTime={simulationTime}
             />;
         });
     };
@@ -392,6 +394,14 @@ export function PhysicsWorld({ scene, isPlaying, onPhysicsDataCalculated, resetT
             <GravitationalForces scene={scene} isPlaying={isPlaying} />
             <Constraints scene={scene} isPlaying={isPlaying} />
             <FluidForces scene={scene} isPlaying={isPlaying} />
+            <ParticleSystem
+                key={`particles-${JSON.stringify(scene.particles || {})}`}
+                config={scene.particles}
+                isPlaying={isPlaying}
+                onPhysicsDataCalculated={onPhysicsDataCalculated}
+                simulationTime={simulationTime}
+                physicsResetKey={physicsResetKey}
+            />
             {renderObjects()}
 
         </Physics>
@@ -399,7 +409,7 @@ export function PhysicsWorld({ scene, isPlaying, onPhysicsDataCalculated, resetT
 }
 
 // Individual physics object component (only rendered when playing)
-function PhysicsObject({ config, isPlaying, physicsResetKey, bodyRefs, onPhysicsDataCalculated, defaultContactMaterial }) {
+function PhysicsObject({ config, isPlaying, physicsResetKey, bodyRefs, onPhysicsDataCalculated, defaultContactMaterial, simulationTime }) {
     const bodyRef = useRef();
 
     // Store body ref for joints when it becomes available
@@ -415,7 +425,8 @@ function PhysicsObject({ config, isPlaying, physicsResetKey, bodyRefs, onPhysics
         if (isPlaying && bodyRef.current) {
             const velocity = config.velocity || [0, 0, 0];
             // Imperatively set velocity and wake the body
-            bodyRef.current.setLinvel({ x: velocity[0], y: velocity[1], z: velocity[2] }, true);
+            bodyRef.current.setLinvel({ x: velocity[0], y: velocity[1], z: velocity[2] });
+            bodyRef.current.setAngvel({ x: 0, y: 0, z: 0 });
             bodyRef.current.wakeUp();
         }
     }, [isPlaying, config.velocity, physicsResetKey]); // Dependencies ensure this runs when simulation starts
@@ -466,17 +477,23 @@ function PhysicsObject({ config, isPlaying, physicsResetKey, bodyRefs, onPhysics
         }
     };
 
-    // Report velocity data for visualization
+    // Report physics data for visualization and graphing
     useFrame(() => {
         if (bodyRef.current && onPhysicsDataCalculated && isPlaying) {
             try {
-                // Get velocity from RigidBody
-                if (bodyRef.current.linvel) {
-                    const vel = bodyRef.current.linvel;
-                    onPhysicsDataCalculated({ [config.id]: [vel.x, vel.y, vel.z] });
-                }
+                // Get position and velocity from RigidBody
+                const pos = bodyRef.current.translation();
+                const vel = bodyRef.current.linvel ? bodyRef.current.linvel() : { x: 0, y: 0, z: 0 };
+                
+                onPhysicsDataCalculated({ 
+                    [config.id]: {
+                        velocity: [vel.x, vel.y, vel.z],
+                        position: [pos.x, pos.y, pos.z],
+                        time: simulationTime || 0
+                    }
+                });
             } catch (error) {
-                // Silently handle velocity access errors
+                // Silently handle access errors
             }
         }
     });

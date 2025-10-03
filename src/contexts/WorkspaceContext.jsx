@@ -23,6 +23,7 @@ export function WorkspaceProvider({ children }) {
   const [resetTrigger, setResetTrigger] = useState(0);
   const [objectHistory, setObjectHistory] = useState({});
   const [loopMode, setLoopMode] = useState('none'); // 'none', '5sec', '10sec'
+  const [dataTimeStep, setDataTimeStep] = useState(0.01); // Time step for data sampling in seconds
 
   const togglePlayPause = useCallback(() => {
     setIsPlaying(prev => !prev);
@@ -83,6 +84,10 @@ export function WorkspaceProvider({ children }) {
       if (prev === '10sec') return 'none';
       return 'none';
     });
+  }, []);
+
+  const updateDataTimeStep = useCallback((step) => {
+    setDataTimeStep(step);
   }, []);
 
   const saveCurrentScene = useCallback(async (sceneData) => {
@@ -310,6 +315,7 @@ export function WorkspaceProvider({ children }) {
     objectHistory,
     setObjectHistory,
     loopMode,
+    dataTimeStep,
 
     // View management
     setCurrentView,
@@ -355,6 +361,7 @@ export function WorkspaceProvider({ children }) {
     saveCurrentScene,
     setIsPlaying,
     toggleLoop,
+    updateDataTimeStep,
 
     // Scene-chat linking methods
     linkSceneToChat,

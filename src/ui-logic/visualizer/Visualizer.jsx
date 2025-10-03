@@ -1,4 +1,4 @@
-import React, { useRef, useEffect, useCallback, useState } from 'react';
+import React, { useRef, useEffect, useCallback, useState, useMemo } from 'react';
 import { Canvas, useFrame } from '@react-three/fiber';
 import { OrbitControls, Grid, Text, useTexture } from '@react-three/drei';
 import * as THREE from 'three';
@@ -16,6 +16,7 @@ import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { faCube } from '@fortawesome/free-solid-svg-icons';
 import { useWorkspace } from '../../contexts/WorkspaceContext';
 import SceneDetailsUI from '../../views/components/scene-management/SceneDetailsUI';
+import { functionCallSystem } from '../../core/FunctionCallSystem.js';
 
 // --- Visualizer-specific helper components ---
 function TimeUpdater({ isPlaying, updateSimulationTime }) {
@@ -55,41 +56,72 @@ function Arrow({ vec, color }) {
   const shaftRef = useRef(); 
   const coneRef = useRef(); 
   const geometries = useMemo(() => ({ 
+    // Create unit geometries aligned along +Y. We'll scale the mesh transforms
+    // instead of modifying the geometry parameters each frame.
     shaft: new THREE.CylinderGeometry(1, 1, 1, 8), 
     cone: new THREE.ConeGeometry(1, 1, 8) 
   }), []); 
   useEffect(() => { return () => { geometries.shaft.dispose(); geometries.cone.dispose(); }; }, [geometries]); 
-  useEffect(() => { 
-    const group = groupRef.current; 
-    const shaft = shaftRef.current; 
-    const cone = coneRef.current; 
-    if (!group || !shaft || !cone) return; 
-    const length = vec.length(); 
-    if (length < 1e-4) { 
-      group.visible = false; 
-      return; 
-    } 
-    group.visible = true; 
-    const start = new THREE.Vector3(0, 1, 0); 
-    const end = vec.clone().normalize(); 
-    const quaternion = new THREE.Quaternion(); 
-    quaternion.setFromUnitVectors(start, end); 
-    group.quaternion.copy(quaternion); 
-    const headHeight = Math.max(length * 0.25, 0.1); 
-    const headRadius = Math.max(length * 0.1, 0.05); 
-    const shaftRadius = Math.max(length * 0.03, 0.02); 
-    const shaftLength = Math.max(length - headHeight, 0.1); 
-    shaft.scale.set(shaftRadius, shaftLength, shaftRadius); 
-    shaft.position.set(0, shaftLength / 2, 0); 
-    cone.scale.set(headRadius, headHeight, headRadius); 
-    cone.position.set(0, shaftLength + headHeight / 2, 0); 
-  }, [vec, geometries]); 
-  return (<group ref={groupRef}><mesh ref={shaftRef} geometry={geometries.shaft}><meshStandardMaterial color={color} /></mesh><mesh ref={coneRef} geometry={geometries.cone}><meshStandardMaterial color={color} /></mesh></group>); 
+  const vecRef = useRef(vec);
+
+  // Reusable Three.js objects to avoid re-instantiation in useFrame
+  const dir = useMemo(() => new THREE.Vector3(), []);
+  const up = useMemo(() => new THREE.Vector3(0, 1, 0), []);
+  const quaternion = useMemo(() => new THREE.Quaternion(), []);
+
+  useEffect(() => {
+    vecRef.current = vec;
+  }, [vec]);
+
+  useFrame(() => {
+    const group = groupRef.current;
+    const shaft = shaftRef.current;
+    const cone = coneRef.current;
+    const currentVec = vecRef.current;
+
+    if (!group || !shaft || !cone || !currentVec) return;
+
+    const length = currentVec.length();
+    if (length < 1e-4) {
+      group.visible = false;
+      return;
+    }
+    group.visible = true;
+
+    // Orient the arrow
+    dir.copy(currentVec).normalize(); // Copy currentVec to dir and normalize
+    quaternion.setFromUnitVectors(up, dir);
+    group.quaternion.copy(quaternion);
+
+    // Determine sizes relative to vector length
+    const headHeight = Math.max(length * 0.25, 0.1);
+    const headRadius = Math.max(length * 0.08, 0.03);
+    const shaftRadius = Math.max(length * 0.02, 0.01);
+    const shaftLength = Math.max(length - headHeight, 0.05);
+
+    // Apply scales and positions
+    shaft.scale.set(shaftRadius, shaftLength, shaftRadius);
+    shaft.position.set(0, shaftLength / 2, 0);
+
+    cone.scale.set(headRadius, headHeight, headRadius);
+    cone.position.set(0, shaftLength + headHeight / 2, 0);
+  });
+
+  return (
+    <group ref={groupRef}>
+      <mesh ref={shaftRef} geometry={geometries.shaft}>
+        <meshStandardMaterial color={color} />
+      </mesh>
+      <mesh ref={coneRef} geometry={geometries.cone}>
+        <meshStandardMaterial color={color} />
+      </mesh>
+    </group>
+  );
 }
 function VelocityVector({ position, velocityData, velocityScale, color }) {
   if (!velocityData || !Array.isArray(velocityData)) return null;
   const velocityVector = new THREE.Vector3().fromArray(velocityData);
-  const scaledVelocityVec = velocityVector.multiplyScalar(velocityScale);
+  const scaledVelocityVec = velocityVector.multiplyScalar(velocityScale || 1);
   if (scaledVelocityVec.length() < 0.01) return null;
 
   return (
@@ -98,10 +130,12 @@ function VelocityVector({ position, velocityData, velocityScale, color }) {
     </group>
   );
 }
-function VelocityVectorVisuals({ show, velocities, velocityScale, sceneObjects }) {
+function VelocityVectorVisuals({ show, velocities, positions, velocityScale, sceneObjects }) {
   if (!show || !velocities || !sceneObjects) return null;
 
-  return sceneObjects.map((obj) => {
+  const dynamicObjects = sceneObjects.filter(obj => !obj.isStatic);
+
+  return dynamicObjects.map((obj) => {
     const velocity = velocities[obj.id];
     if (!velocity || !Array.isArray(velocity)) return null;
 
@@ -111,7 +145,7 @@ function VelocityVectorVisuals({ show, velocities, velocityScale, sceneObjects }
     return (
       <VelocityVector
         key={`velocity-${obj.id}`}
-        position={obj.position || [0, 0, 0]}
+        position={positions[obj.id] || obj.position || [0, 0, 0]}
         velocityData={velocity}
         velocityScale={velocityScale || 1}
         color="#00ff88"
@@ -131,7 +165,7 @@ function Skybox({ texturePath }) {
 }
 
 function Visualizer({ scene, showSceneDetails, onToggleSceneDetails }) {
-    const { isPlaying, simulationTime, fps, showVelocityVectors, vectorScale, openGraphs, resetSimulation, loopReset, updateSimulationTime, updateFps, resetTrigger, removeGraph, setObjectHistory, loopMode, setIsPlaying } = useWorkspace();
+    const { isPlaying, simulationTime, fps, showVelocityVectors, vectorScale, openGraphs, resetSimulation, loopReset, updateSimulationTime, updateFps, resetTrigger, removeGraph, setObjectHistory, loopMode, setIsPlaying, dataTimeStep } = useWorkspace();
 
     // Debug: Log scene changes
     useEffect(() => {
@@ -140,35 +174,118 @@ function Visualizer({ scene, showSceneDetails, onToggleSceneDetails }) {
 
     const historyRef = useRef({});
     const lastLoopResetRef = useRef(0);
-    const [physicsData, setPhysicsData] = useState({ velocities: {} });
+    const lastRecordTimeRef = useRef({}); // Track last recorded time for each object
+    const [physicsData, setPhysicsData] = useState({ velocities: {}, positions: {} });
     const [canvasError, setCanvasError] = useState(false);
     const r3fCanvasRef = useRef(null);
+    const [processedScene, setProcessedScene] = useState(null);
 
-    const { gravity = [0, -9.81, 0], contactMaterial = {}, hasGround = true } = scene || {};
-    const objectsToRender = scene?.objects || [];
+    // Process scene function calls when scene changes
+    useEffect(() => {
+        if (scene) {
+            console.log('🎬 Visualizer: Processing scene functions for:', scene.id);
+            const processed = functionCallSystem.processSceneFunctions(scene);
+            setProcessedScene(processed);
+
+            // Log any errors that occurred during processing
+            if (processed.errors && processed.errors.length > 0) {
+                console.warn('⚠️ Scene processing errors:', processed.errors);
+            }
+
+            console.log(`✅ Scene processed: ${scene.objects?.length || 0} → ${processed.objects?.length || 0} objects`);
+        } else {
+            setProcessedScene(null);
+        }
+    }, [scene]);
+
+    const activeScene = processedScene || scene;
+    const { gravity = [0, -9.81, 0], contactMaterial = {}, hasGround = true } = activeScene || {};
+    const objectsToRender = activeScene?.objects || [];
 
     const defaultContactMaterial = {
         friction: contactMaterial.friction || 0.5,
         restitution: contactMaterial.restitution || 0.7
     };
 
-    const handlePhysicsDataCalculated = useCallback((data) => { 
-      setPhysicsData(data); 
-    }, []);
+    const MAX_HISTORY_POINTS = 2000;
+
+  const handlePhysicsDataCalculated = useCallback((data) => {
+    // data format: { objectId: { velocity: [vx,vy,vz], position: [x,y,z], time: t } }
+    // Merge incoming per-object updates into the existing physicsData state
+    // because PhysicsObject reports one object at a time from useFrame.
+    const incomingVelocities = {};
+    const incomingPositions = {};
+
+    Object.entries(data).forEach(([id, info]) => {
+      if (info && info.velocity && info.position && info.time !== undefined) {
+        incomingVelocities[id] = info.velocity;
+        incomingPositions[id] = info.position;
+
+        // Check if enough time has passed since last recording based on dataTimeStep
+        const lastRecordTime = lastRecordTimeRef.current[id] || 0;
+        const timeSinceLastRecord = info.time - lastRecordTime;
+
+        // Only record if time step has elapsed
+        if (timeSinceLastRecord >= dataTimeStep) {
+          // Update history
+          if (!historyRef.current[id]) {
+            historyRef.current[id] = [];
+          }
+          const history = historyRef.current[id];
+
+          history.push({
+            t: info.time,
+            x: info.position[0],
+            y: info.position[1],
+            z: info.position[2],
+            vx: info.velocity[0],
+            vy: info.velocity[1],
+            vz: info.velocity[2]
+          });
+
+          // Update last record time
+          lastRecordTimeRef.current[id] = info.time;
+
+          // Keep history size manageable
+          if (history.length > MAX_HISTORY_POINTS) {
+            history.shift();
+          }
+        }
+      }
+    });
+
+    // Merge with previous state so we preserve data for objects that haven't been
+    // reported in this particular frame call.
+    setPhysicsData(prev => ({
+      velocities: { ...(prev?.velocities || {}), ...incomingVelocities },
+      positions: { ...(prev?.positions || {}), ...incomingPositions }
+    }));
+  }, [dataTimeStep]);
 
     useEffect(() => {
         historyRef.current = {};
+        lastRecordTimeRef.current = {};
         setObjectHistory({});
-        setPhysicsData({ velocities: {} });
+        setPhysicsData({ velocities: {}, positions: {} });
         setIsPlaying(false);
     }, [scene, setIsPlaying]);
+
+    // Reset data when reset button is pressed (resetTrigger changes)
+    useEffect(() => {
+        if (resetTrigger) {
+            historyRef.current = {};
+            lastRecordTimeRef.current = {};
+            setObjectHistory({});
+            setPhysicsData({ velocities: {}, positions: {} });
+        }
+    }, [resetTrigger, setObjectHistory]);
 
     useEffect(() => {
         const i = setInterval(() => {
             if (Object.keys(historyRef.current).length) setObjectHistory({ ...historyRef.current });
         }, 200);
         return () => clearInterval(i);
-    }, []);
+    }, [setObjectHistory]);
 
     // Handle WebGL context loss
     useEffect(() => {
@@ -190,6 +307,7 @@ function Visualizer({ scene, showSceneDetails, onToggleSceneDetails }) {
         if (loopMode !== 'none' && isPlaying) {
             const interval = loopMode === '5sec' ? 5 : 10;
             if (simulationTime >= interval) {
+                // loopReset() will trigger resetTrigger effect which clears the data
                 loopReset();
             }
         }
@@ -251,18 +369,19 @@ function Visualizer({ scene, showSceneDetails, onToggleSceneDetails }) {
                         <ambientLight intensity={0.6} />
                         <directionalLight position={[8, 10, 5]} intensity={1.0} castShadow shadow-mapSize-width={1024} shadow-mapSize-height={1024} />
                         <PhysicsWorld
-                            scene={scene}
+                            scene={activeScene}
                             isPlaying={isPlaying}
                             onPhysicsDataCalculated={handlePhysicsDataCalculated}
                             resetTrigger={resetTrigger}
                             defaultContactMaterial={defaultContactMaterial}
+                            simulationTime={simulationTime}
                         />
-                        <VelocityVectorVisuals show={showVelocityVectors} velocities={physicsData.velocities} velocityScale={vectorScale} sceneObjects={objectsToRender} />
+                        <VelocityVectorVisuals show={showVelocityVectors} velocities={physicsData.velocities} positions={physicsData.positions} velocityScale={vectorScale} sceneObjects={objectsToRender} />
                         <OrbitControls />
                         <LabeledAxesHelper size={5} />
                         <SimpleGrid show={hasGround} />
                         <FpsCounter updateFps={updateFps} />
-                        <Skybox texturePath={scene?.type === 'extraterrestrial' || scene?.theme === 'space' ? spaceTexture : backgroundTexture} />
+                        <Skybox texturePath={activeScene?.type === 'extraterrestrial' || activeScene?.theme === 'space' ? spaceTexture : backgroundTexture} />
                     </Canvas>
                 )}
 

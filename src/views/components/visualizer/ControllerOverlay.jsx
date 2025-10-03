@@ -24,6 +24,17 @@ const ControllerOverlay = ({
   const [resizeStart, setResizeStart] = useState({ x: 0, y: 0 });
   const overlayRef = useRef(null);
 
+  const normalizePropertyPath = (path) => {
+    if (!path) return [];
+    return path
+      .replace(/\[(\w+)\]/g, '.$1')
+      .split('.')
+      .map(part => part.trim())
+      .filter(part => part.length > 0);
+  };
+
+  const isNumericSegment = (segment) => segment !== '' && !Number.isNaN(Number(segment));
+
   // Set initial position after mount, centered and above status bar
   useEffect(() => {
     if (isOpen) {
@@ -120,15 +131,29 @@ const ControllerOverlay = ({
     if (!scene) return controller.value;
 
     if (controller.propertyPath) {
-      // Handle property path like "gravity[0]"
-      const pathParts = controller.propertyPath.split(/\[|\]/).filter(p => p !== '');
+      const pathParts = normalizePropertyPath(controller.propertyPath);
       let current = scene;
-      for (let i = 0; i < pathParts.length - 1; i++) {
-        if (!current[pathParts[i]]) return controller.value;
-        current = current[pathParts[i]];
+      for (let i = 0; i < pathParts.length; i++) {
+        if (current === undefined || current === null) {
+          return controller.value;
+        }
+
+        const segment = pathParts[i];
+        if (isNumericSegment(segment)) {
+          const index = Number(segment);
+          if (!Array.isArray(current) || current[index] === undefined) {
+            return controller.value;
+          }
+          current = current[index];
+        } else {
+          if (current[segment] === undefined) {
+            return controller.value;
+          }
+          current = current[segment];
+        }
       }
-      const value = current[pathParts[pathParts.length - 1]];
-      return value !== undefined ? value : controller.value;
+
+      return current !== undefined ? current : controller.value;
     } else if (controller.objectId && controller.property) {
       // Handle object property (including array properties like "velocity[0]")
       const object = scene.objects?.find(obj => obj.id === controller.objectId);
@@ -163,40 +188,79 @@ const ControllerOverlay = ({
 
     // Update the scene property
     if (controller.propertyPath) {
-      // Handle property path like "gravity[0]" or "position[0]"
-      const pathParts = controller.propertyPath.split(/\[|\]/).filter(p => p !== '');
-      let current = updatedScene;
-      for (let i = 0; i < pathParts.length - 1; i++) {
-        const part = pathParts[i];
-        const nextPart = pathParts[i + 1];
+      const pathParts = normalizePropertyPath(controller.propertyPath);
+      if (pathParts.length > 0) {
+        let current = updatedScene;
+        let parent = null;
+        let parentKey = null;
 
-        // If next part is a number (array index), ensure current[part] is an array
-        if (!isNaN(nextPart)) {
-          if (!current[part] || !Array.isArray(current[part])) {
-            current[part] = [];
+        for (let i = 0; i < pathParts.length - 1; i++) {
+          const segment = pathParts[i];
+          const nextSegment = pathParts[i + 1];
+          const nextIsIndex = isNumericSegment(nextSegment);
+
+          if (isNumericSegment(segment)) {
+            const index = Number(segment);
+            if (!Array.isArray(current)) {
+              if (parent && parentKey !== null) {
+                const placeholder = [];
+                if (Array.isArray(parent)) {
+                  parent[parentKey] = placeholder;
+                } else {
+                  parent[parentKey] = placeholder;
+                }
+                current = placeholder;
+              } else {
+                return;
+              }
+            }
+            if (current[index] === undefined) {
+              current[index] = nextIsIndex ? [] : {};
+            } else if (nextIsIndex && !Array.isArray(current[index])) {
+              current[index] = [];
+            } else if (!nextIsIndex && (typeof current[index] !== 'object' || current[index] === null)) {
+              current[index] = {};
+            }
+            parent = current;
+            parentKey = index;
+            current = current[index];
+          } else {
+            if (current[segment] === undefined) {
+              current[segment] = nextIsIndex ? [] : {};
+            } else if (nextIsIndex && !Array.isArray(current[segment])) {
+              current[segment] = [];
+            } else if (!nextIsIndex && (typeof current[segment] !== 'object' || current[segment] === null)) {
+              current[segment] = {};
+            }
+            parent = current;
+            parentKey = segment;
+            current = current[segment];
           }
-        } else {
-          // Regular object property
-          if (!current[part]) current[part] = {};
         }
-        current = current[part];
-      }
 
-      // Set the final value
-      const lastPart = pathParts[pathParts.length - 1];
-      if (!isNaN(lastPart)) {
-        // Array index
-        const index = parseInt(lastPart);
-        if (Array.isArray(current)) {
-          // Ensure array is large enough
+        const lastPart = pathParts[pathParts.length - 1];
+        if (isNumericSegment(lastPart)) {
+          const index = Number(lastPart);
+          if (!Array.isArray(current)) {
+            if (parent && parentKey !== null) {
+              const placeholder = [];
+              if (Array.isArray(parent)) {
+                parent[parentKey] = placeholder;
+              } else {
+                parent[parentKey] = placeholder;
+              }
+              current = placeholder;
+            } else {
+              return;
+            }
+          }
           while (current.length <= index) {
             current.push(0);
           }
           current[index] = value;
+        } else {
+          current[lastPart] = value;
         }
-      } else {
-        // Object property
-        current[lastPart] = value;
       }
     } else if (controller.objectId && controller.property) {
       // Handle object property (including array properties like "velocity[0]")

@@ -1,20 +1,24 @@
 .overlay-graph {
   position: absolute;
-  background: rgba(255, 255, 255, var(--graph-bg-opacity, 0.9));
-  border: 1px solid var(--border-color);
+  background: rgba(255, 255, 255, var(--graph-bg-opacity, 0.95));
+  border: 1px solid rgba(200, 200, 200, 0.5);
   border-radius: 16px;
-  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.15);
   display: flex;
   flex-direction: column;
   overflow: hidden;
   min-width: 380px;
   min-height: 300px;
-  user-select: none; /* Prevent text selection */
-  pointer-events: auto; /* Allow the container to capture its own events */
+  user-select: none;
+  pointer-events: auto;
+  color: #1a1a1a;
 }
 
 .dark .overlay-graph {
-  background: rgba(26, 26, 26, var(--graph-bg-opacity, 0.5));
+  background: rgba(26, 26, 26, var(--graph-bg-opacity, 0.92));
+  border: 1px solid rgba(255, 255, 255, 0.15);
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.5);
+  color: #e6e6e6;
 }
 
 .overlay-graph:active {
@@ -31,12 +35,17 @@
   align-items: center;
   justify-content: space-between;
   padding: 2px 6px;
-  background: rgba(26, 26, 26, 0.7);
-  border-bottom: 1px solid rgba(255,255,255,0.06);
+  background: rgba(240, 240, 240, 0.9);
+  border-bottom: 1px solid rgba(0, 0, 0, 0.08);
   cursor: grab;
   user-select: none;
   min-height: 28px;
   z-index: 10;
+}
+
+.dark .graph-header {
+  background: rgba(26, 26, 26, 0.85);
+  border-bottom: 1px solid rgba(255, 255, 255, 0.08);
 }
 
 .graph-header:active {
@@ -44,7 +53,7 @@
 }
 
 .title-text {
-  color: #e6e6e6;
+  color: #2a2a2a;
   font-size: 12px;
   font-weight: 500;
   flex: 1;
@@ -53,6 +62,10 @@
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
+}
+
+.dark .title-text {
+  color: #e6e6e6;
 }
 
 .graph-header-controls {
@@ -64,7 +77,7 @@
 .close-btn {
   background: transparent;
   border: 1px solid transparent;
-  color: #c8c8c8;
+  color: #666666;
   width: 22px;
   height: 22px;
   padding: 1px;
@@ -74,16 +87,35 @@
   justify-content: center;
   cursor: pointer;
   font-size: 11px;
+  transition: all 0.15s ease;
+}
+
+.dark .minimize-btn,
+.dark .close-btn {
+  color: #c8c8c8;
 }
 
 .minimize-btn:hover,
 .close-btn:hover {
-  background: rgba(255, 255, 255, 0.03);
-  border-color: rgba(255, 255, 255, 0.04);
+  background: rgba(0, 0, 0, 0.08);
+  border-color: rgba(0, 0, 0, 0.1);
+  color: #000000;
+}
+
+.dark .minimize-btn:hover,
+.dark .close-btn:hover {
+  background: rgba(255, 255, 255, 0.08);
+  border-color: rgba(255, 255, 255, 0.1);
   color: #ffffff;
 }
 
 .close-btn:hover {
+  background: rgba(220, 53, 69, 0.15);
+  color: #dc3545;
+  border-color: rgba(220, 53, 69, 0.3);
+}
+
+.dark .close-btn:hover {
   background: rgba(220, 53, 69, 0.12);
   color: #ffcccc;
   border-color: rgba(220, 53, 69, 0.18);
@@ -109,35 +141,51 @@
   gap: 12px;
   align-items: center;
   padding: 8px 12px;
-  background: rgba(26, 26, 26, 0.3);
+  background: rgba(240, 240, 240, 0.6);
   border-radius: 8px;
+  border: 1px solid rgba(0, 0, 0, 0.1);
+}
+
+.dark .graph-controls {
+  background: rgba(26, 26, 26, 0.4);
   border: 1px solid rgba(255, 255, 255, 0.1);
 }
 
 .graph-controls select {
-  background: rgba(26, 26, 26, 0.6);
-  border: 1px solid rgba(255, 255, 255, 0.1);
+  background: rgba(255, 255, 255, 0.9);
+  border: 1px solid rgba(0, 0, 0, 0.15);
   border-radius: 6px;
   padding: 6px 8px;
-  color: #e0e0e0;
+  color: #2a2a2a;
   font-size: 12px;
   min-width: 120px;
+  transition: all 0.15s ease;
+}
+
+.dark .graph-controls select {
+  background: rgba(26, 26, 26, 0.7);
+  border: 1px solid rgba(255, 255, 255, 0.15);
+  color: #e0e0e0;
 }
 
 .graph-controls select:focus {
   outline: none;
   border-color: #0084ff;
-  box-shadow: 0 0 0 2px rgba(0, 132, 255, 0.1);
+  box-shadow: 0 0 0 2px rgba(0, 132, 255, 0.15);
 }
 
 .graph-controls label {
   display: flex;
   align-items: center;
   gap: 6px;
-  color: #e0e0e0;
+  color: #2a2a2a;
   font-size: 12px;
   cursor: pointer;
   user-select: none;
+}
+
+.dark .graph-controls label {
+  color: #e0e0e0;
 }
 
 .graph-controls input[type="checkbox"] {
@@ -167,19 +215,31 @@
 }
 
 .live-controls button {
-  background: rgba(26, 26, 26, 0.6);
-  border: 1px solid rgba(255, 255, 255, 0.1);
+  background: rgba(255, 255, 255, 0.9);
+  border: 1px solid rgba(0, 0, 0, 0.15);
   border-radius: 4px;
   padding: 4px 8px;
-  color: #e0e0e0;
+  color: #2a2a2a;
   font-size: 11px;
   cursor: pointer;
   transition: all 0.2s ease;
 }
 
+.dark .live-controls button {
+  background: rgba(26, 26, 26, 0.7);
+  border: 1px solid rgba(255, 255, 255, 0.15);
+  color: #e0e0e0;
+}
+
 .live-controls button:hover:not(:disabled) {
-  background: rgba(0, 132, 255, 0.2);
+  background: rgba(0, 132, 255, 0.15);
   border-color: #0084ff;
+  color: #0084ff;
+}
+
+.dark .live-controls button:hover:not(:disabled) {
+  background: rgba(0, 132, 255, 0.2);
+  color: #4da6ff;
 }
 
 .live-controls button:disabled {
@@ -188,16 +248,159 @@
 }
 
 .live-controls select {
-  background: rgba(26, 26, 26, 0.6);
-  border: 1px solid rgba(255, 255, 255, 0.1);
+  background: rgba(255, 255, 255, 0.9);
+  border: 1px solid rgba(0, 0, 0, 0.15);
   border-radius: 4px;
   padding: 4px 6px;
-  color: #e0e0e0;
+  color: #2a2a2a;
   font-size: 11px;
   min-width: 50px;
+  transition: all 0.15s ease;
+}
+
+.dark .live-controls select {
+  background: rgba(26, 26, 26, 0.7);
+  border: 1px solid rgba(255, 255, 255, 0.15);
+  color: #e0e0e0;
 }
 
 .live-controls select:focus {
+  outline: none;
+  border-color: #0084ff;
+}
+
+/* Time Step Control */
+.time-step-control {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.time-step-control label {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  color: #2a2a2a;
+  font-size: 11px;
+  font-weight: 500;
+  white-space: nowrap;
+}
+
+.dark .time-step-control label {
+  color: #e0e0e0;
+}
+
+.time-step-control select {
+  background: rgba(255, 255, 255, 0.9);
+  border: 1px solid rgba(0, 0, 0, 0.15);
+  border-radius: 4px;
+  padding: 4px 6px;
+  color: #2a2a2a;
+  font-size: 11px;
+  min-width: 70px;
+  font-weight: 500;
+  transition: all 0.15s ease;
+  cursor: pointer;
+}
+
+.dark .time-step-control select {
+  background: rgba(26, 26, 26, 0.7);
+  border: 1px solid rgba(255, 255, 255, 0.15);
+  color: #e0e0e0;
+}
+
+.time-step-control select:focus {
+  outline: none;
+  border-color: #0084ff;
+  box-shadow: 0 0 0 2px rgba(0, 132, 255, 0.15);
+}
+
+.time-step-control select:hover {
+  border-color: rgba(0, 132, 255, 0.5);
+}
+
+/* View Mode Toggle */
+.view-mode-toggle {
+  display: flex;
+  gap: 4px;
+  background: rgba(220, 220, 220, 0.5);
+  border-radius: 6px;
+  padding: 2px;
+  border: 1px solid rgba(0, 0, 0, 0.1);
+}
+
+.dark .view-mode-toggle {
+  background: rgba(26, 26, 26, 0.5);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.view-mode-toggle button {
+  background: transparent;
+  border: none;
+  border-radius: 4px;
+  padding: 5px 12px;
+  color: #666666;
+  font-size: 11px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.dark .view-mode-toggle button {
+  color: #b0b0b0;
+}
+
+.view-mode-toggle button:hover {
+  background: rgba(0, 0, 0, 0.08);
+  color: #2a2a2a;
+}
+
+.dark .view-mode-toggle button:hover {
+  background: rgba(255, 255, 255, 0.08);
+  color: #e0e0e0;
+}
+
+.view-mode-toggle button.active {
+  background: #0084ff;
+  color: #ffffff;
+}
+
+/* Table Controls */
+.table-controls {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.table-controls label {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  color: #2a2a2a;
+  font-size: 12px;
+}
+
+.dark .table-controls label {
+  color: #e0e0e0;
+}
+
+.table-controls select {
+  background: rgba(255, 255, 255, 0.9);
+  border: 1px solid rgba(0, 0, 0, 0.15);
+  border-radius: 4px;
+  padding: 4px 6px;
+  color: #2a2a2a;
+  font-size: 11px;
+  min-width: 60px;
+  transition: all 0.15s ease;
+}
+
+.dark .table-controls select {
+  background: rgba(26, 26, 26, 0.7);
+  border: 1px solid rgba(255, 255, 255, 0.15);
+  color: #e0e0e0;
+}
+
+.table-controls select:focus {
   outline: none;
   border-color: #0084ff;
 }
@@ -206,11 +409,115 @@
 .chart-area-wrapper {
   flex: 1;
   min-height: 200px;
-  background: rgba(26, 26, 26, 0.2);
+  background: rgba(250, 250, 250, 0.6);
   border-radius: 8px;
-  border: 1px solid rgba(255, 255, 255, 0.1);
+  border: 1px solid rgba(0, 0, 0, 0.1);
   overflow: hidden;
   position: relative;
+}
+
+.dark .chart-area-wrapper {
+  background: rgba(26, 26, 26, 0.3);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+/* Table Area */
+.table-area-wrapper {
+  flex: 1;
+  min-height: 200px;
+  background: rgba(250, 250, 250, 0.6);
+  border-radius: 8px;
+  border: 1px solid rgba(0, 0, 0, 0.1);
+  overflow: auto;
+  position: relative;
+}
+
+.dark .table-area-wrapper {
+  background: rgba(26, 26, 26, 0.3);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.stats-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 11px;
+  color: #2a2a2a;
+}
+
+.dark .stats-table {
+  color: #e0e0e0;
+}
+
+.stats-table thead {
+  position: sticky;
+  top: 0;
+  background: rgba(240, 240, 240, 0.98);
+  z-index: 1;
+}
+
+.dark .stats-table thead {
+  background: rgba(26, 26, 26, 0.98);
+}
+
+.stats-table th {
+  padding: 10px 8px;
+  text-align: left;
+  font-weight: 600;
+  color: #1a1a1a;
+  border-bottom: 2px solid rgba(0, 132, 255, 0.4);
+  white-space: nowrap;
+}
+
+.dark .stats-table th {
+  color: #ffffff;
+  border-bottom: 2px solid rgba(0, 132, 255, 0.3);
+}
+
+.stats-table td {
+  padding: 8px 8px;
+  border-bottom: 1px solid rgba(0, 0, 0, 0.06);
+  font-family: 'Courier New', monospace;
+  color: #3a3a3a;
+}
+
+.dark .stats-table td {
+  border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+  color: #c8c8c8;
+}
+
+.stats-table tbody tr:hover {
+  background: rgba(0, 132, 255, 0.08);
+}
+
+.dark .stats-table tbody tr:hover {
+  background: rgba(0, 132, 255, 0.12);
+}
+
+.stats-table tbody tr:nth-child(odd) {
+  background: rgba(0, 0, 0, 0.02);
+}
+
+.dark .stats-table tbody tr:nth-child(odd) {
+  background: rgba(255, 255, 255, 0.02);
+}
+
+.stats-table tbody tr:nth-child(even) {
+  background: rgba(0, 0, 0, 0.04);
+}
+
+.dark .stats-table tbody tr:nth-child(even) {
+  background: rgba(0, 0, 0, 0.15);
+}
+
+.stats-table .no-data {
+  text-align: center;
+  color: #999;
+  font-style: italic;
+  padding: 20px;
+}
+
+.dark .stats-table .no-data {
+  color: #888;
 }
 
 /* Minimized State */
