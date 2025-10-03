@@ -154,8 +154,30 @@ function VelocityVectorVisuals({ show, velocities, positions, velocityScale, sce
   });
 }
 
-function Skybox({ texturePath }) {
-  const texture = useTexture(texturePath || backgroundTexture);
+function Skybox({ texturePath, backgroundType = 'normal' }) {
+  if (backgroundType === 'black') {
+    return (
+      <mesh>
+        <sphereGeometry args={[100000, 60, 40]} />
+        <meshBasicMaterial color="#000000" side={THREE.BackSide} />
+      </mesh>
+    );
+  }
+
+  if (backgroundType === 'white') {
+    return (
+      <mesh>
+        <sphereGeometry args={[100000, 60, 40]} />
+        <meshBasicMaterial color="#ffffff" side={THREE.BackSide} />
+      </mesh>
+    );
+  }
+
+  // For 'normal' and 'space' use textures
+  const texturePathToUse = backgroundType === 'space' ? spaceTexture :
+                           texturePath ? texturePath : backgroundTexture;
+
+  const texture = useTexture(texturePathToUse);
   return (
     <mesh>
       <sphereGeometry args={[100000, 60, 40]} />
@@ -164,7 +186,7 @@ function Skybox({ texturePath }) {
   );
 }
 
-function Visualizer({ scene, showSceneDetails, onToggleSceneDetails }) {
+function Visualizer({ scene, showSceneDetails, onToggleSceneDetails, backgroundType = 'normal' }) {
     const { isPlaying, simulationTime, fps, showVelocityVectors, vectorScale, openGraphs, resetSimulation, loopReset, updateSimulationTime, updateFps, resetTrigger, removeGraph, setObjectHistory, loopMode, setIsPlaying, dataTimeStep } = useWorkspace();
 
     // Debug: Log scene changes
@@ -381,7 +403,7 @@ function Visualizer({ scene, showSceneDetails, onToggleSceneDetails }) {
                         <LabeledAxesHelper size={5} />
                         <SimpleGrid show={hasGround} />
                         <FpsCounter updateFps={updateFps} />
-                        <Skybox texturePath={activeScene?.type === 'extraterrestrial' || activeScene?.theme === 'space' ? spaceTexture : backgroundTexture} />
+                        <Skybox backgroundType={backgroundType} />
                     </Canvas>
                 )}
 

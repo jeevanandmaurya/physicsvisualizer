@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useCallback, useRef, Suspense } from 'react';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
-import { faSpinner, faExclamationTriangle } from '@fortawesome/free-solid-svg-icons';
+import { faSpinner, faExclamationTriangle, faSquare, faSquareFull, faImage, faRocket } from '@fortawesome/free-solid-svg-icons';
 import Visualizer from '../ui-logic/visualizer/Visualizer';
 import { useDatabase } from '../contexts/DatabaseContext';
 import { useWorkspace, useWorkspaceScene, useWorkspaceChat, useWorkspaceSettings } from '../contexts/WorkspaceContext';
@@ -50,9 +50,30 @@ function VisualizerView() {
   const [capturedThumbnail, setCapturedThumbnail] = useState(null);
   const [rightPanelView, setRightPanelView] = useState(workspaceUIMode === 'simple' ? 'integrated' : 'chat');
   const [showSceneDetails, setShowSceneDetails] = useState(false);
-
   // Use workspace scene directly
   const scene = workspaceScene;
+  // Determine initial background type from the scene JSON if provided.
+  // Accept multiple possible keys for backward compatibility: scene.background or scene.backgroundType
+  const inferBackgroundFromScene = (s) => {
+    if (!s) return 'normal';
+    // scene may store a simple string or an object like { type: 'space' }
+    const value = s.background || s.backgroundType || (s.bg && (typeof s.bg === 'string' ? s.bg : s.bg.type));
+    if (!value) return 'normal';
+    // Normalize known values
+    const v = String(value).toLowerCase();
+    if (v === 'black' || v === '#000' || v === '#000000') return 'black';
+    if (v === 'white' || v === '#fff' || v === '#ffffff') return 'white';
+    if (v === 'space' || v === 'space.svg') return 'space';
+    return 'normal';
+  };
+
+  const [backgroundType, setBackgroundType] = useState(() => inferBackgroundFromScene(scene)); // 'black', 'white', 'normal', 'space'
+
+  // Keep backgroundType in sync when the workspace scene changes
+  useEffect(() => {
+    setBackgroundType(inferBackgroundFromScene(scene));
+  }, [scene]);
+
 
   // --- Scene Manipulation Handlers ---
   const handleSceneUpdate = useCallback((updatedScene) => {
@@ -189,7 +210,6 @@ function VisualizerView() {
   const handleToggleSceneDetails = useCallback(() => {
     setShowSceneDetails(prev => !prev);
   }, []);
-
   // Set loading to false after initialization
   useEffect(() => {
     setLoading(false);
@@ -214,10 +234,54 @@ function VisualizerView() {
     );
   }
 
-
-
   return (
-    <div className="visualizer-container">
+    <div className="visualizer-container" style={{ position: 'relative' }}>
+      {/* Background Controls Panel */}
+      <div style={{
+        position: 'absolute',
+        top: '10px',
+        right: '10px',
+        zIndex: 1000,
+        backgroundColor: 'rgba(0, 0, 0, 0.7)',
+        borderRadius: '6px',
+        padding: '6px',
+        display: 'flex',
+        gap: '4px',
+        backdropFilter: 'blur(8px)',
+        border: '1px solid rgba(255, 255, 255, 0.1)'
+      }}>
+        {/* Left-to-right order: hollow square (black), filled square (white), image (normal), rocket (space) */}
+        {[
+          { type: 'black', icon: faSquare, tooltip: 'Solid Black (#000000)' },
+          { type: 'white', icon: faSquareFull, tooltip: 'Solid White (#ffffff)' },
+          { type: 'normal', icon: faImage, tooltip: 'Normal SVG (background.svg)' },
+          { type: 'space', icon: faRocket, tooltip: 'Space SVG (space.svg)' }
+        ].map(({ type, icon, tooltip }) => (
+          <button
+            key={type}
+            onClick={() => setBackgroundType(type)}
+            title={tooltip}
+            aria-pressed={backgroundType === type}
+            style={{
+              backgroundColor: backgroundType === type ? 'rgba(0, 123, 255, 0.8)' : 'transparent',
+              border: 'none',
+              borderRadius: '4px',
+              width: '28px',
+              height: '28px',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              cursor: 'pointer',
+              color: '#ffffff',
+              fontSize: '12px',
+              transition: 'all 0.2s ease'
+            }}
+          >
+            <FontAwesomeIcon icon={icon} style={{ fontSize: '12px' }} />
+          </button>
+        ))}
+      </div>
+
       <Visualizer
         key={`visualizer-${scene?.id || 'new'}`}
         scene={scene}
@@ -231,6 +295,7 @@ function VisualizerView() {
         showControls={false} // Controls are now in status bar
         showSceneDetails={showSceneDetails}
         onToggleSceneDetails={handleToggleSceneDetails}
+        backgroundType={backgroundType}
       />
       {sceneSwitching && (
         <div className="scene-loading-overlay">

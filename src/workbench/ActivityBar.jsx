@@ -1,6 +1,6 @@
 import React from 'react';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
-import { faHome, faCube, faCompass, faCog, faComments } from '@fortawesome/free-solid-svg-icons';
+import { faHome, faCube, faCompass, faCog, faComments, faInfoCircle } from '@fortawesome/free-solid-svg-icons';
 import logo from '../assets/icon-transparent.svg';
 
 const ActivityBar = ({ activeView, onViewChange }) => {
@@ -10,6 +10,7 @@ const ActivityBar = ({ activeView, onViewChange }) => {
     { id: 'visualizer', icon: faCube, label: '3D Visualizer' },
     { id: 'chat', icon: faComments, label: 'Chat' },
     { id: 'settings', icon: faCog, label: 'Settings' },
+    { id: 'about', icon: faInfoCircle, label: 'About' },
   ];
 
   return (

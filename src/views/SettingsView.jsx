@@ -1,8 +1,7 @@
-import React, { useState, useEffect } from 'react';
+import React from 'react';
 import { useTheme } from '../contexts/ThemeContext';
-
-// Physics settings components
-import PhysicsSettingsContent from './components/scene-management/PhysicsSettingsContent';
+import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
+import { faSun, faMoon, faComments, faChartLine, faSliders } from '@fortawesome/free-solid-svg-icons';
 
 function SettingsView() {
   const { theme, toggleTheme, overlayOpacity, updateOverlayOpacity } = useTheme();
@@ -11,71 +10,213 @@ function SettingsView() {
     updateOverlayOpacity(type, parseFloat(value));
   };
 
+  // Theme-aware colors
+  const isDark = theme === 'dark';
+  const colors = {
+    background: isDark ? '#1a1a1a' : '#ffffff',
+    textPrimary: isDark ? '#ffffff' : '#212529',
+    textSecondary: isDark ? '#adb5bd' : '#6c757d',
+    textMuted: isDark ? '#6c757d' : '#495057',
+    cardBackground: isDark ? '#2d3436' : '#f8f9fa',
+    border: isDark ? '#495057' : '#e9ecef',
+    heading: isDark ? '#ffffff' : '#333333'
+  };
+
   return (
-    <div style={{ padding: '20px' }}>
-      <h2>Settings</h2>
+    <div style={{
 
-      <div style={{ marginBottom: '30px' }}>
-        <h3>Theme</h3>
-        <p>Current theme: {theme}</p>
-        <button onClick={toggleTheme}>
-          Switch to {theme === 'light' ? 'Dark' : 'Light'} Theme
-        </button>
+      margin: '0 auto',
+      padding: '20px',
+      backgroundColor: colors.background,
+      color: colors.textPrimary,
+      minHeight: '100vh',
+      transition: 'all 0.3s ease'
+    }}>
+      <div style={{
+        marginBottom: '32px',
+        borderBottom: `2px solid ${colors.border}`,
+        paddingBottom: '16px'
+      }}>
+        <h2 style={{
+          color: colors.textPrimary,
+          fontSize: '28px',
+          fontWeight: '700',
+          margin: '0 0 4px 0',
+          letterSpacing: '-0.025em'
+        }}>
+          Settings
+        </h2>
+        <p style={{
+          color: colors.textSecondary,
+          fontSize: '16px',
+          margin: '0',
+          fontWeight: '400'
+        }}>
+          Customize your Physics Visualizer experience
+        </p>
       </div>
 
       <div style={{ marginBottom: '30px' }}>
-        <h3>Overlay Opacity</h3>
-        <p>Adjust the opacity of overlay windows (chat, graph, and controller panels).</p>
+        <h3 style={{
+          marginBottom: '16px',
+          color: colors.heading,
+          fontSize: '18px',
+          fontWeight: '600'
+        }}>Theme</h3>
 
-        <div style={{ marginBottom: '20px' }}>
-          <label style={{ display: 'block', marginBottom: '8px', fontWeight: '500' }}>
-            Chat Overlay Opacity: {(overlayOpacity.chat * 100).toFixed(0)}%
+        <div style={{
+          display: 'flex',
+          alignItems: 'center',
+          gap: '12px',
+          backgroundColor: colors.cardBackground,
+          padding: '16px',
+          borderRadius: '12px',
+          border: `1px solid ${colors.border}`,
+          transition: 'all 0.3s ease'
+        }}>
+          <label style={{
+            position: 'relative',
+            display: 'inline-block',
+            width: '60px',
+            height: '30px'
+          }}>
+            <input
+              type="checkbox"
+              checked={theme === 'dark'}
+              onChange={toggleTheme}
+              style={{
+                opacity: 0,
+                width: 0,
+                height: 0
+              }}
+            />
+            <span style={{
+              position: 'absolute',
+              cursor: 'pointer',
+              top: 0,
+              left: 0,
+              right: 0,
+              bottom: 0,
+              backgroundColor: theme === 'dark' ? '#007bff' : '#6c757d',
+              transition: '0.4s',
+              borderRadius: '30px'
+            }} />
+            <span style={{
+              position: 'absolute',
+              content: '""',
+              height: '22px',
+              width: '22px',
+              left: '4px',
+              bottom: '4px',
+              backgroundColor: 'white',
+              transition: '0.4s',
+              borderRadius: '50%',
+              transform: theme === 'dark' ? 'translateX(30px)' : 'translateX(0)'
+            }} />
           </label>
-          <input
-            type="range"
-            min="0.1"
-            max="1"
-            step="0.1"
-            value={overlayOpacity.chat}
-            onChange={(e) => handleOpacityChange('chat', e.target.value)}
-            style={{ width: '100%', maxWidth: '300px' }}
-          />
-        </div>
 
-        <div style={{ marginBottom: '20px' }}>
-          <label style={{ display: 'block', marginBottom: '8px', fontWeight: '500' }}>
-            Graph Overlay Opacity: {(overlayOpacity.graph * 100).toFixed(0)}%
-          </label>
-          <input
-            type="range"
-            min="0.1"
-            max="1"
-            step="0.1"
-            value={overlayOpacity.graph}
-            onChange={(e) => handleOpacityChange('graph', e.target.value)}
-            style={{ width: '100%', maxWidth: '300px' }}
-          />
-        </div>
-
-        <div style={{ marginBottom: '20px' }}>
-          <label style={{ display: 'block', marginBottom: '8px', fontWeight: '500' }}>
-            Controller Overlay Opacity: {((overlayOpacity.controller || 0.8) * 100).toFixed(0)}%
-          </label>
-          <input
-            type="range"
-            min="0.1"
-            max="1"
-            step="0.05"
-            value={overlayOpacity.controller || 0.8}
-            onChange={(e) => handleOpacityChange('controller', e.target.value)}
-            style={{ width: '100%', maxWidth: '300px' }}
-          />
+          <span style={{
+            fontSize: '16px',
+            fontWeight: '500',
+            color: colors.textMuted,
+            display: 'flex',
+            alignItems: 'center',
+            gap: '8px'
+          }}>
+            <FontAwesomeIcon icon={theme === 'dark' ? faMoon : faSun} style={{ fontSize: '16px' }} />
+            {theme.charAt(0).toUpperCase() + theme.slice(1)} Mode
+          </span>
         </div>
       </div>
 
-      {/* Physics Settings */}
       <div style={{ marginBottom: '30px' }}>
-        <PhysicsSettingsContent />
+        <h3 style={{
+          marginBottom: '12px',
+          color: colors.heading,
+          fontSize: '18px',
+          fontWeight: '600'
+        }}>Overlay Opacity</h3>
+        <p style={{
+          color: colors.textSecondary,
+          marginBottom: '16px',
+          fontSize: '14px'
+        }}>
+          Adjust the transparency of overlay windows (chat, graph, and controller panels).
+        </p>
+
+        <div style={{
+          backgroundColor: colors.cardBackground,
+          padding: '20px',
+          borderRadius: '12px',
+          border: `1px solid ${colors.border}`,
+          transition: 'all 0.3s ease'
+        }}>
+          {[
+            { key: 'chat', icon: faComments, label: 'Chat Overlay', value: overlayOpacity.chat },
+            { key: 'graph', icon: faChartLine, label: 'Graph Overlay', value: overlayOpacity.graph },
+            { key: 'controller', icon: faSliders, label: 'Controller Overlay', value: overlayOpacity.controller || 0.8 }
+          ].map(({ key, icon, label, value }) => (
+            <div key={key} style={{
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'space-between',
+              marginBottom: '16px',
+              padding: '8px 0'
+            }}>
+              <span style={{
+                fontSize: '14px',
+                fontWeight: '500',
+                color: isDark ? '#adb5bd' : '#495057',
+                flex: '1',
+                minWidth: '140px',
+                display: 'flex',
+                alignItems: 'center',
+                gap: '8px'
+              }}>
+                <FontAwesomeIcon icon={icon} style={{
+                  fontSize: '14px',
+                  minWidth: '16px',
+                  color: colors.textSecondary
+                }} />
+                {label}
+              </span>
+
+              <div style={{
+                flex: '2',
+                display: 'flex',
+                alignItems: 'center',
+                gap: '12px',
+                maxWidth: '300px'
+              }}>
+                <input
+                  type="range"
+                  min="0.1"
+                  max="1"
+                  step={key === 'controller' ? "0.05" : "0.1"}
+                  value={value}
+                  onChange={(e) => handleOpacityChange(key, e.target.value)}
+                  style={{
+                    flex: '1',
+                    height: '6px',
+                    borderRadius: '3px',
+                    background: isDark ? '#495057' : '#ddd',
+                    outline: 'none',
+                    WebkitAppearance: 'none',
+                    transition: 'all 0.3s ease'
+                  }}
+                />
+                <span style={{
+                  fontSize: '12px',
+                  color: colors.textSecondary,
+                  minWidth: '35px',
+                  textAlign: 'right'
+                }}>
+                  {(value * 100).toFixed(0)}%
+                </span>
+                </div>
+            </div>
+          ))}
+        </div>
       </div>
 
       <p>Other application preferences and settings will be configured here.</p>

@@ -8,6 +8,7 @@ import { ConstraintPhysics } from './constraints/calculations.js';
 import { FluidPhysics } from './fluid/calculations.js';
 import { ParticleSystem } from './ParticleSystem.jsx';
 
+
 // Dummy class to maintain API compatibility - Rapier handles physics automatically
 export class PhysicsEngine {
     constructor(scene) {
@@ -195,120 +196,16 @@ function FluidForces({ scene, isPlaying }) {
     return null; // Invisible component
 }
 
-// Component to render joints between bodies
+// Joints are currently not implemented - placeholder for future implementation
 const Joints = React.memo(function Joints({ scene, bodyRefs, physicsResetKey }) {
-    const [jointsReady, setJointsReady] = React.useState(false);
-    const jointsRerenderKey = React.useRef(0);
-
-    const initialLoadRef = React.useRef(true);
-
-    // Only log on first load, not on every render
-    if (initialLoadRef.current) {
-        console.log('🏗️ Joints component initialized', {
-            sceneId: scene?.id,
-            hasJoints: !!scene?.joints,
-            jointsCount: scene?.joints?.length || 0
-        });
-        initialLoadRef.current = false;
+    // Render placeholder joints visualization (invisible for now)
+    // Future implementation would use Rapier's native joint API
+    if (scene?.joints && Array.isArray(scene.joints) && scene.joints.length > 0) {
+        console.log('🦴 Joints detected in scene but not yet implemented:', scene.joints.length);
     }
 
-    // Check if all body refs needed for joints are available
-    // Use a ref to track the last body refs state to avoid dependency array issues
-    const lastBodiesStateRef = React.useRef('');
-
-    React.useEffect(() => {
-        console.log('🔄 Joints: useEffect running', { jointsReady, bodyRefsKeys: Object.keys(bodyRefs.current) });
-
-        if (!scene?.joints || !Array.isArray(scene.joints)) {
-            console.log('❌ Joints: No joints in scene or joints not array');
-            setJointsReady(false);
-            return;
-        }
-
-        // Create a stable string representation of the body refs state
-        const currentBodiesState = JSON.stringify(Object.keys(bodyRefs.current).sort());
-
-        // Only check joints if bodies state has actually changed or jointsReady has changed
-        if (currentBodiesState === lastBodiesStateRef.current && jointsReady === false) {
-            // Bodies haven't changed and we're already not ready, no need to check again
-            return;
-        }
-
-        lastBodiesStateRef.current = currentBodiesState;
-
-        const allBodiesReady = scene.joints.every(jointConfig => {
-            const { bodyA: bodyAId, bodyB: bodyBId } = jointConfig;
-            const aReady = !!bodyRefs.current[bodyAId];
-            const bReady = !!bodyRefs.current[bodyBId];
-
-            if (!aReady || !bReady) {
-                console.log(`⏳ Joints: Waiting for body refs - ${bodyAId}: ${aReady}, ${bodyBId}: ${bReady}`);
-                console.log('📋 Available bodies:', Object.keys(bodyRefs.current));
-            } else {
-                console.log(`✅ Joints: Bodies ready for joint - ${bodyAId} ✓, ${bodyBId} ✓`);
-            }
-
-            return aReady && bReady;
-        });
-
-        console.log('🎯 Joints: All bodies ready?', allBodiesReady);
-
-        if (allBodiesReady && !jointsReady) {
-            console.log('🚀 Joints: Setting joints ready - about to create joints!');
-            setJointsReady(true);
-            jointsRerenderKey.current++;
-        } else if (!allBodiesReady && jointsReady) {
-            console.log('⏸️ Joints: Setting joints not ready');
-            setJointsReady(false);
-        }
-    }, [scene, jointsReady, physicsResetKey]);
-
-    console.log('🎨 Joints: About to render', { jointsReady, jointsCount: scene?.joints?.length, availableBodies: Object.keys(bodyRefs.current) });
-
-    if (!scene?.joints || !Array.isArray(scene.joints) || !jointsReady) {
-        console.log('🙅 Joints: Not rendering joints', { jointsReady, hasJoints: !!scene?.joints });
-        return null;
-    }
-
-    console.log('🎪 Joints: Rendering joints - creating joint components!');
-
-    return scene.joints.map((jointConfig, index) => {
-        const { bodyA: bodyAId, bodyB: bodyBId, ...jointParams } = jointConfig;
-
-        console.log(`🔗 Joints: Creating joint ${index + 1}/${scene.joints.length}`, {
-            type: jointParams.type,
-            bodyAId: bodyAId,
-            bodyBId: bodyBId,
-            params: jointParams.params
-        });
-
-        const bodyARef = bodyRefs.current[bodyAId];
-        const bodyBRef = bodyRefs.current[bodyBId];
-
-        if (!bodyARef || !bodyBRef) {
-            console.error(`❗ Joint ${index}: Could not find body refs for ${bodyAId} or ${bodyBId} (this should not happen)`, {
-                availableBodies: Object.keys(bodyRefs.current)
-            });
-            return null;
-        }
-
-        console.log(`✅ Joint ${index}: Body refs found, creating Joint component`);
-
-        // Use physicsResetKey to ensure joints are recreated when physics world resets
-        return (
-            <Joint
-                key={`joint-${scene.id}-${bodyAId}-${bodyBId}-${physicsResetKey}`}
-                jointConfig={{
-                    ...jointParams,
-                    bodyA: bodyARef,
-                    bodyB: bodyBRef
-                }}
-            />
-        );
-    });
+    return null; // Invisible component - joints not implemented yet
 });
-
-// React PhysicsWorld component that uses Physics paused prop for proper state preservation
 
 // React PhysicsWorld component that uses Physics paused prop for proper state preservation
 export function PhysicsWorld({ scene, isPlaying, onPhysicsDataCalculated, resetTrigger, defaultContactMaterial, simulationTime }) {
@@ -394,6 +291,7 @@ export function PhysicsWorld({ scene, isPlaying, onPhysicsDataCalculated, resetT
             <GravitationalForces scene={scene} isPlaying={isPlaying} />
             <Constraints scene={scene} isPlaying={isPlaying} />
             <FluidForces scene={scene} isPlaying={isPlaying} />
+            <Joints scene={scene} bodyRefs={bodyRefs} physicsResetKey={physicsResetKey} />
             <ParticleSystem
                 key={`particles-${JSON.stringify(scene.particles || {})}`}
                 config={scene.particles}

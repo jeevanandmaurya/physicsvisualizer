@@ -62,6 +62,12 @@ const Workbench = () => {
         panel: false,
         description: "Application preferences and settings",
       },
+      // About: Information about the application
+      about: {
+        sidebar: false,
+        panel: false,
+        description: "Information about the application",
+      },
     };
     return configs[view] || configs.dashboard;
   };
@@ -92,6 +98,10 @@ const Workbench = () => {
           case "5":
             e.preventDefault();
             setCurrentView("settings");
+            break;
+          case "6":
+            e.preventDefault();
+            setCurrentView("about");
             break;
           default:
             break;

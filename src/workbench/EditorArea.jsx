@@ -4,6 +4,7 @@ import CollectionView from '../views/CollectionView';
 import VisualizerView from '../views/VisualizerView';
 import ChatView from '../views/ChatView';
 import SettingsView from '../views/SettingsView';
+import AboutView from '../views/AboutView';
 
 
 const EditorArea = ({ activeView, onViewChange }) => {
@@ -19,6 +20,8 @@ const EditorArea = ({ activeView, onViewChange }) => {
         return <ChatView onViewChange={onViewChange} />;
       case 'settings':
         return <SettingsView />;
+      case 'about':
+        return <AboutView />;
       default:
         return <DashboardView />;
     }
