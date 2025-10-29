@@ -311,16 +311,6 @@ function SceneSelectorUI({
                         </div>
                     )}
 
-                    <div className="scene-section user-scenes">
-                        <h4 onClick={() => setUserScenesExpanded(!userScenesExpanded)} style={{ cursor: 'pointer' }}>
-                            <FontAwesomeIcon
-                                icon={userScenesExpanded ? faChevronDown : faChevronRight}
-                                style={{ marginRight: '8px', fontSize: '12px' }}
-                            />
-                            Your Scenes
-                        </h4>
-                        {userScenesExpanded && renderSceneList(userScenes, loadingUserScenes, "No saved scenes yet.", true)}
-                    </div>
                     <div className="scene-section example-scenes">
                         <h4 onClick={() => setExampleScenesExpanded(!exampleScenesExpanded)} style={{ cursor: 'pointer' }}>
                             <FontAwesomeIcon
@@ -330,6 +320,16 @@ function SceneSelectorUI({
                             Example Scenes
                         </h4>
                         {exampleScenesExpanded && renderSceneList(exampleScenes, loading, "No examples found.", false)}
+                    </div>
+                    <div className="scene-section user-scenes">
+                        <h4 onClick={() => setUserScenesExpanded(!userScenesExpanded)} style={{ cursor: 'pointer' }}>
+                            <FontAwesomeIcon
+                                icon={userScenesExpanded ? faChevronDown : faChevronRight}
+                                style={{ marginRight: '8px', fontSize: '12px' }}
+                            />
+                            Your Scenes
+                        </h4>
+                        {userScenesExpanded && renderSceneList(userScenes, loadingUserScenes, "No saved scenes yet.", true)}
                     </div>
                 </div>
             </div>

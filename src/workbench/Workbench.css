@@ -37,8 +37,7 @@
 
 .activity-bar-logo {
   margin-bottom: 15px;
-  padding: 5px;
-  border-bottom: 1px solid var(--border-color);
+  cursor: pointer;
 }
 
 .activity-bar-logo img {
@@ -55,6 +54,49 @@
 
 .activity-bar-logo img:hover {
   opacity: 0.8;
+}
+
+
+
+/* Overlay activity bar styles */
+.activity-bar.overlay {
+  border-right: none;
+  position: fixed;
+  left: 0;
+  top: 0;
+  height: 36px;
+  z-index: 1000;
+  background-color: transparent;
+  transition: background-color 0.3s ease;
+}
+
+.activity-bar.overlay:not(.hidden) {
+  background-color: var(--secondary-bg);
+  padding: 0px;
+  height: calc(100vh - 35px);
+  border-right: 2px solid var(--border-color);
+  box-shadow: 1px 0px 4px rgba(0, 0, 0, 0.9);
+}
+
+.activity-bar.overlay .activity-bar-logo {
+  position: relative;
+  z-index: 1001;
+}
+
+.activity-bar.overlay.hidden .activity-bar-logo {
+  /* border-right: 1px solid rgba(0, 0, 0, 0.1); */
+  /* border-radius: 0 3px 3px 0; */
+  /* background-color: var(--panel-bg); */
+  /* box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1); */
+}
+
+.activity-bar.overlay .activity-bar-logo ~ * {
+  transition: opacity 0.3s ease;
+}
+
+.activity-bar.overlay.hidden .activity-bar-logo ~ * {
+  opacity: 0;
+  pointer-events: none;
 }
 
 .activity-bar button {

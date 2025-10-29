@@ -8,6 +8,7 @@ import ActivityBar from "./ActivityBar";
 import Panel from "./Panel";
 import EditorArea from "./EditorArea";
 import StatusBar from "./StatusBar";
+import logo from '../assets/icon-transparent.svg';
 import ChatOverlay from "../views/components/chat/ChatOverlay";
 import GraphOverlay from "../views/components/visualizer/GraphOverlay";
 import ControllerOverlay from "../views/components/visualizer/ControllerOverlay";
@@ -29,6 +30,7 @@ const Workbench = () => {
   const [controllerOpen, setControllerOpen] = useState(false);
   const [showSceneDetails, setShowSceneDetails] = useState(false);
   const [panelOpen, setPanelOpen] = useState(true);
+  const [activityBarOverlay, setActivityBarOverlay] = useState(false);
 
   // VS Code-inspired layout configuration for each view
   const getLayoutConfig = (view: string) => { // Added type for view
@@ -117,7 +119,14 @@ const Workbench = () => {
   return (
     <div className="workbench">
       <div className="workbench-body">
-        <ActivityBar activeView={currentView} onViewChange={setCurrentView} />
+        <ActivityBar
+          activeView={currentView}
+          onViewChange={setCurrentView}
+          isVisualizer={currentView === "visualizer"}
+          overlayMode={currentView === "visualizer"}
+          overlayVisible={activityBarOverlay}
+          onToggleOverlay={() => setActivityBarOverlay(!activityBarOverlay)}
+        />
         {currentView === "visualizer" && !panelOpen && (
           <button
             className="panel-toggle-attached"

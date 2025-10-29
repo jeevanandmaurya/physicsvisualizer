@@ -61,7 +61,7 @@
 }
 
 .scene-selector-header {
-  justify-content: space-between;
+  justify-content: space-evenly;
   font-size: 14px;
 }
 .scene-selector-header h3 {
