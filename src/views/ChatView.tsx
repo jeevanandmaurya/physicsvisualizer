@@ -6,25 +6,16 @@ import {
   Copy,
   RotateCcw,
   Search,
-  Download,
+  Menu,
   MessageSquare,
   Zap,
   Eye,
   Settings,
-  Menu,
   X,
-  ChevronDown,
-  ChevronRight,
-  Code,
-  Image,
-  FileText,
-  Maximize2,
-  Minimize2,
+  Lightbulb,
+  BookOpen,
   ThumbsUp,
   ThumbsDown,
-  Share,
-  BookOpen,
-  Lightbulb,
 } from "lucide-react";
 
 // Import the actual hooks
@@ -32,6 +23,14 @@ import { useConversation } from "../ui-logic/chat/Conversation";
 import { useTheme } from "../contexts/ThemeContext";
 import { useWorkspace, useWorkspaceChat } from "../contexts/WorkspaceContext";
 import { useDatabase } from "../contexts/DatabaseContext";
+
+// Declare window types
+declare global {
+  interface Window {
+    katex?: any;
+    renderMathInElement?: (element: Element, options?: any) => void;
+  }
+}
 
 interface ModernChatInterfaceProps {
   onViewChange: (view: string) => void;
@@ -53,7 +52,6 @@ function ModernChatInterface({ onViewChange }: ModernChatInterfaceProps) {
   const { theme, toggleTheme } = useTheme();
   const { messages: workspaceMessages, addMessage, selectChatSession, getCurrentChat, getAllChats, deleteChatSession, addChatSession } = useWorkspaceChat();
   const { getCurrentScene, updateCurrentScene } = useWorkspace();
-  const dataManager = useDatabase();
 
   const [input, setInput] = useState("");
   const [searchQuery, setSearchQuery] = useState("");
@@ -64,9 +62,9 @@ function ModernChatInterface({ onViewChange }: ModernChatInterfaceProps) {
   const [chatMode, setChatMode] = useState<ChatMode>('chat');
   const [showVisualizer, setShowVisualizer] = useState(false);
 
-  const messagesEndRef = useRef(null);
-  const inputRef = useRef(null);
-  const previewRef = useRef(null);
+  const messagesEndRef = useRef<HTMLDivElement | null>(null);
+  const inputRef = useRef<HTMLTextAreaElement | null>(null);
+  const previewRef = useRef<HTMLDivElement | null>(null);
 
   // Get current messages from workspace
   const currentMessages = workspaceMessages || [];
@@ -77,10 +75,10 @@ function ModernChatInterface({ onViewChange }: ModernChatInterfaceProps) {
       chatId: "workspace-chat", // Single chat per workspace
       currentScene: { id: "chat-only", objects: [] }, // Dummy scene to prevent null errors
       onSceneUpdate: () => {}, // No scene updates needed in chat view
-      updateConversation: (newMessages) => {
+      updateConversation: (newMessages: any) => {
         // Sync with workspace by adding new messages
         const existingMessageIds = new Set(currentMessages.map((m) => m.id));
-        newMessages.forEach((message) => {
+        newMessages.forEach((message: any) => {
           if (!existingMessageIds.has(message.id)) {
             addMessage(message);
           }
@@ -92,10 +90,10 @@ function ModernChatInterface({ onViewChange }: ModernChatInterfaceProps) {
   useEffect(() => {
     if (currentMessages.length === 0) {
       const greeting = {
-        id: 1,
+        id: "greeting-1",
         text: "Hello! I'm your Physics AI Assistant. I can help you with physics concepts, create 3D visualizations, and discuss scientific phenomena. What would you like to explore today?",
         isUser: false,
-        timestamp: new Date(),
+        timestamp: Date.now(),
         sceneId: null,
       };
       addMessage(greeting);
@@ -140,14 +138,14 @@ function ModernChatInterface({ onViewChange }: ModernChatInterfaceProps) {
     await sendMessage(messageText);
   };
 
-  const handleKeyPress = (e) => {
+  const handleKeyPress = (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
     if (e.key === "Enter" && !e.shiftKey) {
       e.preventDefault();
       handleSend();
     }
   };
 
-  const handleCopyMessage = async (text) => {
+  const handleCopyMessage = async (text: string) => {
     try {
       await navigator.clipboard.writeText(text);
     } catch (err) {
@@ -155,12 +153,12 @@ function ModernChatInterface({ onViewChange }: ModernChatInterfaceProps) {
     }
   };
 
-  const formatMessageText = (text) => {
+  const formatMessageText = (text: string): string => {
     // Enhanced formatting with LaTeX, modern LLM styling, and better code highlighting
     let formatted = text;
 
     // LaTeX block equations ($$...$$) - using KaTeX classes
-    formatted = formatted.replace(/\$\$([\s\S]*?)\$\$/g, (match, equation) => {
+    formatted = formatted.replace(/\$\$([\s\S]*?)\$\$/g, (match: string, equation: string) => {
       const id = `latex-block-${Math.random().toString(36).substr(2, 9)}`;
       // Use setTimeout to ensure DOM is ready for KaTeX rendering
       setTimeout(() => {
@@ -178,7 +176,7 @@ function ModernChatInterface({ onViewChange }: ModernChatInterfaceProps) {
     });
 
     // LaTeX inline equations ($...$) - using KaTeX classes
-    formatted = formatted.replace(/\$([^$\n]+)\$/g, (match, equation) => {
+    formatted = formatted.replace(/\$([^$\n]+)\$/g, (match: string, equation: string) => {
       const id = `latex-inline-${Math.random().toString(36).substr(2, 9)}`;
       setTimeout(() => {
         if (window.katex) {
@@ -211,7 +209,7 @@ function ModernChatInterface({ onViewChange }: ModernChatInterfaceProps) {
     // Code blocks with syntax highlighting
     formatted = formatted.replace(
       /```(\w+)?\n?([\s\S]*?)```/g,
-      (match, lang, code) => {
+      (match: string, lang: string, code: string) => {
         const language = lang || "text";
         const highlightedCode = highlightCode(code.trim(), language);
         return `<div class="code-block-container">
@@ -235,7 +233,7 @@ function ModernChatInterface({ onViewChange }: ModernChatInterfaceProps) {
     // JSON code blocks (special handling)
     formatted = formatted.replace(
       /```json\n?([\s\S]*?)```/g,
-      (match, jsonContent) => {
+      (match: string, jsonContent: string) => {
         try {
           const parsed = JSON.parse(jsonContent.trim());
           const prettyJson = JSON.stringify(parsed, null, 2);
@@ -319,7 +317,7 @@ function ModernChatInterface({ onViewChange }: ModernChatInterfaceProps) {
   };
 
   // Code highlighting function
-  const highlightCode = (code, language) => {
+  const highlightCode = (code: string, language: string): string => {
     // Basic syntax highlighting for common languages
     let highlighted = code;
 
@@ -352,10 +350,10 @@ function ModernChatInterface({ onViewChange }: ModernChatInterfaceProps) {
   };
 
   // JSON highlighting function
-  const highlightJSON = (jsonString) => {
+  const highlightJSON = (jsonString: string): string => {
     return jsonString.replace(
       /("(\\u[a-zA-Z0-9]{4}|\\[^u]|[^\\"])*"(\s*:)?|\b(true|false|null)\b|-?\d+(\.\d+)?([eE][+\-]?\d+)?)/g,
-      (match) => {
+      (match: string) => {
         let cls = "number";
         if (/^"/.test(match)) {
           if (/:$/.test(match)) {
@@ -375,7 +373,7 @@ function ModernChatInterface({ onViewChange }: ModernChatInterfaceProps) {
 
   const filteredChats = []; // No multiple chats in workspace system
 
-  const openPreview = (message) => {
+  const openPreview = (message: any) => {
     setSelectedMessage(message);
     setShowPreview(true);
   };
@@ -951,7 +949,7 @@ function ModernChatInterface({ onViewChange }: ModernChatInterfaceProps) {
             style={{ display: "flex", gap: "8px", justifyContent: "center" }}
           >
             <button
-              onClick={() => setTheme(theme === "dark" ? "light" : "dark")}
+              onClick={toggleTheme}
               style={{
                 background: "none",
                 border: "none",

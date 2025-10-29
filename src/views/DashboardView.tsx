@@ -115,13 +115,13 @@ function DashboardView() {
         <div className="welcome-container">
             <div className="welcome-content">
                 <div className="welcome-header">
-                    <h1 className="welcome-title">Welcome to</h1>
-                    <div style={{ textAlign: 'center', marginTop: '10px', marginBottom: '20px' }}>
+                    <h3 className="welcome-title">Welcome to</h3>
+                    <div style={{ textAlign: 'center' }}>
                         <img
                             src={logo}
                             alt="Physics Visualizer Logo"
                             style={{
-                                width: '400px',
+                                width: '100%',
                                 height: '100px',
                                 objectFit: 'contain'
                             }}
@@ -132,7 +132,6 @@ function DashboardView() {
 
                 <div className="welcome-actions">
                     <div className="action-group">
-                        <h2 className="action-group-title">Start</h2>
                         <div className="action-cards">
                             <div className="action-card" onClick={handleCreateNewScene}>
                                 <div className="action-card-icon">
