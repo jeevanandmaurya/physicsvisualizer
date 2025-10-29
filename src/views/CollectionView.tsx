@@ -35,7 +35,7 @@ function SceneCard({ scene, isPublic = false, onSceneClick }) {
   return (
     <div className="scene-card" onClick={handleSceneClick} style={{ cursor: 'pointer' }}>
       <img
-        src={scene.thumbnailUrl || 'https://placehold.co/350x180/2c2c2c/ffffff?text=Scene'}
+        src={scene.thumbnailUrl || 'https://placehold.co/200/2c2c2c/ffffff?text=Scene'}
         alt={sceneName}
         className="scene-thumbnail"
       />
