@@ -6,6 +6,9 @@ import * as THREE from 'three';
 // Import physics calculations and engine components
 import { PhysicsWorld } from '../../core/physics/engine.jsx';
 
+// Import visual annotation system
+import { VisualAnnotationManager } from '../../core/visuals';
+
 
 
 // Import assets
@@ -118,41 +121,9 @@ function Arrow({ vec, color }) {
     </group>
   );
 }
-function VelocityVector({ position, velocityData, velocityScale, color }) {
-  if (!velocityData || !Array.isArray(velocityData)) return null;
-  const velocityVector = new THREE.Vector3().fromArray(velocityData);
-  const scaledVelocityVec = velocityVector.multiplyScalar(velocityScale || 1);
-  if (scaledVelocityVec.length() < 0.01) return null;
-
-  return (
-    <group position={position || [0, 0, 0]}>
-      <Arrow vec={scaledVelocityVec} color={color || "#00ff88"} />
-    </group>
-  );
-}
-function VelocityVectorVisuals({ show, velocities, positions, velocityScale, sceneObjects }) {
-  if (!show || !velocities || !sceneObjects) return null;
-
-  const dynamicObjects = sceneObjects.filter(obj => !obj.isStatic);
-
-  return dynamicObjects.map((obj) => {
-    const velocity = velocities[obj.id];
-    if (!velocity || !Array.isArray(velocity)) return null;
-
-    const velocityVector = new THREE.Vector3().fromArray(velocity);
-    if (velocityVector.length() < 0.01) return null;
-
-    return (
-      <VelocityVector
-        key={`velocity-${obj.id}`}
-        position={positions[obj.id] || obj.position || [0, 0, 0]}
-        velocityData={velocity}
-        velocityScale={velocityScale || 1}
-        color="#00ff88"
-      />
-    );
-  });
-}
+// OLD VELOCITY VECTOR SYSTEM - Replaced by Visual Annotation System
+// Use visualAnnotations in scene JSON instead
+// Example: { "type": "vector", "vectorType": "velocity", ... }
 
 function Skybox({ texturePath, backgroundType = 'normal' }) {
   if (backgroundType === 'black') {
@@ -187,7 +158,7 @@ function Skybox({ texturePath, backgroundType = 'normal' }) {
 }
 
 function Visualizer({ scene, showSceneDetails, onToggleSceneDetails, backgroundType = 'normal' }) {
-    const { isPlaying, simulationTime, fps, showVelocityVectors, vectorScale, openGraphs, resetSimulation, loopReset, updateSimulationTime, updateFps, resetTrigger, removeGraph, setObjectHistory, loopMode, setIsPlaying, dataTimeStep } = useWorkspace();
+    const { isPlaying, simulationTime, fps, showVelocityVectors, vectorScale, openGraphs, resetSimulation, loopReset, updateSimulationTime, updateFps, resetTrigger, removeGraph, setObjectHistory, loopMode, setIsPlaying, dataTimeStep, simulationSpeed } = useWorkspace();
 
     // Debug: Log scene changes
     useEffect(() => {
@@ -397,13 +368,33 @@ function Visualizer({ scene, showSceneDetails, onToggleSceneDetails, backgroundT
                             resetTrigger={resetTrigger}
                             defaultContactMaterial={defaultContactMaterial}
                             simulationTime={simulationTime}
+                            simulationSpeed={simulationSpeed}
                         />
-                        <VelocityVectorVisuals show={showVelocityVectors} velocities={physicsData.velocities} positions={physicsData.positions} velocityScale={vectorScale} sceneObjects={objectsToRender} />
+                        {/* Visual Annotation System - Replaces old VelocityVectorVisuals */}
+                        {activeScene?.visualAnnotations && activeScene.visualAnnotations.length > 0 && (
+                            <VisualAnnotationManager
+                                annotations={activeScene.visualAnnotations}
+                                physicsData={(() => {
+                                    const combined: { [objectId: string]: { velocity: number[]; position: number[]; time: number } } = {};
+                                    Object.keys(physicsData.velocities || {}).forEach(id => {
+                                        combined[id] = {
+                                            velocity: (physicsData.velocities as any)[id] || [0, 0, 0],
+                                            position: (physicsData.positions as any)[id] || [0, 0, 0],
+                                            time: simulationTime
+                                        };
+                                    });
+                                    return combined;
+                                })()}
+                                sceneObjects={objectsToRender}
+                                isPlaying={isPlaying}
+                                enabled={true}
+                            />
+                        )}
                         <OrbitControls />
                         <LabeledAxesHelper size={5} />
                         <SimpleGrid show={hasGround} />
                         <FpsCounter updateFps={updateFps} />
-                        <Skybox backgroundType={backgroundType} />
+                        <Skybox texturePath={backgroundTexture} backgroundType={backgroundType} />
                     </Canvas>
                 )}
 

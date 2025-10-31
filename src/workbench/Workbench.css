@@ -23,7 +23,10 @@
   display: flex;
   flex: 1;
   overflow: hidden;
+  position: relative;
 }
+
+/* Panel overlay styles now handled by Overlay component */
 
 .activity-bar {
   width: 40px;
@@ -65,7 +68,7 @@
   left: 0;
   top: 0;
   height: 36px;
-  z-index: 1000;
+  z-index: 40;
   background-color: transparent;
   transition: background-color 0.3s ease;
 }
@@ -80,7 +83,7 @@
 
 .activity-bar.overlay .activity-bar-logo {
   position: relative;
-  z-index: 1001;
+  z-index: 41;
 }
 
 .activity-bar.overlay.hidden .activity-bar-logo {
@@ -122,35 +125,6 @@
 }
 
 .activity-bar button.active {
-  background-color: var(--primary-color);
-  color: #ffffff;
-}
-
-.panel-toggle-attached {
-  position: absolute;
-  padding: 0px;
-  left: 40px;
-  top: 50%;
-  transform: translateY(-50%);
-  width: 25px;
-  height: 60px;
-  background-color: var(--secondary-bg);
-  filter: invert(0.1);
-  border: 2px solid var(--text-color);
-
-  border-left: none;
-  color: var(--text-color);
-  cursor: pointer;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  font-size: 12px;
-  border-radius: 0 20px 20px 0;
-  z-index: 100;
-  transition: all 0.2s ease;
-}
-
-.panel-toggle-attached:hover {
   background-color: var(--primary-color);
   color: #ffffff;
 }
@@ -257,30 +231,40 @@
   border-right: 1px solid var(--border-color);
   display: flex;
   overflow: hidden;
-  transition: width 0.3s ease;
-}
-
-.side-panel.with-details {
-  width: 500px;
-}
-
-.side-panel.without-details {
   width: 250px;
 }
 
 .left-panel {
-  width: 250px;
-  border-right: 1px solid var(--border-color);
+  width: 100%;
   display: flex;
   flex-direction: column;
   overflow: hidden;
+  position: relative;
 }
 
-.right-panel {
-  flex: 1;
+.scene-details-overlay {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background-color: var(--panel-bg);
+  z-index: 100;
   display: flex;
   flex-direction: column;
   overflow: hidden;
+  animation: slideInFromRight 0.2s ease-out;
+}
+
+@keyframes slideInFromRight {
+  from {
+    transform: translateX(100%);
+    opacity: 0;
+  }
+  to {
+    transform: translateX(0);
+    opacity: 1;
+  }
 }
 
 .status-bar {

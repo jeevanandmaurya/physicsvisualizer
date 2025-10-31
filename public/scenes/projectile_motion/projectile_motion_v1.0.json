@@ -1,0 +1,89 @@
+{
+  "id": "projectile-motion",
+  "name": "Projectile Motion",
+  "description": "Demonstrates parabolic trajectory of a projectile launched at an angle, showing the effects of gravity on motion.",
+  "version": "1.0",
+  "objects": [
+    {
+      "id": "projectile",
+      "type": "Sphere",
+      "mass": 1,
+      "radius": 0.2,
+      "position": [0, 1, 0],
+      "velocity": [8, 8, 0],
+      "color": "#FF4500"
+    },
+    {
+      "id": "launcher",
+      "type": "Box",
+      "mass": 0,
+      "dimensions": [2, 0.5, 2],
+      "position": [0, 0.25, 0],
+      "color": "#8B4513",
+      "isStatic": true
+    },
+    {
+      "id": "ground",
+      "type": "Box",
+      "mass": 0,
+      "dimensions": [50, 0.1, 50],
+      "position": [0, 0, 0],
+      "color": "#666666",
+      "isStatic": true
+    },
+    {
+      "id": "target",
+      "type": "Cylinder",
+      "mass": 0,
+      "radius": 0.5,
+      "height": 2,
+      "position": [20, 1, 0],
+      "color": "#32CD32",
+      "isStatic": true
+    }
+  ],
+  "gravity": [0, -9.81, 0],
+  "hasGround": true,
+  "contactMaterial": {
+    "friction": 0.3,
+    "restitution": 0.6
+  },
+  "gravitationalPhysics": {
+    "enabled": false
+  },
+  "simulationScale": "terrestrial",
+  "controllers": [
+    {
+      "id": "launch_velocity_x",
+      "label": "Horizontal Velocity",
+      "type": "slider",
+      "min": 0,
+      "max": 15,
+      "step": 0.5,
+      "value": 8,
+      "objectId": "projectile",
+      "property": "velocity[0]"
+    },
+    {
+      "id": "launch_velocity_y",
+      "label": "Vertical Velocity",
+      "type": "slider",
+      "min": 0,
+      "max": 15,
+      "step": 0.5,
+      "value": 8,
+      "objectId": "projectile",
+      "property": "velocity[1]"
+    },
+    {
+      "id": "gravity_strength",
+      "label": "Gravity",
+      "type": "slider",
+      "min": -20,
+      "max": -1,
+      "step": 0.5,
+      "value": -9.81,
+      "propertyPath": "gravity[1]"
+    }
+  ]
+}

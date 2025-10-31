@@ -1,0 +1,85 @@
+{
+  "id": "laws-motion-collision",
+  "name": "Laws of Motion (Collisions)",
+  "description": "Elastic collision demonstrating Newton's laws and conservation of momentum.",
+  "version": "1.0",
+  "objects": [
+    {
+      "id": "ball1",
+      "type": "Sphere",
+      "mass": 1,
+      "radius": 0.5,
+      "position": [-5, 0.5, 0],
+      "velocity": [10, 0, 0],
+      "color": "#42a5f5",
+      "friction": 0,
+      "restitution": 1
+    },
+    {
+      "id": "ball2",
+      "type": "Sphere",
+      "mass": 2,
+      "radius": 0.5,
+      "position": [5, 0.5, 0],
+      "velocity": [0, 0, 0],
+      "color": "#ab47bc",
+      "friction": 0,
+      "restitution": 1
+    },
+    {
+      "id": "ground",
+      "type": "Box",
+      "mass": 0,
+      "dimensions": [20, 1, 10],
+      "position": [0, -0.5, 0],
+      "isStatic": true,
+      "color": "#8B4513",
+      "friction": 0,
+      "restitution": 1
+    }
+  ],
+  "gravity": [0, -9.81, 0],
+  "hasGround": true,
+  "contactMaterial": {
+    "friction": 0,
+    "restitution": 1
+  },
+  "gravitationalPhysics": {
+    "enabled": false
+  },
+  "simulationScale": "terrestrial",
+  "controllers": [
+    {
+      "id": "mass1",
+      "label": "Mass 1",
+      "type": "slider",
+      "min": 0.5,
+      "max": 5,
+      "step": 0.1,
+      "value": 1,
+      "objectId": "ball1",
+      "property": "mass"
+    },
+    {
+      "id": "vel_x1",
+      "label": "Velocity X1",
+      "type": "slider",
+      "min": 0,
+      "max": 20,
+      "step": 1,
+      "value": 10,
+      "objectId": "ball1",
+      "property": "velocity[0]"
+    },
+    {
+      "id": "restitution",
+      "label": "Restitution",
+      "type": "slider",
+      "min": 0,
+      "max": 1,
+      "step": 0.1,
+      "value": 1,
+      "propertyPath": "contactMaterial.restitution"
+    }
+  ]
+}

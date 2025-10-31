@@ -1,0 +1,106 @@
+.overlay {
+  position: absolute;
+  border: 1px solid var(--border-color);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+  z-index: var(--overlay-zindex, 50);
+  transition: all 0.3s ease, box-shadow 0.2s ease;
+  overflow: auto;
+  cursor: default;
+}
+
+.overlay::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background-color: var(--secondary-bg);
+  opacity: var(--overlay-opacity, 0.9);
+  backdrop-filter: blur(2px);
+  z-index: -1;
+}
+
+.overlay:hover {
+  box-shadow: 0 6px 16px rgba(0, 0, 0, 0.4);
+}
+
+.overlay.focused {
+  border-color: var(--primary-color);
+  box-shadow: 0 8px 20px rgba(0, 123, 255, 0.3);
+}
+
+/* Position variants */
+.overlay-left {
+  left: 40px; /* Account for activity bar */
+  top: 0;
+  bottom: 35px; /* Account for status bar */
+  width: 300px;
+  max-width: 30vw;
+}
+
+.overlay-right {
+  right: 0;
+  top: 0;
+  bottom: 35px;
+  width: 300px;
+  max-width: 30vw;
+}
+
+.overlay-top {
+  top: 0;
+  left: 40px;
+  right: 0;
+  height: 200px;
+  max-height: 30vh;
+}
+
+.overlay-bottom {
+  bottom: 36px; /* Just above status bar (35px + 1px gap) */
+  left: 40px;
+  right: 0;
+  height: 300px;
+  max-height: 50vh;
+}
+
+.overlay-center {
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  max-width: 80vw;
+  max-height: 80vh;
+  width: auto;
+  height: auto;
+}
+
+.overlay-full {
+  left: 40px;
+  top: 0;
+  right: 0;
+  bottom: 35px;
+}
+
+/* Backdrop for modal-like overlays */
+.overlay-backdrop {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background-color: rgba(0, 0, 0, 0.5);
+  backdrop-filter: blur(4px);
+  z-index: 40;
+}
+
+/* Responsive adjustments */
+@media (max-width: 768px) {
+  .overlay-left,
+  .overlay-right {
+    max-width: 90vw;
+  }
+
+  .overlay-top,
+  .overlay-bottom {
+    max-height: 50vh;
+  }
+}

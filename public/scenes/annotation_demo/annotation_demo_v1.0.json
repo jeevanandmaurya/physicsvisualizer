@@ -1,0 +1,154 @@
+{
+  "id": "annotation-demo",
+  "name": "Visual Annotation Demo",
+  "description": "Demonstrates the visual annotation system with text labels, velocity vectors, and real-time physics data display",
+  "objects": [
+    {
+      "id": "projectile",
+      "type": "Sphere",
+      "mass": 2,
+      "radius": 0.4,
+      "position": [-8, 5, 0],
+      "velocity": [12, 8, 0],
+      "color": "#FF4500"
+    },
+    {
+      "id": "box1",
+      "type": "Box",
+      "mass": 3,
+      "dimensions": [1.5, 1.5, 1.5],
+      "position": [5, 8, 0],
+      "velocity": [0, 0, 0],
+      "color": "#32CD32"
+    },
+    {
+      "id": "ground",
+      "type": "Box",
+      "mass": 0,
+      "dimensions": [40, 0.2, 20],
+      "position": [0, 0, 0],
+      "color": "#666666",
+      "isStatic": true
+    }
+  ],
+  "gravity": [0, -9.81, 0],
+  "hasGround": true,
+  "contactMaterial": {
+    "friction": 0.4,
+    "restitution": 0.7
+  },
+  "gravitationalPhysics": {
+    "enabled": false
+  },
+  "simulationScale": "terrestrial",
+  "visualAnnotations": [
+    {
+      "id": "projectile-speed",
+      "type": "text",
+      "attachedToObjectId": "projectile",
+      "contentType": "speed",
+      "prefix": "Speed: ",
+      "suffix": " m/s",
+      "precision": 1,
+      "offset": [0, 1.2, 0],
+      "anchor": "top",
+      "fontSize": 20,
+      "color": "#ffffff",
+      "backgroundColor": "rgba(255, 69, 0, 0.8)",
+      "padding": 10,
+      "borderRadius": 6,
+      "visible": true,
+      "updateFrequency": 30,
+      "minSpeed": 0.1,
+      "smoothness": 0.15
+    },
+    {
+      "id": "projectile-velocity-vector",
+      "type": "vector",
+      "attachedToObjectId": "projectile",
+      "vectorType": "velocity",
+      "scale": 0.4,
+      "color": "#00aaff",
+      "showMagnitude": false,
+      "offset": [0, 0, 0],
+      "anchor": "center",
+      "visible": true,
+      "shaftRadius": 0.03,
+      "headLength": 0.3,
+      "headRadius": 0.1,
+      "smoothness": 0.15
+    },
+    {
+      "id": "projectile-position",
+      "type": "text",
+      "attachedToObjectId": "projectile",
+      "contentType": "position",
+      "prefix": "Pos: ",
+      "precision": 1,
+      "offset": [0, -1.2, 0],
+      "anchor": "bottom",
+      "fontSize": 14,
+      "color": "#ffff00",
+      "backgroundColor": "rgba(0, 0, 0, 0.7)",
+      "padding": 6,
+      "visible": true
+    },
+    {
+      "id": "projectile-ke",
+      "type": "text",
+      "attachedToObjectId": "projectile",
+      "contentType": "kineticEnergy",
+      "prefix": "KE: ",
+      "suffix": " J",
+      "precision": 1,
+      "offset": [1.5, 0, 0],
+      "anchor": "right",
+      "fontSize": 16,
+      "color": "#ff00ff",
+      "backgroundColor": "rgba(0, 0, 0, 0.7)",
+      "visible": true
+    },
+    {
+      "id": "box-speed",
+      "type": "text",
+      "attachedToObjectId": "box1",
+      "contentType": "speed",
+      "prefix": "V: ",
+      "suffix": " m/s",
+      "precision": 2,
+      "offset": [0, 1.5, 0],
+      "anchor": "top",
+      "fontSize": 18,
+      "color": "#00ff00",
+      "backgroundColor": "rgba(0, 0, 0, 0.8)",
+      "visible": true,
+      "minSpeed": 0.05
+    },
+    {
+      "id": "box-velocity-vector",
+      "type": "vector",
+      "attachedToObjectId": "box1",
+      "vectorType": "velocity",
+      "scale": 0.5,
+      "color": "#00ff88",
+      "offset": [0, 0, 0],
+      "anchor": "center",
+      "visible": true
+    },
+    {
+      "id": "box-mass",
+      "type": "text",
+      "attachedToObjectId": "box1",
+      "contentType": "mass",
+      "prefix": "Mass: ",
+      "suffix": " kg",
+      "precision": 1,
+      "offset": [0, -1.8, 0],
+      "anchor": "bottom",
+      "fontSize": 14,
+      "color": "#ffffff",
+      "backgroundColor": "rgba(50, 205, 50, 0.7)",
+      "visible": true
+    }
+  ]
+}

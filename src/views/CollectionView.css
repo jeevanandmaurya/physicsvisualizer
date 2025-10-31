@@ -189,7 +189,8 @@
 .scene-thumbnail {
   width: 100%;
   height: 100%;
-  object-fit: cover;
+  object-fit: contain;
+  object-position: center;
   background-color: var(--secondary-bg);
 }
 
@@ -203,15 +204,16 @@
   backdrop-filter: blur(8px);
   -webkit-backdrop-filter: blur(8px);
   transition: opacity 0.3s ease;
+  opacity: 0;
 }
 
 .dark .scene-card-content {
-  background: rgba(0, 0, 0, 0.7);
+  background: rgba(0, 0, 0, 0.85);
 }
 
 .scene-card:hover .scene-card-content,
 .scene-card:hover .scene-actions {
-  opacity: 0;
+  opacity: 1;
 }
 
 .scene-title {
@@ -253,6 +255,7 @@
   background: none;
   border: none;
   transition: opacity 0.3s ease;
+  opacity: 0;
 }
 
 .scene-action-button {

@@ -261,6 +261,9 @@ function VisualizerView() {
         borderRadius: '6px',
         padding: '6px',
         display: 'flex',
+        flexDirection: 'row',
+        alignItems: 'center',
+        justifyContent: 'center',
         gap: '4px',
         backdropFilter: 'blur(8px)',
         border: '1px solid rgba(255, 255, 255, 0.1)'

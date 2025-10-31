@@ -1,0 +1,47 @@
+Theory:
+A simple pendulum consists of a mass (bob) suspended from a fixed point by a massless, inextensible string. It exhibits simple harmonic motion for small angles and demonstrates the principle of conservation of mechanical energy.
+
+The total mechanical energy (E = KE + PE) remains constant in an ideal pendulum with no friction or air resistance.
+
+Explanation:
+As the pendulum swings, energy continuously transforms between potential energy (PE) and kinetic energy (KE):
+
+At the highest points:
+- Maximum potential energy
+- Zero kinetic energy (momentarily at rest)
+- All energy is gravitational PE = mgh
+
+At the lowest point:
+- Minimum potential energy
+- Maximum kinetic energy
+- All energy is KE = ½mv²
+
+The pendulum demonstrates:
+1. **Conservation of Energy**: Total mechanical energy remains constant
+2. **Periodic Motion**: Repeating motion with a fixed time period
+3. **Restoring Force**: Gravity provides the force that pulls the bob back toward equilibrium
+4. **Harmonic Motion**: For small angles (<15°), the motion is approximately simple harmonic
+
+The period depends only on the length and gravity, NOT on mass or amplitude (for small angles).
+
+Facts:
+- Period T = 2π√(L/g) for small angle approximations
+- The mass of the bob does NOT affect the period
+- Energy continuously converts between kinetic and potential
+- At any instant: Total Energy = KE + PE = constant
+- Maximum speed occurs at the lowest point
+- Acceleration is zero at the lowest point (maximum velocity)
+- Acceleration is maximum at the highest points (zero velocity)
+- For small angles, the motion is nearly sinusoidal
+- The frequency increases with shorter pendulum length
+- Galileo discovered that pendulum period is independent of amplitude (isochronism)
+
+Key Equations:
+- Period: T = 2π√(L/g)
+- Frequency: f = 1/T = (1/2π)√(g/L)
+- Angular frequency: ω = √(g/L)
+- Potential Energy: PE = mgh = mgL(1 - cosθ)
+- Kinetic Energy: KE = ½mv²
+- Total Energy: E = KE + PE = constant
+- For small angles: θ(t) = θ₀cos(ωt)
+- Restoring force: F = -mg sinθ ≈ -mgθ (for small θ)

@@ -1,0 +1,102 @@
+{
+  "id": "two-body-orbit",
+  "name": "Gravitation - Two-Body Orbit",
+  "description": "Demonstrates stable circular orbit and Newton's law of universal gravitation. Shows conservation of angular momentum and orbital mechanics.",
+  "version": "1.0",
+  "objects": [
+    {
+      "id": "body1",
+      "type": "Sphere",
+      "mass": 100,
+      "gravitationalMass": 100,
+      "radius": 1.5,
+      "position": [0, 0, 0],
+      "isStatic": true,
+      "color": "#FFD700",
+      "friction": 0,
+      "restitution": 0
+    },
+    {
+      "id": "body2",
+      "type": "Sphere",
+      "mass": 1,
+      "gravitationalMass": 1,
+      "radius": 0.5,
+      "position": [15, 0, 0],
+      "velocity": [0, 0, 2.58],
+      "color": "#4169E1",
+      "friction": 0,
+      "restitution": 0
+    }
+  ],
+  "gravity": [0, 0, 0],
+  "hasGround": false,
+  "contactMaterial": {
+    "friction": 0,
+    "restitution": 0
+  },
+  "gravitationalPhysics": {
+    "enabled": true,
+    "gravitationalConstant": 1,
+    "minDistance": 2.0,
+    "softening": 0.8
+  },
+  "simulationScale": "solar_system",
+  "recommendedTimestep": 0.001,
+  "controllers": [
+    {
+      "id": "G",
+      "label": "G Constant",
+      "type": "slider",
+      "min": 0.5,
+      "max": 3,
+      "step": 0.1,
+      "value": 1,
+      "propertyPath": "gravitationalPhysics.gravitationalConstant"
+    },
+    {
+      "id": "orbital_radius",
+      "label": "Orbital Radius",
+      "type": "slider",
+      "min": 10,
+      "max": 30,
+      "step": 1,
+      "value": 15,
+      "objectId": "body2",
+      "property": "position[0]"
+    },
+    {
+      "id": "vel",
+      "label": "Orbital Velocity",
+      "type": "slider",
+      "min": 1,
+      "max": 5,
+      "step": 0.1,
+      "value": 2.58,
+      "objectId": "body2",
+      "property": "velocity[2]"
+    },
+    {
+      "id": "central_mass",
+      "label": "Central Mass",
+      "type": "slider",
+      "min": 50,
+      "max": 500,
+      "step": 10,
+      "value": 100,
+      "objectId": "body1",
+      "property": "gravitationalMass"
+    },
+    {
+      "id": "planet_mass",
+      "label": "Planet Mass",
+      "type": "slider",
+      "min": 0.5,
+      "max": 5,
+      "step": 0.5,
+      "value": 1,
+      "objectId": "body2",
+      "property": "gravitationalMass"
+    }
+  ]
+}

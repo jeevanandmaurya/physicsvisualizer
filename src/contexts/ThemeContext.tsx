@@ -5,6 +5,8 @@ export interface OverlayOpacitySettings {
   chat: number;
   graph: number;
   controller: number;
+  sceneSelector: number;
+  activityBar: number;
 }
 
 export interface ThemeContextType {
@@ -29,36 +31,25 @@ interface ThemeProviderProps {
 }
 
 export const ThemeProvider = ({ children }: ThemeProviderProps) => {
-  const [theme, setTheme] = useState('light');
-  const [overlayOpacity, setOverlayOpacity] = useState({
-    chat: 0.8,
-    graph: 0.8,
-    controller: 0.8
-  });
-
-  useEffect(() => {
+  // Initialize theme from localStorage synchronously
+  const getInitialTheme = () => {
     const saved = localStorage.getItem('theme');
     if (saved) {
-      setTheme(saved);
-    } else if (window.matchMedia('(prefers-color-scheme: dark)').matches) {
-      setTheme('dark');
+      return saved;
     }
+    return window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';
+  };
 
-    // Load overlay opacity settings
-    const savedChatOpacity = localStorage.getItem('chatOpacity');
-    const savedGraphOpacity = localStorage.getItem('graphOpacity');
-    const savedControllerOpacity = localStorage.getItem('controllerOpacity');
-    if (savedChatOpacity) {
-      setOverlayOpacity(prev => ({ ...prev, chat: parseFloat(savedChatOpacity) }));
-    }
-    if (savedGraphOpacity) {
-      setOverlayOpacity(prev => ({ ...prev, graph: parseFloat(savedGraphOpacity) }));
-    }
-    if (savedControllerOpacity) {
-      setOverlayOpacity(prev => ({ ...prev, controller: parseFloat(savedControllerOpacity) }));
-    }
-  }, []);
+  const [theme, setTheme] = useState(getInitialTheme);
+  const [overlayOpacity, setOverlayOpacity] = useState({
+    chat: 0.85,
+    graph: 0.8,
+    controller: 0.85,
+    sceneSelector: 0.9,
+    activityBar: 0.95
+  });
 
+  // Apply theme class immediately on mount and whenever theme changes
   useEffect(() => {
     if (theme === 'dark') {
       document.documentElement.classList.add('dark');
@@ -67,6 +58,17 @@ export const ThemeProvider = ({ children }: ThemeProviderProps) => {
     }
     localStorage.setItem('theme', theme);
   }, [theme]);
+
+  // Load overlay opacity settings once on mount
+  useEffect(() => {
+    const overlayTypes: (keyof OverlayOpacitySettings)[] = ['chat', 'graph', 'controller', 'sceneSelector', 'activityBar'];
+    overlayTypes.forEach(type => {
+      const savedOpacity = localStorage.getItem(`${type}Opacity`);
+      if (savedOpacity) {
+        setOverlayOpacity(prev => ({ ...prev, [type]: parseFloat(savedOpacity) }));
+      }
+    });
+  }, []);
 
   const toggleTheme = () => {
     setTheme(prev => prev === 'light' ? 'dark' : 'light');

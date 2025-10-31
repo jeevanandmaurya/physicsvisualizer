@@ -1,11 +1,11 @@
 import React, { useState, useCallback } from 'react';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
-import { faPlay, faPause, faRedo, faCamera, faSave, faEye, faEyeSlash, faChartLine, faChevronDown, faChevronUp, faComments, faSlidersH, faRepeat } from '@fortawesome/free-solid-svg-icons';
+import { faPlay, faPause, faRedo, faCamera, faSave, faChartLine, faChevronDown, faChevronUp, faComments, faSlidersH, faRepeat, faList } from '@fortawesome/free-solid-svg-icons';
 import { useWorkspace } from '../contexts/WorkspaceContext';
 
 
-const StatusBar = ({ activeView, chatOpen, onChatToggle, graphOpen, onGraphToggle, controllerOpen, onControllerToggle }) => {
-  const { workspaceScenes, workspaceChats, isPlaying, simulationTime, fps, showVelocityVectors, vectorScale, openGraphs, togglePlayPause, resetSimulation, updateVectorScale, toggleVelocityVectors, addGraph, getCurrentScene, saveCurrentScene, loopMode, toggleLoop } = useWorkspace();
+const StatusBar = ({ activeView, chatOpen, onChatToggle, graphOpen, onGraphToggle, controllerOpen, onControllerToggle, panelOpen, onPanelToggle }) => {
+  const { workspaceScenes, workspaceChats, isPlaying, simulationTime, fps, openGraphs, togglePlayPause, resetSimulation, addGraph, getCurrentScene, saveCurrentScene, loopMode, toggleLoop, simulationSpeed, setSimulationSpeed } = useWorkspace();
 
 
 
@@ -30,12 +30,12 @@ const StatusBar = ({ activeView, chatOpen, onChatToggle, graphOpen, onGraphToggl
   const [thumbnailPreview, setThumbnailPreview] = useState(null);
   const currentScene = getCurrentScene();
 
-  const cycleScale = useCallback(() => {
-    const scales = [1, 2, 3, 4, 5];
-    const currentIndex = scales.indexOf(vectorScale);
-    const nextIndex = (currentIndex + 1) % scales.length;
-    updateVectorScale(scales[nextIndex]);
-  }, [vectorScale, updateVectorScale]);
+  const cycleSimulationSpeed = useCallback(() => {
+    const speeds = [0.125, 0.25, 0.5, 1];
+    const currentIndex = speeds.indexOf(simulationSpeed);
+    const nextIndex = (currentIndex + 1) % speeds.length;
+    setSimulationSpeed(speeds[nextIndex]);
+  }, [simulationSpeed, setSimulationSpeed]);
 
   const getViewInfo = () => {
     const viewNames = {
@@ -144,6 +144,16 @@ const StatusBar = ({ activeView, chatOpen, onChatToggle, graphOpen, onGraphToggl
   return (
     <div className="status-bar">
       <div className="status-bar-left">
+        {activeView === 'visualizer' && onPanelToggle && (
+          <button
+            className={`status-control-button ${panelOpen ? 'active' : ''}`}
+            onClick={onPanelToggle}
+            title={panelOpen ? 'Hide Scene Selector' : 'Show Scene Selector'}
+            style={{ marginRight: '10px' }}
+          >
+            <FontAwesomeIcon icon={faList} style={{ fontSize: '18px' }} />
+          </button>
+        )}
         <div className="status-bar-item" style={{ marginLeft: '10px' }}>{getViewInfo()}</div>
         <div className="status-bar-item" style={{ color: '#ffffff', fontSize: '13px', marginLeft: '15px' }}>{getLayoutInfo()}</div>
         <div className="status-bar-item" style={{ maxWidth: '400px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', marginLeft: '15px' }}>{getViewDetails()}</div>
@@ -176,18 +186,11 @@ const StatusBar = ({ activeView, chatOpen, onChatToggle, graphOpen, onGraphToggl
           <div className="status-separator"></div>
           <button
             className="status-control-button"
-            onClick={toggleVelocityVectors}
-            title={showVelocityVectors ? 'Hide Velocity Vectors' : 'Show Velocity Vectors'}
+            onClick={cycleSimulationSpeed}
+            title="Simulation Speed (Click to cycle: 0.25x → 0.5x → 1x)"
+            style={{ fontSize: '16px', minWidth: '55px' }}
           >
-            {'Vector \u00A0'}<FontAwesomeIcon icon={showVelocityVectors ? faEyeSlash : faEye} style={{ fontSize: '16px' }} />
-          </button>
-          <button
-            className="status-control-button"
-            onClick={cycleScale}
-            title="Cycle Vector Scale (1x-5x)"
-            style={{ fontSize: '18px' }}
-          >
-            x{vectorScale}
+            {simulationSpeed}x
           </button>
           <div className="status-separator"></div>
           <button

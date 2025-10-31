@@ -1,0 +1,86 @@
+{
+  "id": "momentum-conservation",
+  "name": "Momentum Conservation - Collision Chain",
+  "description": "Newton's cradle-like collision demonstrating conservation of momentum and energy transfer.",
+  "version": "1.0",
+  "objects": [
+    {
+      "id": "ball1",
+      "type": "Sphere",
+      "mass": 1,
+      "radius": 0.5,
+      "position": [-5, 0.5, 0],
+      "velocity": [6, 0, 0],
+      "color": "#FF6347",
+      "friction": 0,
+      "restitution": 1
+    },
+    {
+      "id": "ball2",
+      "type": "Sphere",
+      "mass": 1,
+      "radius": 0.5,
+      "position": [0, 0.5, 0],
+      "velocity": [0, 0, 0],
+      "color": "#32CD32",
+      "friction": 0,
+      "restitution": 1
+    },
+    {
+      "id": "ball3",
+      "type": "Sphere",
+      "mass": 1,
+      "radius": 0.5,
+      "position": [4, 0.5, 0],
+      "velocity": [0, 0, 0],
+      "color": "#4169E1",
+      "friction": 0,
+      "restitution": 1
+    },
+    {
+      "id": "ground",
+      "type": "Box",
+      "mass": 0,
+      "dimensions": [20, 1, 10],
+      "position": [0, -0.5, 0],
+      "isStatic": true,
+      "color": "#8B4513",
+      "friction": 0,
+      "restitution": 1
+    }
+  ],
+  "gravity": [0, -9.81, 0],
+  "hasGround": true,
+  "contactMaterial": {
+    "friction": 0,
+    "restitution": 1
+  },
+  "gravitationalPhysics": {
+    "enabled": false
+  },
+  "simulationScale": "terrestrial",
+  "controllers": [
+    {
+      "id": "vel_x1",
+      "label": "Velocity X1",
+      "type": "slider",
+      "min": 0,
+      "max": 10,
+      "step": 1,
+      "value": 6,
+      "objectId": "ball1",
+      "property": "velocity[0]"
+    },
+    {
+      "id": "mass2",
+      "label": "Mass 2",
+      "type": "slider",
+      "min": 0.5,
+      "max": 3,
+      "step": 0.1,
+      "value": 1,
+      "objectId": "ball2",
+      "property": "mass"
+    }
+  ]
+}

@@ -26,6 +26,18 @@ function SceneDetailsUI({ scene, onToggleSceneDetails }) {
 
     return (
         <div className="scene-details-container">
+            {/* Header with close button */}
+            <div className="scene-details-header">
+                <h3>Scene Details</h3>
+                <button 
+                    className="scene-details-close-btn" 
+                    onClick={onToggleSceneDetails}
+                    title="Close Details"
+                >
+                    ×
+                </button>
+            </div>
+            
             {/* Tabs for List and JSON views */}
             <div className="scene-details-tabs">
                 <button

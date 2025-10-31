@@ -1,0 +1,24 @@
+Theory:
+Projectile motion is the motion of an object thrown or projected into the air, subject only to acceleration due to gravity. The object is called a projectile, and its path is called its trajectory.
+
+Explanation:
+When an object is launched at an angle, it follows a parabolic path. This motion can be analyzed by breaking it into two components:
+- Horizontal motion: uniform velocity (no acceleration in the absence of air resistance)
+- Vertical motion: uniformly accelerated motion due to gravity
+
+The range, maximum height, and time of flight depend on the initial velocity and launch angle. For a given initial speed, the maximum range is achieved at a 45° launch angle.
+
+Facts:
+- At the highest point of the trajectory, the vertical velocity is zero
+- The horizontal velocity remains constant throughout the flight (ignoring air resistance)
+- The time taken to reach maximum height equals the time taken to fall back down
+- The trajectory is symmetric about the vertical line through the highest point
+- Maximum range occurs at 45° launch angle (for level ground)
+- The path followed is a parabola
+
+Key Equations:
+- Horizontal distance: x = v₀ₓ × t
+- Vertical distance: y = v₀ᵧ × t - ½gt²
+- Time of flight: T = 2v₀sin(θ)/g
+- Maximum height: H = v₀²sin²(θ)/(2g)
+- Range: R = v₀²sin(2θ)/g

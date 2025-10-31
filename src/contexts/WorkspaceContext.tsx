@@ -66,6 +66,7 @@ export interface WorkspaceContextType {
   isPlaying: boolean;
   simulationTime: number;
   fps: number;
+  simulationSpeed: number;
   showVelocityVectors: boolean;
   vectorScale: number;
   openGraphs: GraphData[];
@@ -106,6 +107,7 @@ export interface WorkspaceContextType {
   updateFps: (newFps: number) => void;
   toggleVelocityVectors: () => void;
   updateVectorScale: (scale: number) => void;
+  setSimulationSpeed: (speed: number) => void;
   addGraph: (type: string) => void;
   removeGraph: (id: string) => void;
   saveCurrentScene: (sceneData: SceneData) => Promise<string>;
@@ -140,6 +142,7 @@ export function WorkspaceProvider({ children }: { children: React.ReactNode }) {
   const [isPlaying, setIsPlaying] = useState(false);
   const [simulationTime, setSimulationTime] = useState(0);
   const [fps, setFps] = useState(0);
+  const [simulationSpeed, setSimulationSpeed] = useState(1); // 0.25x, 0.5x, 1x
   const [showVelocityVectors, setShowVelocityVectors] = useState(false);
   const [vectorScale, setVectorScale] = useState(1);
   const [openGraphs, setOpenGraphs] = useState<GraphData[]>([]);
@@ -385,7 +388,9 @@ export function WorkspaceProvider({ children }: { children: React.ReactNode }) {
         return workspace.addMessage(message);
       }
       return workspace;
-    }, true); // Silent update for messages
+    }, false); // NOT silent - trigger re-render!
+    // Force update trigger
+    setWorkspaceUpdateTrigger(prev => prev + 1);
     // In session-only mode we do not persist to storage.
   }, [workspaceManager]);
 
@@ -403,15 +408,22 @@ export function WorkspaceProvider({ children }: { children: React.ReactNode }) {
 
   // Chat management methods exposed from WorkspaceManager
   const addChatSession = useCallback(() => {
-    return workspaceManager.addChatSession();
+    const result = workspaceManager.addChatSession();
+    setWorkspaceUpdateTrigger(prev => prev + 1);
+    return result;
   }, [workspaceManager]);
 
   const deleteChatSession = useCallback((chatId) => {
-    return workspaceManager.deleteChatSession(chatId);
+    const result = workspaceManager.deleteChatSession(chatId);
+    setWorkspaceUpdateTrigger(prev => prev + 1);
+    return result;
   }, [workspaceManager]);
 
   const selectChatSession = useCallback((chatId) => {
-    return workspaceManager.selectChatSession(chatId);
+    const result = workspaceManager.selectChatSession(chatId);
+    // Force workspace update to trigger re-render
+    setWorkspaceUpdateTrigger(prev => prev + 1);
+    return result;
   }, [workspaceManager]);
 
   const getCurrentChat = useCallback(() => {
@@ -456,6 +468,8 @@ export function WorkspaceProvider({ children }: { children: React.ReactNode }) {
     setObjectHistory,
     loopMode,
     dataTimeStep,
+    simulationSpeed,
+    setSimulationSpeed,
 
     // View management
     setCurrentView,

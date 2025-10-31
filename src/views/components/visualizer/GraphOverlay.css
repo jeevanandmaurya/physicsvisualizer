@@ -12,6 +12,12 @@
   user-select: none;
   pointer-events: auto;
   color: #1a1a1a;
+  transition: border-color 0.2s ease, box-shadow 0.2s ease;
+}
+
+.overlay-graph.focused {
+  border-color: var(--primary-color, #007bff);
+  box-shadow: 0 8px 32px rgba(0, 123, 255, 0.4);
 }
 
 .dark .overlay-graph {

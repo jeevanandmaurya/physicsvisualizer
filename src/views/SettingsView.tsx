@@ -1,7 +1,7 @@
 //// import React from 'react';
 import { useTheme, OverlayOpacitySettings } from '../contexts/ThemeContext';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
-import { faSun, faMoon, faComments, faChartLine, faSliders } from '@fortawesome/free-solid-svg-icons';
+import { faSun, faMoon, faComments, faChartLine, faSliders, faList, faBars } from '@fortawesome/free-solid-svg-icons';
 
 function SettingsView() {
   const { theme, toggleTheme, overlayOpacity, updateOverlayOpacity } = useTheme();
@@ -275,7 +275,7 @@ function SettingsView() {
             display: 'flex',
             alignItems: 'center',
             justifyContent: 'space-between',
-            marginBottom: '0',
+            marginBottom: '16px',
             padding: '8px 0'
           }}>
             <span style={{
@@ -308,7 +308,7 @@ function SettingsView() {
                 min="0.1"
                 max="1"
                 step="0.05"
-                value={overlayOpacity.controller || 0.8}
+                value={overlayOpacity.controller}
                 onChange={(e) => handleOpacityChange('controller', e.target.value)}
                 style={{
                   flex: '1',
@@ -326,7 +326,127 @@ function SettingsView() {
                 minWidth: '35px',
                 textAlign: 'right'
               }}>
-                {((overlayOpacity.controller || 0.8) * 100).toFixed(0)}%
+                {(overlayOpacity.controller * 100).toFixed(0)}%
+              </span>
+            </div>
+          </div>
+
+          <div style={{
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'space-between',
+            marginBottom: '16px',
+            padding: '8px 0'
+          }}>
+            <span style={{
+              fontSize: '14px',
+              fontWeight: '500',
+              color: isDark ? '#adb5bd' : '#495057',
+              flex: '1',
+              minWidth: '140px',
+              display: 'flex',
+              alignItems: 'center',
+              gap: '8px'
+            }}>
+              <FontAwesomeIcon icon={faList} style={{
+                fontSize: '14px',
+                minWidth: '16px',
+                color: colors.textSecondary
+              }} />
+              Scene Selector
+            </span>
+
+            <div style={{
+              flex: '2',
+              display: 'flex',
+              alignItems: 'center',
+              gap: '12px',
+              maxWidth: '300px'
+            }}>
+              <input
+                type="range"
+                min="0.1"
+                max="1"
+                step="0.05"
+                value={overlayOpacity.sceneSelector}
+                onChange={(e) => handleOpacityChange('sceneSelector', e.target.value)}
+                style={{
+                  flex: '1',
+                  height: '6px',
+                  borderRadius: '3px',
+                  background: isDark ? '#495057' : '#ddd',
+                  outline: 'none',
+                  WebkitAppearance: 'none',
+                  transition: 'all 0.3s ease'
+                }}
+              />
+              <span style={{
+                fontSize: '12px',
+                color: colors.textSecondary,
+                minWidth: '35px',
+                textAlign: 'right'
+              }}>
+                {(overlayOpacity.sceneSelector * 100).toFixed(0)}%
+              </span>
+            </div>
+          </div>
+
+          <div style={{
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'space-between',
+            marginBottom: '0',
+            padding: '8px 0'
+          }}>
+            <span style={{
+              fontSize: '14px',
+              fontWeight: '500',
+              color: isDark ? '#adb5bd' : '#495057',
+              flex: '1',
+              minWidth: '140px',
+              display: 'flex',
+              alignItems: 'center',
+              gap: '8px'
+            }}>
+              <FontAwesomeIcon icon={faBars} style={{
+                fontSize: '14px',
+                minWidth: '16px',
+                color: colors.textSecondary
+              }} />
+              Activity Bar
+            </span>
+
+            <div style={{
+              flex: '2',
+              display: 'flex',
+              alignItems: 'center',
+              gap: '12px',
+              maxWidth: '300px'
+            }}>
+              <input
+                type="range"
+                min="0.1"
+                max="1"
+                step="0.05"
+                value={overlayOpacity.activityBar}
+                onChange={(e) => handleOpacityChange('activityBar', e.target.value)}
+                style={{
+                  flex: '1',
+                  height: '6px',
+                  borderRadius: '3px',
+                  background: isDark ? '#495057' : '#ddd',
+                  outline: 'none',
+                  WebkitAppearance: 'none',
+                  transition: 'all 0.3s ease'
+                }}
+              />
+              <span style={{
+                fontSize: '12px',
+                color: colors.textSecondary,
+                minWidth: '35px',
+                textAlign: 'right'
+              }}>
+                {(overlayOpacity.activityBar * 100).toFixed(0)}%
               </span>
             </div>
           </div>

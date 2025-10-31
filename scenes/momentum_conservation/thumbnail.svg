@@ -1,0 +1,54 @@
+<svg width="200" height="150" xmlns="http://www.w3.org/2000/svg">
+  <!-- Background -->
+  <rect width="200" height="150" fill="#F5F5F5"/>
+  
+  <!-- Ground -->
+  <rect x="0" y="120" width="200" height="30" fill="#8B7355"/>
+  
+  <!-- Motion trail for ball 1 -->
+  <circle cx="30" cy="90" r="12" fill="#FF6347" opacity="0.2"/>
+  <circle cx="50" cy="90" r="12" fill="#FF6347" opacity="0.3"/>
+  
+  <!-- Ball 1 (red, moving) -->
+  <circle cx="70" cy="90" r="15" fill="#FF6347" stroke="#DC143C" stroke-width="2"/>
+  <text x="70" y="95" text-anchor="middle" font-family="Arial" font-size="10" fill="white" font-weight="bold">1</text>
+  
+  <!-- Velocity arrow on ball 1 -->
+  <line x1="85" y1="90" x2="105" y2="90" stroke="#0066CC" stroke-width="2.5" marker-end="url(#arrowblue)"/>
+  <text x="107" y="85" font-family="Arial" font-size="9" fill="#0066CC" font-weight="bold">v</text>
+  
+  <!-- Ball 2 (green, stationary) -->
+  <circle cx="115" cy="90" r="15" fill="#32CD32" stroke="#228B22" stroke-width="2"/>
+  <text x="115" y="95" text-anchor="middle" font-family="Arial" font-size="10" fill="white" font-weight="bold">2</text>
+  
+  <!-- Ball 3 (blue, stationary) -->
+  <circle cx="155" cy="90" r="15" fill="#4169E1" stroke="#1E3A8A" stroke-width="2"/>
+  <text x="155" y="95" text-anchor="middle" font-family="Arial" font-size="10" fill="white" font-weight="bold">3</text>
+  
+  <!-- Impact waves between balls -->
+  <path d="M 103 90 Q 107 87, 110 90 Q 107 93, 103 90" fill="none" stroke="#FFD700" stroke-width="1.5" opacity="0.6"/>
+  <path d="M 143 90 Q 147 87, 150 90 Q 147 93, 143 90" fill="none" stroke="#FFD700" stroke-width="1.5" opacity="0.4"/>
+  
+  <!-- Momentum equation at bottom -->
+  <text x="100" y="110" text-anchor="middle" font-family="Arial" font-size="9" fill="#333">
+    p₁ + p₂ + p₃ = constant
+  </text>
+  
+  <!-- Arrow marker -->
+  <defs>
+    <marker id="arrowblue" markerWidth="10" markerHeight="10" 
+            refX="9" refY="3" orient="auto" markerUnits="strokeWidth">
+      <path d="M0,0 L0,6 L9,3 z" fill="#0066CC"/>
+    </marker>
+  </defs>
+  
+  <!-- Title -->
+  <text x="100" y="20" text-anchor="middle" font-family="Arial" font-size="14" font-weight="bold" fill="#333">
+    Momentum Conservation
+  </text>
+  
+  <!-- Subtitle -->
+  <text x="100" y="35" text-anchor="middle" font-family="Arial" font-size="10" fill="#666">
+    Collision Chain
+  </text>
+</svg>

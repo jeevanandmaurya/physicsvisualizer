@@ -1,0 +1,53 @@
+<svg width="200" height="150" xmlns="http://www.w3.org/2000/svg">
+  <!-- Background -->
+  <rect width="200" height="150" fill="#E8F4F8"/>
+  
+  <!-- Ground -->
+  <rect x="0" y="130" width="200" height="20" fill="#8B7355"/>
+  
+  <!-- Pivot point -->
+  <circle cx="100" cy="20" r="4" fill="#666666" stroke="#333" stroke-width="1"/>
+  
+  <!-- String/rod in center position (light gray) -->
+  <line x1="100" y1="20" x2="100" y2="90" stroke="#CCCCCC" stroke-width="2" stroke-dasharray="2,2"/>
+  
+  <!-- Left position (highest point) -->
+  <line x1="100" y1="20" x2="60" y2="80" stroke="#999999" stroke-width="1.5" opacity="0.5"/>
+  <circle cx="60" cy="80" r="8" fill="#FFD700" opacity="0.3" stroke="#FFA500" stroke-width="1"/>
+  <text x="60" y="68" text-anchor="middle" font-family="Arial" font-size="9" fill="#666" font-weight="bold">PE max</text>
+  
+  <!-- Center position (lowest point) - main bob -->
+  <line x1="100" y1="20" x2="100" y2="90" stroke="#333333" stroke-width="2"/>
+  <circle cx="100" cy="90" r="10" fill="#FFD700" stroke="#FFA500" stroke-width="2"/>
+  <text x="100" y="108" text-anchor="middle" font-family="Arial" font-size="9" fill="#333" font-weight="bold">KE max</text>
+  
+  <!-- Right position (highest point) -->
+  <line x1="100" y1="20" x2="140" y2="80" stroke="#999999" stroke-width="1.5" opacity="0.5"/>
+  <circle cx="140" cy="80" r="8" fill="#FFD700" opacity="0.3" stroke="#FFA500" stroke-width="1"/>
+  <text x="140" y="68" text-anchor="middle" font-family="Arial" font-size="9" fill="#666" font-weight="bold">PE max</text>
+  
+  <!-- Motion arc -->
+  <path d="M 60 80 Q 100 95, 140 80" stroke="#4169E1" stroke-width="1" fill="none" stroke-dasharray="3,3"/>
+  
+  <!-- Velocity vector at center -->
+  <line x1="110" y1="90" x2="130" y2="90" stroke="#FF4500" stroke-width="2" marker-end="url(#arrowred)"/>
+  <text x="135" y="93" font-family="Arial" font-size="8" fill="#FF4500">v</text>
+  
+  <!-- Energy label -->
+  <text x="100" y="125" text-anchor="middle" font-family="Arial" font-size="8" fill="#666">
+    E = KE + PE = constant
+  </text>
+  
+  <!-- Arrow marker -->
+  <defs>
+    <marker id="arrowred" markerWidth="8" markerHeight="8" 
+            refX="7" refY="3" orient="auto" markerUnits="strokeWidth">
+      <path d="M0,0 L0,6 L7,3 z" fill="#FF4500"/>
+    </marker>
+  </defs>
+  
+  <!-- Title -->
+  <text x="100" y="12" text-anchor="middle" font-family="Arial" font-size="14" font-weight="bold" fill="#333">
+    Pendulum Energy
+  </text>
+</svg>

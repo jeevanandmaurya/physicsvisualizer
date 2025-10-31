@@ -6,6 +6,7 @@ import { useConversation } from '../../../ui-logic/chat/Conversation';
 import { useWorkspace } from '../../../contexts/WorkspaceContext';
 import { useDatabase } from '../../../contexts/DatabaseContext';
 import { useTheme } from '../../../contexts/ThemeContext';
+import { useOverlay } from '../../../contexts/OverlayContext';
 import './ChatOverlay.css';
 
 const ChatOverlay = ({
@@ -18,6 +19,7 @@ const ChatOverlay = ({
   workspaceMessages = [] // Add workspace messages prop
 }) => {
   const { overlayOpacity } = useTheme();
+  const { registerOverlay, unregisterOverlay, focusOverlay, getZIndex } = useOverlay();
   const dataManager = useDatabase();
   const [isMinimized, setIsMinimized] = useState(false);
   const [position, setPosition] = useState({ x: 100, y: 100 });
@@ -322,6 +324,22 @@ const ChatOverlay = ({
     return () => window.removeEventListener('keydown', handleKeyDown);
   }, [isOpen, onToggle]);
 
+  // Register with overlay system
+  useEffect(() => {
+    registerOverlay('chat-overlay', 'chat', 55);
+    return () => unregisterOverlay('chat-overlay');
+  }, [registerOverlay, unregisterOverlay]);
+
+  // Get dynamic z-index and focused state
+  const { focusedOverlay } = useOverlay();
+  const currentZIndex = getZIndex('chat-overlay');
+  const isFocused = focusedOverlay === 'chat-overlay';
+
+  // Focus overlay on click
+  const handleOverlayClick = () => {
+    focusOverlay('chat-overlay');
+  };
+
   // Set initial position after mount, centered and above status bar
   useEffect(() => {
     if (isOpen) {
@@ -336,6 +354,9 @@ const ChatOverlay = ({
 
   // Drag functionality - only from header
   const handleMouseDown = (e) => {
+    // Focus overlay first
+    focusOverlay('chat-overlay');
+    
     // Only allow dragging from header, not from control buttons or resize handle
     if (e.target.closest('.chat-overlay-control-btn') || e.target.closest('.resize-handle')) return;
 
@@ -404,16 +425,18 @@ const ChatOverlay = ({
   return (
     <div className={`chat-overlay ${isMinimized ? 'minimized' : ''}`}>
         <div
-          className="chat-overlay-container"
+          className={`chat-overlay-container ${isFocused ? 'focused' : ''}`}
           ref={overlayRef}
+          onMouseDown={handleOverlayClick}
           style={{
             left: `${position.x}px`,
             top: `${position.y}px`,
             width: `${size.width}px`,
             height: isMinimized ? '28px' : `${size.height}px`,
             cursor: isResizing ? 'nw-resize' : 'default',
+            zIndex: currentZIndex,
             '--chat-bg-opacity': overlayOpacity.chat
-          }}
+          } as React.CSSProperties}
         >
         {/* Minimal header with title and controls - draggable */}
         <div

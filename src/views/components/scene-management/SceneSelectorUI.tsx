@@ -4,7 +4,7 @@ import { useWorkspace } from '../../../contexts/WorkspaceContext';
 import { useSceneSelector } from '../../../ui-logic/scene-management/useSceneSelector';
 import './SceneSelector.css';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
-import { faUser, faBookOpen, faSpinner, faExclamationTriangle, faEllipsisV, faTrash, faSave, faEdit, faComments, faTimes, faCube, faEye, faChevronRight, faChevronDown } from '@fortawesome/free-solid-svg-icons';
+import { faUser, faBookOpen, faSpinner, faExclamationTriangle, faEllipsisV, faTrash, faSave, faEdit, faComments, faTimes, faCube, faEye, faChevronRight, faChevronDown, faChevronUp, faExpand, faCompress } from '@fortawesome/free-solid-svg-icons';
 
 function SceneSelectorUI({
     currentScene,
@@ -23,6 +23,8 @@ function SceneSelectorUI({
     onTabChange: externalOnTabChange,
     onToggleSceneDetails,
     onClose,
+    onToggleMaximize,
+    isMaximized,
     onRefreshSceneList,
     workspaceScenes // Add workspace scenes
 }) {
@@ -170,6 +172,17 @@ function SceneSelectorUI({
                     >
                         <div className="scene-content">
                             <div className="scene-name">
+                                <button
+                                    className="scene-details-toggle-btn-inline"
+                                    onClick={(e) => {
+                                        e.stopPropagation();
+                                        handleSceneItemClick(scene);
+                                        onToggleSceneDetails();
+                                    }}
+                                    title="Open Scene Details"
+                                >
+                                    <FontAwesomeIcon icon={faChevronRight} />
+                                </button>
                                 <FontAwesomeIcon icon={faCube} className="scene-3d-icon" />
                                 {scene.name}
                                 {scene.authorName && <span className="scene-author">by {scene.authorName}</span>}
@@ -177,7 +190,6 @@ function SceneSelectorUI({
                                     <span className="unsaved-badge" title="Unsaved"><FontAwesomeIcon icon={faExclamationTriangle} /></span>
                                 )}
                             </div>
-                            <div className="scene-description">{scene.description}</div>
                         </div>
                         {isLocalSection && (
                             <button
@@ -193,17 +205,6 @@ function SceneSelectorUI({
                                 <FontAwesomeIcon icon={faTrash} />
                             </button>
                         )}
-                        <button
-                            className="scene-details-toggle-btn"
-                            onClick={(e) => {
-                                e.stopPropagation();
-                                handleSceneItemClick(scene);
-                                onToggleSceneDetails();
-                            }}
-                            title="Open Scene Details"
-                        >
-                            <FontAwesomeIcon icon={faChevronRight} />
-                        </button>
                 </li>
             ))}
         </ul>
@@ -247,21 +248,9 @@ function SceneSelectorUI({
     return (
         <div className="scene-selector-container">
             <div className="scene-selector">
-                <div className="scene-selector-header">
-                    <h3>Scene Selector</h3>
-                    {onClose && (
-                        <button
-                            className="scene-selector-close-btn"
-                            onClick={onClose}
-                            title="Close Scene Selector"
-                        >
-                            <FontAwesomeIcon icon={faTimes} />
-                        </button>
-                    )}
-                </div>
                 <div className="scene-list-panel">
-                    {/* New Scene Button - Always at top */}
-                    <div className="new-scene-section">
+                    {/* New Scene Button & Close Button - Same line */}
+                    <div className="scene-selector-top-bar">
                         <button
                             className="new-scene-btn"
                             onClick={handleNewScene}
@@ -270,6 +259,24 @@ function SceneSelectorUI({
                             <FontAwesomeIcon icon={faCube} />
                             New Scene
                         </button>
+                        {onToggleMaximize && (
+                            <button
+                                className="scene-selector-maximize-btn"
+                                onClick={onToggleMaximize}
+                                title={isMaximized ? "Minimize" : "Maximize"}
+                            >
+                                <FontAwesomeIcon icon={isMaximized ? faCompress : faExpand} />
+                            </button>
+                        )}
+                        {onClose && (
+                            <button
+                                className="scene-selector-close-btn"
+                                onClick={onClose}
+                                title="Close"
+                            >
+                                <FontAwesomeIcon icon={faTimes} />
+                            </button>
+                        )}
                     </div>
 
                     {/* Workspace Scenes - Currently Active Scenes */}
@@ -299,9 +306,6 @@ function SceneSelectorUI({
                                                     <FontAwesomeIcon icon={faCube} className="scene-3d-icon" />
                                                     {scene.name || `Scene ${index + 1}`}
                                                     <span className="workspace-indicator" title="Workspace scene">●</span>
-                                                </div>
-                                                <div className="scene-description">
-                                                    {scene.objects ? `${scene.objects.length} objects` : 'Empty scene'}
                                                 </div>
                                             </div>
                                         </li>

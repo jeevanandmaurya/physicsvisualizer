@@ -2,6 +2,7 @@ import React, { useState, useEffect, useRef } from 'react';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { faChevronUp, faChevronDown, faTimes, faPlus } from '@fortawesome/free-solid-svg-icons';
 import { useTheme } from '../../../contexts/ThemeContext';
+import { useOverlay } from '../../../contexts/OverlayContext';
 import './ControllerOverlay.css';
 
 // Type definitions
@@ -49,6 +50,7 @@ const ControllerOverlay = ({
   onAddController
 }: ControllerOverlayProps) => {
   const { overlayOpacity, updateOverlayOpacity } = useTheme();
+  const { registerOverlay, unregisterOverlay, focusOverlay, getZIndex } = useOverlay();
   const [isMinimized, setIsMinimized] = useState(false);
   const [position, setPosition] = useState({ x: 100, y: 100 });
   const [size, setSize] = useState({ width: 350, height: 500 });
@@ -97,6 +99,9 @@ const ControllerOverlay = ({
 
   // Drag functionality - only from header
   const handleMouseDown = (e) => {
+    // Focus overlay first
+    focusOverlay('controller-overlay');
+    
     // Only allow dragging from header, not from control buttons or resize handle
     if (e.target.closest('.controller-overlay-control-btn') || e.target.closest('.resize-handle')) return;
 
@@ -349,21 +354,37 @@ const ControllerOverlay = ({
     }
   };
 
+  // Register with overlay system
+  useEffect(() => {
+    registerOverlay('controller-overlay', 'controller', 55);
+    return () => unregisterOverlay('controller-overlay');
+  }, [registerOverlay, unregisterOverlay]);
+
+  const { focusedOverlay } = useOverlay();
+  const currentZIndex = getZIndex('controller-overlay');
+  const isFocused = focusedOverlay === 'controller-overlay';
+  
+  const handleOverlayClick = () => {
+    focusOverlay('controller-overlay');
+  };
+
   if (!isOpen) return null;
 
   return (
     <div className={`controller-overlay ${isMinimized ? 'minimized' : ''}`}>
       <div
-        className="controller-overlay-container"
+        className={`controller-overlay-container ${isFocused ? 'focused' : ''}`}
         ref={overlayRef}
+        onMouseDown={handleOverlayClick}
         style={{
           left: `${position.x}px`,
           top: `${position.y}px`,
           width: `${size.width}px`,
           height: isMinimized ? '28px' : `${size.height}px`,
           cursor: isResizing ? 'nw-resize' : 'default',
+          zIndex: currentZIndex,
           '--controller-bg-opacity': overlayOpacity.controller || overlayOpacity.chat
-        }}
+        } as React.CSSProperties}
       >
         {/* Header */}
         <div

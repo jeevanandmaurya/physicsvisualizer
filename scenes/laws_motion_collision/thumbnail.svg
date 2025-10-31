@@ -1,0 +1,43 @@
+<svg width="200" height="150" xmlns="http://www.w3.org/2000/svg">
+  <!-- Background -->
+  <rect width="200" height="150" fill="#F0F4F8"/>
+  
+  <!-- Ground -->
+  <rect x="0" y="120" width="200" height="30" fill="#8B7355"/>
+  
+  <!-- Moving ball (blue) with motion lines -->
+  <line x1="30" y1="90" x2="50" y2="90" stroke="#42a5f5" stroke-width="2" opacity="0.3"/>
+  <line x1="40" y1="90" x2="60" y2="90" stroke="#42a5f5" stroke-width="2" opacity="0.5"/>
+  <circle cx="70" cy="90" r="15" fill="#42a5f5" stroke="#1976d2" stroke-width="2"/>
+  
+  <!-- Velocity arrow on moving ball -->
+  <line x1="85" y1="90" x2="105" y2="90" stroke="#FF4500" stroke-width="2" marker-end="url(#arrowred)"/>
+  
+  <!-- Stationary ball (purple) -->
+  <circle cx="130" cy="90" r="15" fill="#ab47bc" stroke="#7b1fa2" stroke-width="2"/>
+  
+  <!-- Impact effect between balls -->
+  <path d="M 100 90 Q 105 85, 110 90 Q 105 95, 100 90" fill="none" stroke="#FFD700" stroke-width="2" opacity="0.7"/>
+  
+  <!-- Arrow marker definitions -->
+  <defs>
+    <marker id="arrowred" markerWidth="10" markerHeight="10" 
+            refX="9" refY="3" orient="auto" markerUnits="strokeWidth">
+      <path d="M0,0 L0,6 L9,3 z" fill="#FF4500"/>
+    </marker>
+  </defs>
+  
+  <!-- Labels -->
+  <text x="70" y="75" text-anchor="middle" font-family="Arial" font-size="10" fill="#1976d2" font-weight="bold">m₁</text>
+  <text x="130" y="75" text-anchor="middle" font-family="Arial" font-size="10" fill="#7b1fa2" font-weight="bold">m₂</text>
+  
+  <!-- Title -->
+  <text x="100" y="20" text-anchor="middle" font-family="Arial" font-size="14" font-weight="bold" fill="#333">
+    Elastic Collision
+  </text>
+  
+  <!-- Subtitle -->
+  <text x="100" y="35" text-anchor="middle" font-family="Arial" font-size="10" fill="#666">
+    Newton's Laws
+  </text>
+</svg>

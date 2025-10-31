@@ -1,5 +1,6 @@
 import React, { createContext, useContext, useCallback } from 'react';
-import { mechanicsExamples } from '../scenes.js';
+import { SceneLoader, type LoadedScene } from '../core/scene/SceneLoader';
+import { IndexedDBService } from '../core/database/IndexedDBService';
 
 // Define types for DatabaseContext
 export interface SceneData {
@@ -16,15 +17,61 @@ export interface SceneData {
   isExtracted?: boolean;
   isTemporary?: boolean;
   controllers?: any[]; // Added controllers property
+  gravity?: number[];
+  hasGround?: boolean;
+  contactMaterial?: any;
+  gravitationalPhysics?: any;
+  simulationScale?: string;
+  version?: string;
+  context?: any;
+  thumbnail?: string;
+  thumbnailUrl?: string; // UI compatibility - same as thumbnail
+  folderName?: string;
+}
+
+export interface MessageData {
+  id: string;
+  role: 'user' | 'assistant' | 'system' | 'context';
+  content: string;
+  timestamp: string;
+  metadata?: any;
 }
 
 export interface ChatData {
   id?: string;
   sceneId?: string;
   sceneName?: string;
-  messages?: any[];
+  messages?: MessageData[];
   createdAt?: string;
   updatedAt?: string;
+}
+
+// New Container Structure: Each chat session is a container with scene + chat
+export interface ChatContainer {
+  id: string;
+  name: string;
+  createdAt: string;
+  updatedAt: string;
+  sceneContainer: {
+    sceneId: string;
+    sceneName: string;
+    sceneData: SceneData;
+    context?: {
+      theory?: string;
+      explanation?: string;
+      facts?: string[];
+      details?: string;
+    };
+  };
+  chatContext: {
+    messages: MessageData[];
+    conversationSummary?: string;
+  };
+  metadata?: {
+    lastInteraction?: string;
+    messageCount?: number;
+    [key: string]: any;
+  };
 }
 
 export interface WorkspaceData {
@@ -48,6 +95,12 @@ export interface DatabaseContextType {
   saveWorkspace: (workspaceData: WorkspaceData) => Promise<string>;
   getWorkspace: (workspaceId?: string) => Promise<WorkspaceData | null>;
   getRecentScenes: () => SceneData[];
+  // New Chat Container methods
+  getChatContainer: (containerId: string) => Promise<ChatContainer | null>;
+  getAllChatContainers: () => Promise<ChatContainer[]>;
+  saveChatContainer: (container: ChatContainer) => Promise<string>;
+  deleteChatContainer: (containerId: string) => Promise<void>;
+  createChatContainerForScene: (sceneId: string) => Promise<ChatContainer>;
 }
 
 const DatabaseContext = createContext<DatabaseContextType | null>(null);
@@ -56,52 +109,8 @@ export function useDatabase() {
   return useContext(DatabaseContext);
 }
 
-const LOCAL_STORAGE_KEY = 'physicsVisualizerScenes';
-const CHAT_HISTORY_KEY = 'physicsVisualizerChatHistory';
-const WORKSPACE_KEY = 'physicsVisualizerWorkspace';
-
-// Helper function to get scenes from localStorage
-const getLocalScenes = (): SceneData[] => {
-    try {
-        const scenesJson = localStorage.getItem(LOCAL_STORAGE_KEY);
-        return scenesJson ? JSON.parse(scenesJson) : [];
-    } catch (error) {
-        console.error("Error reading scenes from localStorage", error);
-        return [];
-    }
-};
-
-// Helper function to save scenes to localStorage
-const saveLocalScenes = (scenes: SceneData[]) => {
-    try {
-        localStorage.setItem(LOCAL_STORAGE_KEY, JSON.stringify(scenes));
-    } catch (error) {
-        console.error("Error saving scenes to localStorage", error);
-    }
-};
-
-// Helper function to get chat history from localStorage
-const getChatHistoryFromStorage = (): ChatData[] => {
-    try {
-        const chatHistoryJson = localStorage.getItem(CHAT_HISTORY_KEY);
-        return chatHistoryJson ? JSON.parse(chatHistoryJson) : [];
-    } catch (error) {
-        console.error("Error reading chat history from localStorage", error);
-        return [];
-    }
-};
-
-// Helper function to save chat history to localStorage
-const saveChatHistoryToStorage = (chatHistory: ChatData[]) => {
-    try {
-        localStorage.setItem(CHAT_HISTORY_KEY, JSON.stringify(chatHistory));
-    } catch (error) {
-        console.error("Error saving chat history to localStorage", error);
-    }
-};
-
-
-
+// IndexedDB is now used instead of localStorage
+// Helper functions are replaced with async IndexedDB calls
 
 export function DatabaseProvider({ children }: { children: React.ReactNode }) {
   /**
@@ -111,7 +120,7 @@ export function DatabaseProvider({ children }: { children: React.ReactNode }) {
     switch (type) {
       case 'user':
       case 'local':
-        let scenes = getLocalScenes();
+        let scenes = await IndexedDBService.getAllUserScenes() as SceneData[];
         if (options.orderBy?.field === 'updatedAt') {
           scenes.sort((a: SceneData, b: SceneData) => {
             const dateA = new Date(a.updatedAt || 0);
@@ -122,147 +131,190 @@ export function DatabaseProvider({ children }: { children: React.ReactNode }) {
         if (options.limitTo) {
           scenes = scenes.slice(0, options.limitTo);
         }
-        return Promise.resolve(scenes);
+        return scenes;
 
       case 'examples':
-        return Promise.resolve(mechanicsExamples);
+        // Load scenes from the scenes folder using SceneLoader
+        const exampleScenes = await SceneLoader.getAllScenes();
+        // Map thumbnail to thumbnailUrl for UI compatibility
+        return exampleScenes.map(scene => ({
+          ...scene,
+          thumbnailUrl: scene.thumbnail
+        }));
 
       default:
         console.error(`Unknown scene type: ${type}`);
-        return Promise.resolve([]);
+        return [];
     }
   }, []);
 
   /**
    * Fetches a single scene by its ID.
    */
-  const getSceneById = useCallback(async (sceneId) => {
-    const localScenes = getLocalScenes();
-    const scene = localScenes.find(s => s.id === sceneId);
-    if (scene) return scene;
+  const getSceneById = useCallback(async (sceneId: string): Promise<SceneData | LoadedScene | null> => {
+    // Check user scenes in IndexedDB
+    const localScene = await IndexedDBService.getUserScene(sceneId) as SceneData | null;
+    if (localScene) return localScene;
 
-    const exampleScene = mechanicsExamples.find(s => s.id === sceneId);
+    // Try to load from SceneLoader (examples from scenes folder)
+    const exampleScene = await SceneLoader.getSceneById(sceneId) as LoadedScene | null;
     return exampleScene || null;
   }, []);
 
   /**
    * Saves or updates a scene to the user's collection.
    */
-  const saveScene = useCallback(async (sceneObject) => {
-    const scenes = getLocalScenes();
+  const saveScene = useCallback(async (sceneObject: SceneData) => {
     const now = new Date().toISOString();
 
     const { isExtracted, isTemporary, ...dataToSave } = sceneObject;
     const sceneData = { ...dataToSave, updatedAt: now };
 
-    const existingIndex = scenes.findIndex(s => s.id === sceneObject.id);
+    // Check if scene already exists
+    const existingScene = sceneData.id ? await IndexedDBService.getUserScene(sceneData.id) : null;
 
-    if (existingIndex !== -1) {
-      scenes[existingIndex] = { ...scenes[existingIndex], ...sceneData };
+    if (existingScene) {
+      // Update existing scene
+      const updatedScene = { ...existingScene, ...sceneData };
+      await IndexedDBService.saveUserScene(updatedScene);
+      return updatedScene.id!;
     } else {
+      // Create new scene
       sceneData.id = sceneData.id && !sceneData.id.startsWith('new-') ? sceneData.id : `local-${Date.now()}`;
       sceneData.createdAt = now;
-      scenes.push(sceneData);
+      await IndexedDBService.saveUserScene(sceneData);
+      return sceneData.id!;
     }
-
-    saveLocalScenes(scenes);
-    return sceneData.id;
   }, []);
 
   /**
    * Deletes a scene from the user's collection.
    */
-  const deleteScene = useCallback(async (sceneId) => {
+  const deleteScene = useCallback(async (sceneId: string) => {
     if (!sceneId) throw new Error("Scene ID is required for deletion.");
-    let scenes = getLocalScenes();
-    scenes = scenes.filter(s => s.id !== sceneId);
-    saveLocalScenes(scenes);
+    await IndexedDBService.deleteUserScene(sceneId);
   }, []);
 
   /**
    * Gets all chat history
    */
   const getChatHistory = useCallback(async () => {
-    return getChatHistoryFromStorage();
-  }, []);
-
-  /**
-   * Gets a specific chat by ID
-   */
-  const getChatById = useCallback(async (chatId) => {
-    const chats = getChatHistoryFromStorage();
-    return chats.find(chat => chat.id === chatId) || null;
+    return await IndexedDBService.getChatHistory() as ChatData[];
   }, []);
 
   /**
    * Saves a new chat or updates an existing one
    */
   const saveChat = useCallback(async (chatData: ChatData): Promise<string> => {
-    const chats = getChatHistoryFromStorage();
     const now = new Date().toISOString();
-
     const chatToSave = { ...chatData, updatedAt: now };
 
-    const existingIndex = chats.findIndex(c => c.id === chatData.id);
-
-    if (existingIndex !== -1) {
-      chats[existingIndex] = { ...chats[existingIndex], ...chatToSave } as ChatData;
-    } else {
-      chatToSave.id = chatToSave.id || `chat-${Date.now()}`;
+    if (!chatToSave.id) {
+      chatToSave.id = `chat-${Date.now()}`;
       chatToSave.createdAt = now;
-      chats.push(chatToSave as ChatData);
     }
 
-    saveChatHistoryToStorage(chats);
+    await IndexedDBService.saveChat(chatToSave);
     return chatToSave.id!;
   }, []);
 
   /**
    * Deletes a chat from history
    */
-  const deleteChat = useCallback(async (chatId) => {
+  const deleteChat = useCallback(async (chatId: string) => {
     if (!chatId) throw new Error("Chat ID is required for deletion.");
-
-    let chats = getChatHistoryFromStorage();
-    chats = chats.filter(c => c.id !== chatId);
-    saveChatHistoryToStorage(chats);
+    await IndexedDBService.deleteChat(chatId);
   }, []);
 
   /**
    * Gets or creates a chat for a scene - Chat > Scene architecture
+   * Now uses Chat Containers with scene context as first message
    */
-  const getOrCreateChatForScene = useCallback(async (sceneId, sceneName = '') => {
-    const chats = getChatHistoryFromStorage();
-
-    // Check if chat already exists for this scene
-    let existingChat = chats.find(chat => chat.sceneId === sceneId);
-
-    if (existingChat) {
-      return existingChat.id;
+  const getOrCreateChatForScene = useCallback(async (sceneId: string, _sceneName = '') => {
+    // Check if a container already exists for this scene
+    const containers = await IndexedDBService.getChatContainersBySceneId(sceneId);
+    if (containers && containers.length > 0) {
+      return (containers[0] as ChatContainer).id;
     }
 
-    // Create new empty chat for the scene
-    const newChat = {
-      id: `chat-${sceneId}-${Date.now()}`,
-      sceneId: sceneId,
-      sceneName: sceneName,
-      messages: [],
-      createdAt: new Date().toISOString()
+    // Load scene data
+    const sceneData = await getSceneById(sceneId) as SceneData | LoadedScene | null;
+    
+    if (!sceneData) {
+      throw new Error(`Scene with ID ${sceneId} not found`);
+    }
+
+    const now = new Date().toISOString();
+    const containerId = `container-${sceneId}-${Date.now()}`;
+
+    // Create context message from scene context
+    const contextMessages: MessageData[] = [];
+    
+    if (sceneData.context) {
+      let contextContent = `# ${sceneData.name}\n\n`;
+      contextContent += `${sceneData.description}\n\n`;
+      
+      if (sceneData.context.theory) {
+        contextContent += `## Theory\n${sceneData.context.theory}\n\n`;
+      }
+      
+      if (sceneData.context.explanation) {
+        contextContent += `## Explanation\n${sceneData.context.explanation}\n\n`;
+      }
+      
+      if (sceneData.context.facts && sceneData.context.facts.length > 0) {
+        contextContent += `## Key Facts\n`;
+        sceneData.context.facts.forEach((fact: string) => {
+          contextContent += `- ${fact}\n`;
+        });
+      }
+
+      // Add context as first message
+      contextMessages.push({
+        id: `context-${Date.now()}`,
+        role: 'context',
+        content: contextContent,
+        timestamp: now,
+        metadata: { isSceneContext: true }
+      });
+    }
+
+    const container: ChatContainer = {
+      id: containerId,
+      name: `Chat: ${sceneData.name}`,
+      createdAt: now,
+      updatedAt: now,
+      sceneContainer: {
+        sceneId: sceneData.id || sceneId,
+        sceneName: sceneData.name || 'Unnamed Scene',
+        sceneData: sceneData,
+        context: sceneData.context
+      },
+      chatContext: {
+        messages: contextMessages,
+        conversationSummary: ''
+      },
+      metadata: {
+        lastInteraction: now,
+        messageCount: contextMessages.length
+      }
     };
 
-    await saveChat(newChat);
-    return newChat.id;
-  }, []);
+    // Save container to IndexedDB
+    await IndexedDBService.saveChatContainer(container);
+    
+    return container.id;
+  }, [getSceneById]);
 
   /**
    * Saves a workspace
    */
-  const saveWorkspace = useCallback(async (workspaceData) => {
+  const saveWorkspace = useCallback(async (workspaceData: WorkspaceData) => {
     try {
-      localStorage.setItem(WORKSPACE_KEY, JSON.stringify(workspaceData));
+      await IndexedDBService.saveWorkspace(workspaceData);
       return workspaceData.id;
     } catch (error) {
-      console.error("Error saving workspace to localStorage", error);
+      console.error("Error saving workspace to IndexedDB", error);
       throw error;
     }
   }, []);
@@ -270,19 +322,12 @@ export function DatabaseProvider({ children }: { children: React.ReactNode }) {
   /**
    * Gets the current workspace
    */
-  const getWorkspace = useCallback(async (workspaceId) => {
+  const getWorkspace = useCallback(async (workspaceId?: string) => {
     try {
-      const workspaceJson = localStorage.getItem(WORKSPACE_KEY);
-      if (workspaceJson) {
-        const workspace = JSON.parse(workspaceJson);
-        // If workspaceId is provided, check if it matches, otherwise return the saved workspace
-        if (!workspaceId || workspace.id === workspaceId) {
-          return workspace;
-        }
-      }
-      return null;
+      const workspace = await IndexedDBService.getWorkspace(workspaceId || 'default') as WorkspaceData | null;
+      return workspace;
     } catch (error) {
-      console.error("Error reading workspace from localStorage", error);
+      console.error("Error reading workspace from IndexedDB", error);
       return null;
     }
   }, []);
@@ -300,6 +345,119 @@ export function DatabaseProvider({ children }: { children: React.ReactNode }) {
     }
   }, []);
 
+  /**
+   * Get a specific chat container by ID
+   */
+  const getChatContainer = useCallback(async (containerId: string): Promise<ChatContainer | null> => {
+    return await IndexedDBService.getChatContainer(containerId) as ChatContainer | null;
+  }, []);
+
+  /**
+   * Get all chat containers
+   */
+  const getAllChatContainers = useCallback(async (): Promise<ChatContainer[]> => {
+    return await IndexedDBService.getAllChatContainers() as ChatContainer[];
+  }, []);
+
+  /**
+   * Save or update a chat container
+   */
+  const saveChatContainer = useCallback(async (container: ChatContainer): Promise<string> => {
+    const now = new Date().toISOString();
+    
+    container.updatedAt = now;
+    container.metadata = {
+      ...container.metadata,
+      lastInteraction: now,
+      messageCount: container.chatContext.messages.length
+    };
+
+    if (!container.createdAt) {
+      container.createdAt = now;
+    }
+
+    await IndexedDBService.saveChatContainer(container);
+    return container.id;
+  }, []);
+
+  /**
+   * Delete a chat container
+   */
+  const deleteChatContainer = useCallback(async (containerId: string): Promise<void> => {
+    await IndexedDBService.deleteChatContainer(containerId);
+  }, []);
+
+  /**
+   * Create a new chat container for a scene with context as first message
+   */
+  const createChatContainerForScene = useCallback(async (sceneId: string): Promise<ChatContainer> => {
+    // Load the scene data (from examples or user scenes)
+    const sceneData = await getSceneById(sceneId) as SceneData | LoadedScene | null;
+    
+    if (!sceneData) {
+      throw new Error(`Scene with ID ${sceneId} not found`);
+    }
+
+    const now = new Date().toISOString();
+    const containerId = `container-${sceneId}-${Date.now()}`;
+
+    // Create context message from scene context
+    const contextMessages: MessageData[] = [];
+    
+    if (sceneData.context) {
+      let contextContent = `# ${sceneData.name}\n\n`;
+      contextContent += `${sceneData.description}\n\n`;
+      
+      if (sceneData.context.theory) {
+        contextContent += `## Theory\n${sceneData.context.theory}\n\n`;
+      }
+      
+      if (sceneData.context.explanation) {
+        contextContent += `## Explanation\n${sceneData.context.explanation}\n\n`;
+      }
+      
+      if (sceneData.context.facts && sceneData.context.facts.length > 0) {
+        contextContent += `## Key Facts\n`;
+        sceneData.context.facts.forEach((fact: string) => {
+          contextContent += `- ${fact}\n`;
+        });
+      }
+
+      // Add context as first message
+      contextMessages.push({
+        id: `context-${Date.now()}`,
+        role: 'context',
+        content: contextContent,
+        timestamp: now,
+        metadata: { isSceneContext: true }
+      });
+    }
+
+    const container: ChatContainer = {
+      id: containerId,
+      name: `Chat: ${sceneData.name}`,
+      createdAt: now,
+      updatedAt: now,
+      sceneContainer: {
+        sceneId: sceneData.id || sceneId,
+        sceneName: sceneData.name || 'Unnamed Scene',
+        sceneData: sceneData,
+        context: sceneData.context
+      },
+      chatContext: {
+        messages: contextMessages,
+        conversationSummary: ''
+      },
+      metadata: {
+        lastInteraction: now,
+        messageCount: contextMessages.length
+      }
+    };
+
+    await saveChatContainer(container);
+    return container;
+  }, [getSceneById, saveChatContainer]);
+
   const value = {
     getScenes,
     getSceneById,
@@ -312,6 +470,12 @@ export function DatabaseProvider({ children }: { children: React.ReactNode }) {
     saveWorkspace,
     getWorkspace,
     getRecentScenes,
+    // Chat Container methods
+    getChatContainer,
+    getAllChatContainers,
+    saveChatContainer,
+    deleteChatContainer,
+    createChatContainerForScene,
   };
 
   return (

@@ -1,13 +1,9 @@
 import { useState, useEffect } from "react";
-import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
-import {
-  faChevronLeft,
-  faChevronRight,
-} from "@fortawesome/free-solid-svg-icons";
 import ActivityBar from "./ActivityBar";
 import Panel from "./Panel";
 import EditorArea from "./EditorArea";
 import StatusBar from "./StatusBar";
+import Overlay from "./Overlay";
 import logo from '../assets/icon-transparent.svg';
 import ChatOverlay from "../views/components/chat/ChatOverlay";
 import GraphOverlay from "../views/components/visualizer/GraphOverlay";
@@ -30,7 +26,7 @@ const Workbench = () => {
   const [controllerOpen, setControllerOpen] = useState(false);
   const [showSceneDetails, setShowSceneDetails] = useState(false);
   const [panelOpen, setPanelOpen] = useState(true);
-  const [activityBarOverlay, setActivityBarOverlay] = useState(false);
+  const [panelMaximized, setPanelMaximized] = useState(false);
 
   // VS Code-inspired layout configuration for each view
   const getLayoutConfig = (view: string) => { // Added type for view
@@ -122,32 +118,32 @@ const Workbench = () => {
         <ActivityBar
           activeView={currentView}
           onViewChange={setCurrentView}
-          isVisualizer={currentView === "visualizer"}
-          overlayMode={currentView === "visualizer"}
-          overlayVisible={activityBarOverlay}
-          onToggleOverlay={() => setActivityBarOverlay(!activityBarOverlay)}
         />
-        {currentView === "visualizer" && !panelOpen && (
-          <button
-            className="panel-toggle-attached"
-            onClick={() => setPanelOpen(!panelOpen)}
-            title={panelOpen ? "Hide Scene Selector" : "Show Scene Selector"}
-          >
-            {!panelOpen && <FontAwesomeIcon icon={faChevronRight} />}
-          </button>
-        )}
         <div className="workbench-main">
           <div className="workbench-content">
-              {currentView === "visualizer" && panelOpen && (
-                    <Panel
-                      showSceneDetails={showSceneDetails}
-                      onToggleSceneDetails={() =>
-                        setShowSceneDetails(!showSceneDetails)
-                      }
-                      onClosePanel={() => setPanelOpen(false)}
-                    />
-              )}
             <EditorArea activeView={currentView} onViewChange={setCurrentView} />
+            {currentView === "visualizer" && (
+              <Overlay
+                id="scene-selector"
+                type="sceneSelector"
+                position="bottom"
+                isOpen={panelOpen}
+                height={panelMaximized ? 'calc(100vh - 70px)' : '50vh'}
+                width="250px"
+                zIndex={50}
+                onClose={() => setPanelOpen(false)}
+              >
+                <Panel
+                  showSceneDetails={showSceneDetails}
+                  onToggleSceneDetails={() =>
+                    setShowSceneDetails(!showSceneDetails)
+                  }
+                  onClosePanel={() => setPanelOpen(false)}
+                  onToggleMaximize={() => setPanelMaximized(!panelMaximized)}
+                  isMaximized={panelMaximized}
+                />
+              </Overlay>
+            )}
           </div>
         </div>
       </div>
@@ -159,6 +155,8 @@ const Workbench = () => {
         onGraphToggle={() => setGraphOpen(!graphOpen)}
         controllerOpen={controllerOpen}
         onControllerToggle={() => setControllerOpen(!controllerOpen)}
+        panelOpen={panelOpen}
+        onPanelToggle={() => setPanelOpen(!panelOpen)}
       />
       <ChatOverlay
         isOpen={chatOpen}
@@ -204,10 +202,10 @@ const Workbench = () => {
             if (!objectId || !property) return;
           }
 
-          const min = parseFloat(prompt('Enter min value:', '0'));
-          const max = parseFloat(prompt('Enter max value:', '10'));
-          const step = parseFloat(prompt('Enter step:', '0.1'));
-          const value = parseFloat(prompt('Enter initial value:', '1'));
+          const min = parseFloat(prompt('Enter min value:', '0') || '0');
+          const max = parseFloat(prompt('Enter max value:', '10') || '10');
+          const step = parseFloat(prompt('Enter step:', '0.1') || '0.1');
+          const value = parseFloat(prompt('Enter initial value:', '1') || '1');
 
           const newController = {
             id: `controller-${Date.now()}`,

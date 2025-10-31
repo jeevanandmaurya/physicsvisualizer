@@ -1,0 +1,61 @@
+Theory:
+Newton's Law of Universal Gravitation states that every particle in the universe attracts every other particle with a force proportional to the product of their masses and inversely proportional to the square of the distance between them.
+
+F = G(m₁m₂)/r²
+
+where G is the gravitational constant (6.674 × 10⁻¹¹ N⋅m²/kg² in SI units).
+
+This fundamental law explains:
+- Planetary orbits around stars
+- Moon's orbit around Earth
+- Motion of satellites
+- Galaxy formation and structure
+- Tides on Earth
+
+Explanation:
+This simulation demonstrates a stable circular orbit where a smaller body (planet/satellite) orbits a larger central body (star/planet). The gravitational force provides the centripetal force needed for circular motion.
+
+For a stable circular orbit:
+- Gravitational force = Centripetal force
+- F_gravity = F_centripetal
+- GMm/r² = mv²/r
+- Therefore: v_orbital = √(GM/r)
+
+Key observations:
+1. **Circular Orbit**: The planet maintains a constant distance from the central body
+2. **Angular Momentum Conservation**: L = mvr remains constant
+3. **Energy Conservation**: Total energy (KE + PE) remains constant
+4. **Orbital Period**: T = 2π√(r³/GM) - Kepler's Third Law
+5. **Velocity-Radius Relationship**: Closer orbits require higher speeds
+
+IMPORTANT NOTE:
+For stable orbits in this simulation, you need to reduce the Physics Settings → Timestep to 0.001s or lower. The default timestep (0.0166s) can cause numerical integration errors at these scales, leading to orbit decay or instability.
+
+Facts:
+- Orbital velocity decreases with increasing orbital radius
+- Period increases with orbital radius (T ∝ r^(3/2))
+- Total mechanical energy is negative for bound orbits
+- Angular momentum L = mvr is conserved
+- The orbit is an ellipse (circle is a special case with eccentricity = 0)
+- Kepler's Laws emerge from Newton's gravitational law
+- The central body also moves slightly (two-body problem)
+- Gravitational potential energy: PE = -GMm/r (negative!)
+- Escape velocity: v_escape = √(2GM/r) = √2 × v_orbital
+
+Key Equations:
+- Universal Gravitation: F = G(m₁m₂)/r²
+- Orbital velocity (circular): v = √(GM/r)
+- Period (Kepler's 3rd Law): T = 2π√(r³/GM)
+- Orbital angular momentum: L = mvr = constant
+- Centripetal acceleration: a = v²/r = GM/r²
+- Gravitational PE: U = -GMm/r
+- Total orbital energy: E = KE + PE = -GMm/(2r)
+- Escape velocity: v_esc = √(2GM/r)
+- Semi-major axis relation: T² ∝ a³ (Kepler)
+
+Applications:
+- Satellite communications and GPS
+- Space mission planning
+- Planetary science
+- Astrophysics and cosmology
+- Understanding tides and lunar phases

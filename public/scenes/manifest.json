@@ -1,0 +1,40 @@
+{
+  "scenes": [
+    {
+      "id": "annotation-demo",
+      "folderName": "annotation_demo",
+      "enabled": true,
+      "category": "demos"
+    },
+    {
+      "id": "projectile-motion",
+      "folderName": "projectile_motion",
+      "enabled": true,
+      "category": "mechanics"
+    },
+    {
+      "id": "laws-motion-collision",
+      "folderName": "laws_motion_collision",
+      "enabled": true,
+      "category": "mechanics"
+    },
+    {
+      "id": "pendulum-energy",
+      "folderName": "pendulum_energy",
+      "enabled": true,
+      "category": "mechanics"
+    },
+    {
+      "id": "momentum-conservation",
+      "folderName": "momentum_conservation",
+      "enabled": true,
+      "category": "mechanics"
+    },
+    {
+      "id": "two-body-orbit",
+      "folderName": "binary_star",
+      "enabled": true,
+      "category": "gravitation"
+    }
+  ]
+}

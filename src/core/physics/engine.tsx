@@ -208,7 +208,7 @@ const Joints = React.memo(function Joints({ scene, bodyRefs, physicsResetKey }) 
 });
 
 // React PhysicsWorld component that uses Physics paused prop for proper state preservation
-export function PhysicsWorld({ scene, isPlaying, onPhysicsDataCalculated, resetTrigger, defaultContactMaterial, simulationTime }) {
+export function PhysicsWorld({ scene, isPlaying, onPhysicsDataCalculated, resetTrigger, defaultContactMaterial, simulationTime, simulationSpeed = 1 }) {
     const [physicsResetKey, setPhysicsResetKey] = React.useState(0);
     const bodyRefs = useRef({}); // Store body refs for joints
 
@@ -282,11 +282,13 @@ export function PhysicsWorld({ scene, isPlaying, onPhysicsDataCalculated, resetT
 
     // Use paused prop to control physics simulation - when paused, rigid bodies maintain their state
     // Note: Ground planes are defined as objects in each scene, not automatically added here
+    // timeStep controls simulation speed (default: 1/60, multiply by simulationSpeed for slow-mo)
     return (
         <Physics
             key={`physics-${physicsResetKey}`}
             gravity={effectiveGravity}
             paused={!isPlaying}
+            timeStep={1/60 * simulationSpeed}
         >
             <GravitationalForces scene={scene} isPlaying={isPlaying} />
             <Constraints scene={scene} isPlaying={isPlaying} />

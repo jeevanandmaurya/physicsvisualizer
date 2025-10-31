@@ -21,6 +21,12 @@
   min-height: 300px;
   user-select: none; /* Prevent text selection */
   pointer-events: auto; /* Allow the container to capture its own events */
+  transition: border-color 0.2s ease, box-shadow 0.2s ease;
+}
+
+.chat-overlay-container.focused {
+  border-color: var(--primary-color, #007bff);
+  box-shadow: 0 8px 32px rgba(0, 123, 255, 0.4);
 }
 
 .dark .chat-overlay-container {

@@ -1,0 +1,44 @@
+<svg width="200" height="150" xmlns="http://www.w3.org/2000/svg">
+  <!-- Background -->
+  <rect width="200" height="150" fill="#E8F4F8"/>
+  
+  <!-- Ground -->
+  <rect x="0" y="130" width="200" height="20" fill="#8B7355"/>
+  
+  <!-- Launcher platform -->
+  <rect x="10" y="120" width="20" height="10" fill="#8B4513"/>
+  
+  <!-- Projectile path (parabola) -->
+  <path d="M 20 120 Q 80 50, 140 120" 
+        stroke="#FF4500" 
+        stroke-width="2" 
+        fill="none" 
+        stroke-dasharray="3,3"/>
+  
+  <!-- Projectile (sphere) -->
+  <circle cx="80" cy="50" r="6" fill="#FF4500"/>
+  
+  <!-- Target -->
+  <rect x="135" y="105" width="10" height="25" fill="#32CD32"/>
+  <polygon points="140,100 130,105 150,105" fill="#32CD32"/>
+  
+  <!-- Velocity vector -->
+  <line x1="20" y1="120" x2="50" y2="95" 
+        stroke="#0066CC" 
+        stroke-width="2" 
+        marker-end="url(#arrowblue)"/>
+  
+  <!-- Arrow marker definition -->
+  <defs>
+    <marker id="arrowblue" markerWidth="10" markerHeight="10" 
+            refX="9" refY="3" orient="auto" markerUnits="strokeWidth">
+      <path d="M0,0 L0,6 L9,3 z" fill="#0066CC"/>
+    </marker>
+  </defs>
+  
+  <!-- Title -->
+  <text x="100" y="15" text-anchor="middle" 
+        font-family="Arial" font-size="14" font-weight="bold" fill="#333">
+    Projectile Motion
+  </text>
+</svg>

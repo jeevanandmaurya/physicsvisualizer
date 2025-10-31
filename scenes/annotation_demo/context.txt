@@ -1,0 +1,49 @@
+# Visual Annotation Demo Scene
+
+This scene demonstrates the new Visual Annotation System capabilities:
+
+## Features Shown
+
+1. **Text Annotations**
+   - Speed labels (real-time velocity magnitude)
+   - Position coordinates
+   - Kinetic energy display
+   - Mass labels
+
+2. **Vector Annotations**
+   - Velocity vectors (arrows showing direction and magnitude)
+   - Scaled to be visible but not overwhelming
+   - Different colors for different objects
+
+3. **Dynamic Updates**
+   - All annotations update in real-time
+   - Text refreshes at 30 Hz
+   - Vectors update every frame
+
+4. **Conditional Visibility**
+   - Some annotations only show when object is moving (`minSpeed` threshold)
+   - Prevents clutter when objects are stationary
+
+## Objects
+
+- **Projectile** (Orange sphere): Launched with initial velocity, demonstrates parabolic motion
+- **Box** (Green box): Starts at rest, will interact with projectile
+- **Ground** (Gray): Static platform
+
+## What to Observe
+
+1. Watch the **speed label** change as the projectile moves
+2. See the **velocity vector** (blue arrow) showing direction of motion
+3. **Position coordinates** update as objects move
+4. **Kinetic energy** changes with speed
+5. After collision, both objects show their respective velocities
+
+## Customization
+
+You can modify the annotations in the scene JSON:
+- Change colors, sizes, positions
+- Add/remove annotation types
+- Adjust update frequencies
+- Modify visibility conditions
+
+See `src/core/visuals/README.md` for full documentation.

@@ -1,0 +1,98 @@
+{
+  "id": "pendulum-energy",
+  "name": "Pendulum - Energy Conservation",
+  "description": "Simple pendulum demonstrating conservation of mechanical energy and periodic motion.",
+  "version": "1.0",
+  "objects": [
+    {
+      "id": "pivot",
+      "type": "Sphere",
+      "mass": 0,
+      "radius": 0.2,
+      "position": [0, 10, 0],
+      "color": "#666666",
+      "isStatic": true,
+      "friction": 0,
+      "restitution": 1
+    },
+    {
+      "id": "bob",
+      "type": "Sphere",
+      "mass": 1,
+      "radius": 0.5,
+      "position": [4, 6, 0],
+      "velocity": [0, 0, 0],
+      "color": "#FFD700",
+      "friction": 0,
+      "restitution": 1
+    },
+    {
+      "id": "ground",
+      "type": "Box",
+      "mass": 0,
+      "dimensions": [10, 1, 10],
+      "position": [0, -0.5, 0],
+      "isStatic": true,
+      "color": "#8B4513",
+      "friction": 0,
+      "restitution": 1
+    }
+  ],
+  "joints": [
+    {
+      "bodyA": "pivot",
+      "bodyB": "bob",
+      "type": "revolute",
+      "anchorA": [0, 0, 0],
+      "anchorB": [-4, 4, 0],
+      "axis": [0, 0, 1]
+    }
+  ],
+  "gravity": [0, -9.81, 0],
+  "hasGround": true,
+  "contactMaterial": {
+    "friction": 0,
+    "restitution": 1
+  },
+  "gravitationalPhysics": {
+    "enabled": false
+  },
+  "simulationScale": "terrestrial",
+  "controllers": [
+    {
+      "id": "angle",
+      "label": "Initial Angle",
+      "type": "slider",
+      "min": -90,
+      "max": 90,
+      "step": 5,
+      "value": 45,
+      "objectId": "bob",
+      "property": "position[0]",
+      "recreatesJoints": true
+    },
+    {
+      "id": "mass",
+      "label": "Mass",
+      "type": "slider",
+      "min": 0.5,
+      "max": 5,
+      "step": 0.1,
+      "value": 1,
+      "objectId": "bob",
+      "property": "mass"
+    },
+    {
+      "id": "length",
+      "label": "Pendulum Length",
+      "type": "slider",
+      "min": 4,
+      "max": 8,
+      "step": 0.5,
+      "value": 6,
+      "objectId": "bob",
+      "property": "position[1]",
+      "recreatesJoints": true
+    }
+  ]
+}

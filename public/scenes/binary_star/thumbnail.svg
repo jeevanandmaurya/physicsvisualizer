@@ -1,0 +1,74 @@
+<svg width="200" height="150" xmlns="http://www.w3.org/2000/svg">
+  <!-- Background (space) -->
+  <rect width="200" height="150" fill="#0A0E27"/>
+  
+  <!-- Stars in background -->
+  <circle cx="20" cy="20" r="1" fill="white" opacity="0.8"/>
+  <circle cx="180" cy="30" r="1" fill="white" opacity="0.6"/>
+  <circle cx="40" cy="130" r="1" fill="white" opacity="0.7"/>
+  <circle cx="170" cy="120" r="1" fill="white" opacity="0.9"/>
+  <circle cx="150" cy="25" r="1" fill="white" opacity="0.5"/>
+  
+  <!-- Central body (star/sun) with glow -->
+  <defs>
+    <radialGradient id="sunGlow">
+      <stop offset="0%" stop-color="#FFD700" stop-opacity="0.8"/>
+      <stop offset="50%" stop-color="#FFA500" stop-opacity="0.4"/>
+      <stop offset="100%" stop-color="#FF8C00" stop-opacity="0"/>
+    </radialGradient>
+    <radialGradient id="planetGlow">
+      <stop offset="0%" stop-color="#4169E1" stop-opacity="0.6"/>
+      <stop offset="100%" stop-color="#1E3A8A" stop-opacity="0"/>
+    </radialGradient>
+  </defs>
+  
+  <!-- Sun glow -->
+  <circle cx="100" cy="75" r="20" fill="url(#sunGlow)"/>
+  <circle cx="100" cy="75" r="10" fill="#FFD700" stroke="#FFA500" stroke-width="1"/>
+  
+  <!-- Orbital path (circle) -->
+  <circle cx="100" cy="75" r="45" fill="none" stroke="#4169E1" stroke-width="1" stroke-dasharray="3,3" opacity="0.5"/>
+  
+  <!-- Planet at different positions to show orbit -->
+  <circle cx="145" cy="75" r="5" fill="#4169E1" opacity="0.3"/>
+  <circle cx="100" cy="30" r="5" fill="#4169E1" opacity="0.3"/>
+  <circle cx="55" cy="75" r="5" fill="#4169E1" opacity="0.3"/>
+  
+  <!-- Main planet position -->
+  <circle cx="100" cy="120" r="6" fill="url(#planetGlow)"/>
+  <circle cx="100" cy="120" r="6" fill="#4169E1" stroke="#1E3A8A" stroke-width="1"/>
+  
+  <!-- Velocity vector -->
+  <line x1="106" y1="120" x2="126" y2="120" stroke="#00FF00" stroke-width="2" marker-end="url(#arrowgreen)"/>
+  <text x="129" y="123" font-family="Arial" font-size="8" fill="#00FF00" font-weight="bold">v</text>
+  
+  <!-- Gravitational force vector -->
+  <line x1="100" y1="114" x2="100" y2="94" stroke="#FF4500" stroke-width="2" marker-end="url(#arrowred)"/>
+  <text x="103" y="92" font-family="Arial" font-size="8" fill="#FF4500" font-weight="bold">F</text>
+  
+  <!-- Radius line -->
+  <line x1="100" y1="75" x2="100" y2="120" stroke="#FFFFFF" stroke-width="1" stroke-dasharray="2,2" opacity="0.4"/>
+  <text x="105" y="98" font-family="Arial" font-size="8" fill="#FFFFFF">r</text>
+  
+  <!-- Arrow markers -->
+  <defs>
+    <marker id="arrowgreen" markerWidth="8" markerHeight="8" 
+            refX="7" refY="3" orient="auto" markerUnits="strokeWidth">
+      <path d="M0,0 L0,6 L7,3 z" fill="#00FF00"/>
+    </marker>
+    <marker id="arrowred" markerWidth="8" markerHeight="8" 
+            refX="7" refY="3" orient="auto" markerUnits="strokeWidth">
+      <path d="M0,0 L0,6 L7,3 z" fill="#FF4500"/>
+    </marker>
+  </defs>
+  
+  <!-- Title -->
+  <text x="100" y="15" text-anchor="middle" font-family="Arial" font-size="14" font-weight="bold" fill="#FFD700">
+    Orbital Motion
+  </text>
+  
+  <!-- Equation -->
+  <text x="100" y="145" text-anchor="middle" font-family="Arial" font-size="9" fill="#CCCCCC">
+    F = GMm/r²
+  </text>
+</svg>

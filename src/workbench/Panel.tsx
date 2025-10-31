@@ -4,7 +4,7 @@ import { useDatabase, SceneData } from '../contexts/DatabaseContext';
 import SceneSelectorUI from '../views/components/scene-management/SceneSelectorUI';
 import SceneDetailsUI from '../views/components/scene-management/SceneDetailsUI';
 
-const SidePanel = ({ showSceneDetails = false, onToggleSceneDetails, onClosePanel }) => {
+const SidePanel = ({ showSceneDetails = false, onToggleSceneDetails, onClosePanel, onToggleMaximize, isMaximized = false }) => {
   const { setCurrentView, workspaceScenes, clearScenes } = useWorkspace();
   const { scene, replaceCurrentScene } = useWorkspaceScene();
   const { messages, addMessage } = useWorkspaceChat();
@@ -166,7 +166,7 @@ const SidePanel = ({ showSceneDetails = false, onToggleSceneDetails, onClosePane
 
 
   return (
-    <div className={`side-panel ${showSceneDetails ? 'with-details' : 'without-details'}`}>
+    <div className="side-panel">
       <div className="left-panel">
         <SceneSelectorUI
           currentScene={scene}
@@ -186,15 +186,17 @@ const SidePanel = ({ showSceneDetails = false, onToggleSceneDetails, onClosePane
           onTabChange={setActiveTab}
           onToggleSceneDetails={onToggleSceneDetails}
           onClose={onClosePanel}
+          onToggleMaximize={onToggleMaximize}
+          isMaximized={isMaximized}
           onRefreshSceneList={refreshSceneList}
           workspaceScenes={workspaceScenes} // Pass workspace scenes
         />
+        {showSceneDetails && (
+          <div className="scene-details-overlay">
+            <SceneDetailsUI scene={scene} onToggleSceneDetails={onToggleSceneDetails} />
+          </div>
+        )}
       </div>
-      {showSceneDetails && (
-        <div className="right-panel">
-          <SceneDetailsUI scene={scene} onToggleSceneDetails={onToggleSceneDetails} />
-        </div>
-      )}
     </div>
   );
 };

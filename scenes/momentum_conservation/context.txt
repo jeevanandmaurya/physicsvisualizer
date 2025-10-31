@@ -1,0 +1,43 @@
+Theory:
+The Law of Conservation of Momentum states that in a closed system with no external forces, the total momentum before any interaction equals the total momentum after the interaction. This is one of the most fundamental laws in physics, derived from Newton's Third Law.
+
+Momentum is a vector quantity: **p** = m**v** (mass × velocity)
+
+Explanation:
+This simulation demonstrates a chain of collisions similar to Newton's Cradle. When ball 1 hits ball 2, momentum and energy are transferred through the system.
+
+What happens:
+1. Ball 1 moves with initial momentum p₁ = m₁v₁
+2. Ball 1 collides with ball 2 (stationary)
+3. Momentum transfers through ball 2
+4. Ball 2 collides with ball 3
+5. Ball 3 moves away with transferred momentum
+
+The beauty of this system is that when masses are equal, the first ball stops completely and transfers all its momentum to the last ball. This creates a "domino effect" of momentum transfer.
+
+Key observations:
+- With equal masses: First ball stops, last ball moves with same velocity
+- With varying masses: More complex momentum distribution
+- Total system momentum: p_total = m₁v₁ + m₂v₂ + m₃v₃ = constant
+- Energy is conserved in elastic collisions
+
+This demonstrates why Newton's Cradle works - a device with suspended spheres that transfer momentum through the chain.
+
+Facts:
+- Momentum is always conserved in isolated systems
+- Momentum is a vector quantity (has both magnitude and direction)
+- Total momentum = sum of individual momenta
+- In elastic collisions, both momentum and energy are conserved
+- Center of mass moves with constant velocity (no external force)
+- When equal masses collide elastically, they exchange velocities
+- Impulse (force × time) equals change in momentum: FΔt = Δp
+- Newton's Third Law ensures momentum conservation
+- Momentum conservation holds even when energy is not conserved
+
+Key Equations:
+- Momentum: p = mv
+- Conservation: Σp_before = Σp_after
+- For two objects: m₁v₁ᵢ + m₂v₂ᵢ = m₁v₁f + m₂v₂f
+- Impulse-Momentum Theorem: FΔt = Δp = mΔv
+- Center of mass velocity: v_cm = (m₁v₁ + m₂v₂)/(m₁ + m₂)
+- For elastic collision of equal masses: v₁f = v₂ᵢ, v₂f = v₁ᵢ (velocity exchange)

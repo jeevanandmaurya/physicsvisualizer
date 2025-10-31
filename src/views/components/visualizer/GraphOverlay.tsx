@@ -7,6 +7,7 @@ import { Scatter } from 'react-chartjs-2';
 import zoomPlugin from 'chartjs-plugin-zoom';
 import { useWorkspace } from '../../../contexts/WorkspaceContext';
 import { useTheme } from '../../../contexts/ThemeContext';
+import { useOverlay } from '../../../contexts/OverlayContext';
 import './GraphOverlay.css';
 
 ChartJS.register(CategoryScale, LinearScale, PointElement, LineElement, Title, Tooltip, Legend, zoomPlugin);
@@ -75,6 +76,7 @@ function GraphOverlay({ isOpen, onToggle }: GraphOverlayProps) {
 
 function OverlayGraph({ id, initialType, data, onClose }) {
   const { overlayOpacity, theme } = useTheme();
+  const { registerOverlay, unregisterOverlay, focusOverlay, getZIndex } = useOverlay();
   const { dataTimeStep, updateDataTimeStep } = useWorkspace();
   const chartRef = useRef(null);
   const objectIds = Object.keys(data);
@@ -366,7 +368,25 @@ function OverlayGraph({ id, initialType, data, onClose }) {
     setPreviousPosition({ x: centerX, y: centerY });
   }, []);
 
+  // Register with overlay system
+  useEffect(() => {
+    registerOverlay(`graph-${id}`, 'graph', 60);
+    return () => unregisterOverlay(`graph-${id}`);
+  }, [id, registerOverlay, unregisterOverlay]);
+
+  const { focusedOverlay } = useOverlay();
+  const currentZIndex = getZIndex(`graph-${id}`);
+  const isFocused = focusedOverlay === `graph-${id}`;
+  
+  const handleOverlayClick = () => {
+    focusOverlay(`graph-${id}`);
+  };
+
   // Rnd drag/resize callbacks
+  const handleDragStart = useCallback(() => {
+    focusOverlay(`graph-${id}`);
+  }, [id, focusOverlay]);
+
   const handleDragStop = useCallback((e, data) => {
     setPosition({ x: data.x, y: data.y });
   }, []);
@@ -382,14 +402,19 @@ function OverlayGraph({ id, initialType, data, onClose }) {
     <Rnd
       position={position}
       size={size}
+      onDragStart={handleDragStart}
       onDragStop={handleDragStop}
       onResizeStop={handleResizeStop}
       minWidth={380}
       minHeight={isMinimized ? 40 : 300}
-      bounds="parent"
-      className={`overlay-graph ${isMinimized ? 'minimized' : ''}`}
+      bounds="window"
+      className={`overlay-graph ${isMinimized ? 'minimized' : ''} ${isFocused ? 'focused' : ''}`}
       dragHandleClassName="graph-header"
-      style={{ '--graph-bg-opacity': overlayOpacity.graph }}
+      style={{ 
+        '--graph-bg-opacity': overlayOpacity.graph,
+        zIndex: currentZIndex
+      } as React.CSSProperties}
+      onMouseDown={handleOverlayClick}
     >
         <div className="graph-header">
           <span className="title-text">{labels.title}</span>
