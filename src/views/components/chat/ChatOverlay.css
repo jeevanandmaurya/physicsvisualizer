@@ -88,6 +88,27 @@
   border-color: rgba(220, 53, 69, 0.18);
 }
 
+/* Back to Chat button styling */
+.chat-overlay-control-btn.back-to-chat-btn {
+  color: var(--accent-color);
+}
+
+.chat-overlay-control-btn.back-to-chat-btn:hover {
+  background: linear-gradient(135deg, rgba(124, 58, 237, 0.15), rgba(109, 40, 217, 0.15));
+  border-color: rgba(124, 58, 237, 0.3);
+  color: var(--accent-hover);
+}
+
+[data-theme="dark"] .chat-overlay-control-btn.back-to-chat-btn {
+  color: #a78bfa;
+}
+
+[data-theme="dark"] .chat-overlay-control-btn.back-to-chat-btn:hover {
+  background: linear-gradient(135deg, rgba(124, 58, 237, 0.2), rgba(109, 40, 217, 0.2));
+  border-color: rgba(124, 58, 237, 0.4);
+  color: #c4b5fd;
+}
+
 /* Messages Area */
 .chat-messages {
   flex: 1;

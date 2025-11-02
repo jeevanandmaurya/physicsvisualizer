@@ -359,21 +359,11 @@ function Visualizer({ scene, showSceneDetails, onToggleSceneDetails }) {
                             simulationTime={simulationTime}
                             simulationSpeed={simulationSpeed}
                         />
-                        {/* Visual Annotation System - Replaces old VelocityVectorVisuals */}
+                        {/* Visual Annotation System - Gets data directly from PhysicsDataStore */}
                         {activeScene?.visualAnnotations && activeScene.visualAnnotations.length > 0 && (
                             <VisualAnnotationManager
                                 annotations={activeScene.visualAnnotations}
-                                physicsData={(() => {
-                                    const combined: { [objectId: string]: { velocity: number[]; position: number[]; time: number } } = {};
-                                    Object.keys(physicsData.velocities || {}).forEach(id => {
-                                        combined[id] = {
-                                            velocity: (physicsData.velocities as any)[id] || [0, 0, 0],
-                                            position: (physicsData.positions as any)[id] || [0, 0, 0],
-                                            time: simulationTime
-                                        };
-                                    });
-                                    return combined;
-                                })()}
+                                physicsData={{}} // Not used - component gets data from PhysicsDataStore
                                 sceneObjects={objectsToRender}
                                 isPlaying={isPlaying}
                                 enabled={true}

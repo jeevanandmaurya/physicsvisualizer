@@ -242,6 +242,20 @@ class Workspace {
     return this.sceneChatLinks.get(sceneId) || null;
   }
 
+  // Get all scenes linked to a specific chat
+  getScenesForChat(chatId: string) {
+    const linkedScenes = [];
+    for (const [sceneId, linkedChatId] of this.sceneChatLinks.entries()) {
+      if (linkedChatId === chatId) {
+        const scene = this.scenes.find(s => s.id === sceneId);
+        if (scene) {
+          linkedScenes.push(scene);
+        }
+      }
+    }
+    return linkedScenes;
+  }
+
   // Export for saving
   toJSON() {
     return {

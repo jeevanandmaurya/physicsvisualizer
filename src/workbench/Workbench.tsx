@@ -30,6 +30,15 @@ const Workbench = () => {
     setSceneSelectorOpen(currentView === 'visualizer');
   }, [currentView]);
 
+  // Check if chat should auto-open (from navigation)
+  useEffect(() => {
+    const shouldOpenChat = sessionStorage.getItem('openChatOverlay');
+    if (shouldOpenChat === 'true' && currentView === 'visualizer') {
+      setChatOpen(true);
+      sessionStorage.removeItem('openChatOverlay'); // Clear flag
+    }
+  }, [currentView]);
+
   // VS Code-inspired layout configuration for each view
   const getLayoutConfig = (view: string) => { // Added type for view
     const configs = {
@@ -160,15 +169,16 @@ const Workbench = () => {
         workspaceScenes={[scene]}
       />
       <ChatOverlay
+        key={`chat-overlay-${scene?.id || 'default'}`}
         isOpen={chatOpen}
         onToggle={() => setChatOpen(!chatOpen)}
-        messages={messages}
-        addMessage={addMessage}
         scene={scene}
-        getChatForScene={getChatForScene}
-        workspaceMessages={messages}
-        onSceneUpdate={(propertyPath: string, value: any, reason: string) => { // Added types
-          console.log("Scene update:", propertyPath, value, reason);
+        onSceneUpdate={(updatedScene: SceneData) => {
+          // When conversation generates a new scene, update the workspace
+          // Note: The scene should already be updated via addScene/updateCurrentScene in Conversation
+          // This callback is for additional sync if needed
+          console.log("Scene updated in chat overlay:", updatedScene?.name);
+          // The scene prop will auto-update from useWorkspaceScene() hook
         }}
       />
       <GraphOverlay

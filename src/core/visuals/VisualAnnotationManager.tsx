@@ -3,12 +3,13 @@
  * Main component that renders all visual annotations for a scene
  */
 
-import { useMemo } from 'react';
-import { useThree } from '@react-three/fiber';
+import { useMemo, useState } from 'react';
+import { useThree, useFrame } from '@react-three/fiber';
 import { VisualAnnotation, PhysicsData } from './types';
 import { TextAnnotationComponent } from './annotations/TextAnnotationComponent';
 import { VectorAnnotationComponent } from './annotations/VectorAnnotationComponent';
 import { PhysicsFormatter } from './renderers/CanvasSpriteRenderer';
+import { physicsDataStore } from '../physics/PhysicsDataStore';
 
 interface VisualAnnotationManagerProps {
   annotations: VisualAnnotation[];
@@ -20,12 +21,29 @@ interface VisualAnnotationManagerProps {
 
 export function VisualAnnotationManager({
   annotations,
-  physicsData,
+  physicsData: _physicsData, // Not used anymore, we get data from store
   sceneObjects,
   isPlaying,
   enabled = true
 }: VisualAnnotationManagerProps) {
   const { camera } = useThree();
+  
+  // Get physics data directly from store and update every frame
+  const [physicsData, setPhysicsData] = useState<{ [objectId: string]: { velocity: number[]; position: number[]; time: number } }>({});
+  
+  useFrame(() => {
+    // Update physics data from store every frame for smooth annotations
+    const snapshot = physicsDataStore.getSnapshot();
+    const combined: { [objectId: string]: { velocity: number[]; position: number[]; time: number } } = {};
+    Object.keys(snapshot.velocities || {}).forEach(id => {
+      combined[id] = {
+        velocity: snapshot.velocities[id] || [0, 0, 0],
+        position: snapshot.positions[id] || [0, 0, 0],
+        time: performance.now() / 1000 // Convert to seconds
+      };
+    });
+    setPhysicsData(combined);
+  });
 
   // Don't render if disabled
   if (!enabled || !annotations || annotations.length === 0) {

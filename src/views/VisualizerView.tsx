@@ -48,7 +48,12 @@ function VisualizerView() {
   const dataManager = useDatabase();
 
   // Workspace hooks
-  const { createWorkspace: _createWorkspace, loadWorkspace: _loadWorkspace, saveWorkspace: _saveWorkspace, updateWorkspace: _updateWorkspace } = useWorkspace();
+  const { 
+    createWorkspace: _createWorkspace, 
+    loadWorkspace: _loadWorkspace, 
+    saveWorkspace: _saveWorkspace, 
+    updateWorkspace: _updateWorkspace
+  } = useWorkspace();
   const { scene: workspaceScene, updateScene: updateWorkspaceScene, scenes: _workspaceScenes } = useWorkspaceScene();
   const { messages: workspaceMessages, addMessage: addWorkspaceMessage } = useWorkspaceChat();
 
@@ -202,6 +207,7 @@ function VisualizerView() {
   const handleToggleSceneDetails = useCallback(() => {
     setShowSceneDetails(prev => !prev);
   }, []);
+
   // Set loading to false after initialization
   useEffect(() => {
     setLoading(false);

@@ -295,7 +295,6 @@ export function PhysicsWorld({ scene, isPlaying, onPhysicsDataCalculated, resetT
     const effectiveGravity = scene?.gravity || [0, -9.81, 0];
 
     // Use paused prop to control physics simulation - when paused, rigid bodies maintain their state
-    // Note: Ground planes are defined as objects in each scene, not automatically added here
     // timeStep controls simulation speed (default: 1/60, multiply by simulationSpeed for slow-mo)
     return (
         <Physics
@@ -318,6 +317,13 @@ export function PhysicsWorld({ scene, isPlaying, onPhysicsDataCalculated, resetT
                 physicsResetKey={physicsResetKey}
             />
             {renderObjects()}
+            
+            {/* Ground plane for physics collision when hasGround is true */}
+            {scene?.hasGround && (
+                <RigidBody type="fixed" position={[0, 0, 0]}>
+                    <CuboidCollider args={[500, 0.1, 500]} />
+                </RigidBody>
+            )}
 
         </Physics>
     );

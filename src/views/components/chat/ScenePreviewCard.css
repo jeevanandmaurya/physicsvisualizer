@@ -1,0 +1,213 @@
+/* Scene Preview Card - Claude.ai inspired design */
+
+.scene-preview-card {
+  margin: 12px 0;
+  padding: 16px;
+  border: 1px solid var(--border-color, #e0e0e0);
+  border-radius: 12px;
+  background: linear-gradient(135deg, 
+    rgba(139, 92, 246, 0.05) 0%, 
+    rgba(59, 130, 246, 0.05) 100%);
+  transition: all 0.3s ease;
+  cursor: pointer;
+  /* Prevent layout shift */
+  contain: layout;
+  isolation: isolate;
+}
+
+.scene-preview-card:hover {
+  border-color: var(--primary-color, #8b5cf6);
+  box-shadow: 0 4px 16px rgba(139, 92, 246, 0.15);
+  transform: translateY(-2px);
+}
+
+/* Dark theme support */
+[data-theme="dark"] .scene-preview-card,
+.dark .scene-preview-card,
+body[data-theme="dark"] .scene-preview-card {
+  border-color: #2a2a2a;
+  background: linear-gradient(135deg, 
+    rgba(139, 92, 246, 0.1) 0%, 
+    rgba(59, 130, 246, 0.1) 100%);
+}
+
+[data-theme="dark"] .scene-preview-card:hover,
+.dark .scene-preview-card:hover,
+body[data-theme="dark"] .scene-preview-card:hover {
+  border-color: #8b5cf6;
+  box-shadow: 0 4px 16px rgba(139, 92, 246, 0.25);
+}
+
+/* Header */
+.scene-preview-header {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 12px;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--text-secondary, #666);
+}
+
+[data-theme="dark"] .scene-preview-header,
+.dark .scene-preview-header,
+body[data-theme="dark"] .scene-preview-header {
+  color: #aaa;
+}
+
+.scene-preview-icon {
+  font-size: 16px;
+}
+
+.scene-preview-action {
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+/* Content */
+.scene-preview-content {
+  display: flex;
+  gap: 16px;
+  margin-bottom: 16px;
+}
+
+.scene-preview-thumbnail {
+  flex-shrink: 0;
+  width: 120px;
+  height: 90px;
+  border-radius: 8px;
+  overflow: hidden;
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.scene-preview-thumbnail img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.scene-preview-info {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.scene-preview-title {
+  margin: 0;
+  font-size: 16px;
+  font-weight: 600;
+  color: var(--text-primary, #1a1a1a);
+  line-height: 1.4;
+}
+
+[data-theme="dark"] .scene-preview-title,
+.dark .scene-preview-title,
+body[data-theme="dark"] .scene-preview-title {
+  color: #e0e0e0;
+}
+
+.scene-preview-stats {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.scene-stat {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 13px;
+  color: var(--text-secondary, #666);
+}
+
+[data-theme="dark"] .scene-stat,
+.dark .scene-stat,
+body[data-theme="dark"] .scene-stat {
+  color: #999;
+}
+
+.stat-icon {
+  font-size: 14px;
+}
+
+.stat-value {
+  font-weight: 500;
+}
+
+/* Button */
+.scene-preview-button {
+  width: 100%;
+  padding: 12px 16px;
+  border: none;
+  border-radius: 8px;
+  background: linear-gradient(135deg, #8b5cf6 0%, #6366f1 100%);
+  color: white;
+  font-size: 14px;
+  font-weight: 600;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  cursor: pointer;
+  transition: all 0.3s ease;
+}
+
+.scene-preview-button:hover {
+  background: linear-gradient(135deg, #7c3aed 0%, #4f46e5 100%);
+  box-shadow: 0 4px 12px rgba(139, 92, 246, 0.4);
+  transform: translateY(-1px);
+}
+
+.scene-preview-button:active {
+  transform: translateY(0);
+}
+
+.button-icon {
+  font-size: 16px;
+}
+
+.button-text {
+  flex: 1;
+}
+
+.button-arrow {
+  font-size: 18px;
+  font-weight: bold;
+  transition: transform 0.3s ease;
+}
+
+.scene-preview-button:hover .button-arrow {
+  transform: translateX(4px);
+}
+
+/* Responsive design */
+@media (max-width: 600px) {
+  .scene-preview-content {
+    flex-direction: column;
+  }
+  
+  .scene-preview-thumbnail {
+    width: 100%;
+    height: 150px;
+  }
+}
+
+/* Animation on mount - fade in only, no position change to prevent layout shift */
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+.scene-preview-card {
+  animation: fadeIn 0.3s ease;
+  /* Prevent layout shift during animation */
+  will-change: opacity;
+}

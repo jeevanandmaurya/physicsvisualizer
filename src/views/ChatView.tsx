@@ -8,13 +8,13 @@ import {
   Menu,
   MessageSquare,
   Zap,
-  Settings,
 } from "lucide-react";
 
 import { useConversation } from "../ui-logic/chat/Conversation";
 import { useTheme } from "../contexts/ThemeContext";
 import { useWorkspace } from "../contexts/WorkspaceContext";
 import { useDatabase } from "../contexts/DatabaseContext";
+import ScenePreviewCard from "./components/chat/ScenePreviewCard";
 
 declare global {
   interface Window {
@@ -30,14 +30,14 @@ interface ModernChatInterfaceProps {
 function ModernChatInterface({ onViewChange }: ModernChatInterfaceProps) {
   const { theme } = useTheme();
   const { 
-    getCurrentScene,
     getCurrentChat, 
     getAllChats, 
     deleteChatSession, 
     addChatSession,
     selectChatSession,
     updateChatName,
-    addMessage
+    addMessage,
+    getScenesForChat
   } = useWorkspace();
   const workspaceMessages = getCurrentChat()?.messages || [];
   const dataManager = useDatabase();
@@ -53,11 +53,17 @@ function ModernChatInterface({ onViewChange }: ModernChatInterfaceProps) {
   const allChats = getAllChats();
   const currentChatId = currentChat?.id;
 
+  // Get chat-specific scene (not global scene)
+  const chatScenes = currentChatId ? getScenesForChat(currentChatId) : [];
+  const chatSpecificScene = chatScenes.length > 0 
+    ? chatScenes[chatScenes.length - 1] // Use most recent scene for this chat
+    : { id: `chat-only-${currentChatId || 'default'}`, objects: [] }; // Empty scene per chat
+
   // Conversation hook - with direct workspace integration
   const { messages, isLoading, sendMessage } = useConversation({
     initialMessage: null as any,
     chatId: currentChatId || '',
-    currentScene: getCurrentScene() || { id: "chat-only", objects: [] },
+    currentScene: chatSpecificScene,
     onSceneUpdate: () => {},
     updateConversation: null, // Not used
     dataManager: dataManager,
@@ -68,7 +74,10 @@ function ModernChatInterface({ onViewChange }: ModernChatInterfaceProps) {
   // Removed greeting - no automatic welcome message
 
   const scrollToBottom = useCallback(() => {
-    messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
+    // Use a small delay to allow content (including preview cards) to render first
+    requestAnimationFrame(() => {
+      messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
+    });
   }, []);
 
   useEffect(() => {
@@ -206,11 +215,16 @@ function ModernChatInterface({ onViewChange }: ModernChatInterfaceProps) {
     return formatted;
   };
 
-  const filteredMessages = searchQuery
-    ? messages.filter((msg: any) =>
-        msg.text.toLowerCase().includes(searchQuery.toLowerCase())
-      )
-    : messages;
+  // Filter chats based on search query
+  const filteredChats = searchQuery
+    ? allChats.filter((chat) => {
+        const chatName = (chat.name || `Chat ${chat.id.slice(-6)}`).toLowerCase();
+        return chatName.includes(searchQuery.toLowerCase());
+      })
+    : allChats;
+  
+  // Use all messages for the current chat (no message filtering)
+  const filteredMessages = messages;
 
   return (
     <div
@@ -281,7 +295,7 @@ function ModernChatInterface({ onViewChange }: ModernChatInterfaceProps) {
                 />
                 <input
                   type="text"
-                  placeholder="Search messages..."
+                  placeholder="Search chats..."
                   value={searchQuery}
                   onChange={(e) => setSearchQuery(e.target.value)}
                   style={{
@@ -299,7 +313,7 @@ function ModernChatInterface({ onViewChange }: ModernChatInterfaceProps) {
             </div>
 
             <div style={{ flex: 1, overflowY: "auto", padding: "8px" }}>
-              {allChats.map((chat) => (
+              {filteredChats.map((chat) => (
                 <div
                   key={chat.id}
                   onClick={() => selectChatSession(chat.id)}
@@ -377,19 +391,6 @@ function ModernChatInterface({ onViewChange }: ModernChatInterfaceProps) {
               Physics AI Chat
             </h2>
           </div>
-
-          <div style={{ display: "flex", alignItems: "center", gap: "12px" }}>
-            <button
-              style={{
-                background: "none",
-                border: "none",
-                cursor: "pointer",
-                color: theme === "dark" ? "#e0e0e0" : "#1a1a1a",
-              }}
-            >
-              <Settings size={20} />
-            </button>
-          </div>
         </div>
 
         {/* Messages */}
@@ -402,6 +403,111 @@ function ModernChatInterface({ onViewChange }: ModernChatInterfaceProps) {
             flexDirection: "column",
           }}
         >
+          {/* Suggestions for empty chat */}
+          {filteredMessages.length === 0 && (
+            <div style={{
+              display: "flex",
+              flexDirection: "column",
+              alignItems: "center",
+              justifyContent: "center",
+              height: "100%",
+              gap: "32px",
+              paddingBottom: "60px"
+            }}>
+              <div style={{
+                textAlign: "center",
+                maxWidth: "600px"
+              }}>
+                <h2 style={{
+                  fontSize: "28px",
+                  fontWeight: "600",
+                  marginBottom: "12px",
+                  color: theme === "dark" ? "#e0e0e0" : "#1a1a1a"
+                }}>
+                  What can I help you with?
+                </h2>
+                <p style={{
+                  fontSize: "16px",
+                  color: theme === "dark" ? "#a0a0a0" : "#666",
+                  marginBottom: "32px"
+                }}>
+                  Ask me to create physics simulations, visualize concepts, or answer questions
+                </p>
+              </div>
+
+              <div style={{
+                display: "grid",
+                gridTemplateColumns: "repeat(auto-fit, minmax(280px, 1fr))",
+                gap: "16px",
+                width: "100%",
+                maxWidth: "900px"
+              }}>
+                {[
+                  {
+                    title: "Physics simulation",
+                    description: "Create realistic physics simulations with gravity, collisions, and forces",
+                    icon: "⚛️"
+                  },
+                  {
+                    title: "Non-physics visualization",
+                    description: "Generate creative visuals, patterns, and animations without physics",
+                    icon: "🎨"
+                  },
+                  {
+                    title: "Annotation demo",
+                    description: "Add labels, arrows, and annotations to explain concepts",
+                    icon: "�"
+                  }
+                ].map((suggestion, idx) => (
+                  <button
+                    key={idx}
+                    onClick={() => setInput(suggestion.title)}
+                    style={{
+                      padding: "20px",
+                      background: theme === "dark" ? "#1a1a1a" : "#f8f9fa",
+                      border: `1px solid ${theme === "dark" ? "#333" : "#e0e0e0"}`,
+                      borderRadius: "12px",
+                      cursor: "pointer",
+                      textAlign: "left",
+                      transition: "all 0.2s ease",
+                    }}
+                    onMouseEnter={(e) => {
+                      e.currentTarget.style.borderColor = "#007bff";
+                      e.currentTarget.style.transform = "translateY(-2px)";
+                      e.currentTarget.style.boxShadow = "0 4px 12px rgba(0,123,255,0.15)";
+                    }}
+                    onMouseLeave={(e) => {
+                      e.currentTarget.style.borderColor = theme === "dark" ? "#333" : "#e0e0e0";
+                      e.currentTarget.style.transform = "translateY(0)";
+                      e.currentTarget.style.boxShadow = "none";
+                    }}
+                  >
+                    <div style={{
+                      fontSize: "24px",
+                      marginBottom: "8px"
+                    }}>
+                      {suggestion.icon}
+                    </div>
+                    <div style={{
+                      fontSize: "15px",
+                      fontWeight: "600",
+                      marginBottom: "4px",
+                      color: theme === "dark" ? "#e0e0e0" : "#1a1a1a"
+                    }}>
+                      {suggestion.title}
+                    </div>
+                    <div style={{
+                      fontSize: "13px",
+                      color: theme === "dark" ? "#888" : "#666"
+                    }}>
+                      {suggestion.description}
+                    </div>
+                  </button>
+                ))}
+              </div>
+            </div>
+          )}
+
           {filteredMessages.map((message) => (
             <div
               key={message.id}
@@ -467,9 +573,17 @@ function ModernChatInterface({ onViewChange }: ModernChatInterfaceProps) {
                     wordBreak: "break-word",
                   }}
                   dangerouslySetInnerHTML={{
-                    __html: formatMessageText(message.text || message.content || ''),
+                    __html: formatMessageText(message.text || (message as any).content || ''),
                   }}
                 />
+
+                {/* Scene Preview Card */}
+                {!message.isUser && (message as any).sceneMetadata?.hasSceneGeneration && (
+                  <ScenePreviewCard 
+                    message={message as any}
+                    chatId={currentChatId || ''}
+                  />
+                )}
 
                 <div
                   style={{
@@ -555,7 +669,7 @@ function ModernChatInterface({ onViewChange }: ModernChatInterfaceProps) {
               value={input}
               onChange={(e) => setInput(e.target.value)}
               onKeyDown={handleKeyPress}
-              placeholder="Ask about physics, request visualizations, or discuss concepts..."
+              placeholder="Ask anything..."
               disabled={isLoading}
               style={{
                 flex: 1,

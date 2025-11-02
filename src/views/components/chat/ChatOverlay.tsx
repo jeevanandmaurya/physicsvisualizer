@@ -1,12 +1,13 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
-import { faChevronUp, faChevronDown, faTimes } from '@fortawesome/free-solid-svg-icons';
+import { faChevronUp, faChevronDown, faTimes, faComments } from '@fortawesome/free-solid-svg-icons';
 import { Send } from 'lucide-react';
 import { useConversation } from '../../../ui-logic/chat/Conversation';
 import { useWorkspace } from '../../../contexts/WorkspaceContext';
 import { useDatabase } from '../../../contexts/DatabaseContext';
 import { useTheme } from '../../../contexts/ThemeContext';
 import { useOverlay } from '../../../contexts/OverlayContext';
+import ScenePreviewCard from './ScenePreviewCard';
 import './ChatOverlay.css';
 
 const ChatOverlay = ({
@@ -18,7 +19,15 @@ const ChatOverlay = ({
   const { overlayOpacity } = useTheme();
   const { registerOverlay, unregisterOverlay, focusOverlay, getZIndex, focusedOverlay } = useOverlay();
   const dataManager = useDatabase();
-  const { getCurrentChat, addMessage, getChatForScene, updateChatName } = useWorkspace();
+  const { 
+    getCurrentChat, 
+    addMessage, 
+    getChatForScene, 
+    updateChatName,
+    setCurrentView,
+    navigationContext,
+    selectChatSession
+  } = useWorkspace();
   const [isMinimized, setIsMinimized] = useState(false);
   const [position, setPosition] = useState({ x: 100, y: 100 });
   const [size, setSize] = useState({ width: 500, height: 600 });
@@ -31,7 +40,10 @@ const ChatOverlay = ({
   const overlayRef = useRef(null);
   const messagesEndRef = useRef(null);
 
-  const currentChatId = scene?.id ? getChatForScene(scene.id) : null;
+  // Prioritize navigationContext.linkedChatId (when navigating from chat)
+  // Otherwise fall back to scene-chat link lookup
+  const currentChatId = navigationContext?.linkedChatId || 
+                        (scene?.id ? getChatForScene(scene.id) : null);
   const currentChat = getCurrentChat();
   const workspaceMessages = currentChat?.messages || [];
 
@@ -339,7 +351,34 @@ const ChatOverlay = ({
 
   // Get dynamic z-index and focused state
   const currentZIndex = getZIndex('chat-overlay');
+
+  // Back to Chat handler - navigates to the chat that created this scene
+  const handleBackToChat = useCallback(() => {
+    if (navigationContext?.linkedChatId) {
+      // Select the chat session that created this scene
+      selectChatSession(navigationContext.linkedChatId);
+    }
+    // Navigate back to chat view
+    setCurrentView('chat');
+    // Close the overlay
+    onToggle();
+  }, [navigationContext, selectChatSession, setCurrentView, onToggle]);
+
+  // Check if we should show the back to chat button
+  const showBackToChat = navigationContext?.fromView === 'chat' && navigationContext?.linkedChatId;
   const isFocused = focusedOverlay === 'chat-overlay';
+
+  // When overlay opens with a linked chat, select that chat in the workspace
+  useEffect(() => {
+    if (isOpen && navigationContext?.linkedChatId) {
+      const currentSelectedChat = getCurrentChat();
+      // Only select if it's not already selected (avoid unnecessary updates)
+      if (currentSelectedChat?.id !== navigationContext.linkedChatId) {
+        console.log('📱 ChatOverlay: Selecting linked chat from navigation:', navigationContext.linkedChatId);
+        selectChatSession(navigationContext.linkedChatId);
+      }
+    }
+  }, [isOpen, navigationContext?.linkedChatId, selectChatSession, getCurrentChat]);
 
   // Focus overlay on click
   const handleOverlayClick = () => {
@@ -452,6 +491,16 @@ const ChatOverlay = ({
         >
           <div className="chat-overlay-title">Chat</div>
           <div className="chat-overlay-header-controls">
+            {/* Back to Chat button - shows when navigated from chat */}
+            {showBackToChat && (
+              <button
+                className="chat-overlay-control-btn back-to-chat-btn"
+                onClick={handleBackToChat}
+                title="Return to the chat view"
+              >
+                <FontAwesomeIcon icon={faComments} />
+              </button>
+            )}
             <button
               className="chat-overlay-control-btn"
               onClick={() => {
@@ -499,6 +548,14 @@ const ChatOverlay = ({
                     >
                       <div className="message-content">
                         <div className="message-text" dangerouslySetInnerHTML={{ __html: formatMessageText((message as any).text || (message as any).content || '') }} />
+                        
+                        {/* Scene Preview Card */}
+                        {!message.isUser && (message as any).sceneMetadata?.hasSceneGeneration && (
+                          <ScenePreviewCard 
+                            message={message as any}
+                            chatId={currentChatId || ''}
+                          />
+                        )}
                       </div>
                     </div>
                   ))}

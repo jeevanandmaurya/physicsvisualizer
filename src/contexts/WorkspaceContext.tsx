@@ -18,6 +18,23 @@ export interface WorkspaceChatMessage {
   id: string;
   content?: string;
   timestamp?: number;
+  isUser?: boolean;
+  
+  // Scene generation metadata for linking chat to visualizer
+  sceneMetadata?: {
+    hasSceneGeneration: boolean;
+    sceneId: string;
+    sceneAction: 'create' | 'modify' | 'none';
+    sceneSummary: {
+      name: string;
+      objectCount: number;
+      objectTypes: string[];
+      thumbnailUrl?: string;
+    };
+  };
+  
+  aiMetadata?: any;
+  sceneId?: string;
   [key: string]: any;
 }
 
@@ -53,6 +70,7 @@ export interface WorkspaceObject {
   deleteChat?: (chatId: string) => boolean; // Method to delete a chat
   linkSceneToChat?: (sceneId: string, chatId: string) => void;
   getChatForScene?: (sceneId: string) => string | null;
+  getScenesForChat?: (chatId: string) => any[];
 }
 
 export interface WorkspaceContextType {
@@ -121,6 +139,13 @@ export interface WorkspaceContextType {
   // Scene-chat linking methods
   linkSceneToChat: (sceneId: string, chatId: string) => void;
   getChatForScene: (sceneId: string) => string | null;
+  getScenesForChat: (chatId: string) => any[];
+  // Navigation methods for chat-visualizer integration
+  navigateToVisualizerWithScene: (sceneId: string, chatId: string, options?: { openChat?: boolean }) => void;
+  navigationContext: {
+    fromView?: string;
+    linkedChatId?: string;
+  };
   // Direct access to manager for advanced operations
   workspaceManager: WorkspaceManager;
 }
@@ -134,6 +159,12 @@ export function WorkspaceProvider({ children }: { children: React.ReactNode }) {
   const [currentView, setCurrentView] = useState('dashboard');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
+  
+  // Navigation context for chat-visualizer linking
+  const [navigationContext, setNavigationContext] = useState<{
+    fromView?: string;
+    linkedChatId?: string;
+  }>({});
 
   // Visualizer runtime state
   const [isPlaying, setIsPlaying] = useState(false);
@@ -559,7 +590,52 @@ export function WorkspaceProvider({ children }: { children: React.ReactNode }) {
     return currentWorkspace.getChatForScene(sceneId);
   }, [currentWorkspace]);
 
+  const getScenesForChat = useCallback((chatId: string) => {
+    if (!currentWorkspace || typeof currentWorkspace.getScenesForChat !== 'function') {
+      return [];
+    }
+    return currentWorkspace.getScenesForChat(chatId);
+  }, [currentWorkspace]);
 
+  // Navigation function for chat-visualizer integration
+  const navigateToVisualizerWithScene = useCallback((
+    sceneId: string, 
+    chatId: string, 
+    options?: { openChat?: boolean }
+  ) => {
+    console.log('🚀 Navigating to visualizer with scene:', sceneId, 'chat:', chatId);
+    
+    // 1. Find and set the scene
+    const scenes = currentWorkspace?.scenes || [];
+    const sceneIndex = scenes.findIndex(s => s.id === sceneId);
+    
+    if (sceneIndex >= 0) {
+      setCurrentScene(sceneIndex);
+      console.log('✅ Scene set:', sceneIndex);
+    } else {
+      console.warn('⚠️ Scene not found in workspace:', sceneId);
+    }
+    
+    // 2. Link scene to chat
+    linkSceneToChat(sceneId, chatId);
+    
+    // 3. Store navigation context
+    setNavigationContext({
+      fromView: currentView,
+      linkedChatId: chatId
+    });
+    
+    // 4. Switch to visualizer view
+    setCurrentView('visualizer');
+    
+    // 5. Store chat open preference (will be used by Workbench)
+    if (options?.openChat) {
+      // Store in sessionStorage so Workbench can read it
+      sessionStorage.setItem('openChatOverlay', 'true');
+    }
+    
+    console.log('✅ Navigation complete');
+  }, [currentWorkspace, currentView, setCurrentScene, linkSceneToChat, setNavigationContext]);
 
   const contextValue = {
     // State
@@ -638,6 +714,11 @@ export function WorkspaceProvider({ children }: { children: React.ReactNode }) {
     // Scene-chat linking methods
     linkSceneToChat,
     getChatForScene,
+    getScenesForChat,
+    
+    // Navigation methods for chat-visualizer integration
+    navigateToVisualizerWithScene,
+    navigationContext,
 
     // Direct access to manager for advanced operations
     workspaceManager
