@@ -12,20 +12,18 @@ import './ChatOverlay.css';
 const ChatOverlay = ({
   isOpen,
   onToggle,
-  addMessage,
   scene,
-  getChatForScene,
-  onSceneUpdate,
-  workspaceMessages = [] // Add workspace messages prop
+  onSceneUpdate
 }) => {
   const { overlayOpacity } = useTheme();
-  const { registerOverlay, unregisterOverlay, focusOverlay, getZIndex } = useOverlay();
+  const { registerOverlay, unregisterOverlay, focusOverlay, getZIndex, focusedOverlay } = useOverlay();
   const dataManager = useDatabase();
+  const { getCurrentChat, addMessage, getChatForScene, updateChatName } = useWorkspace();
   const [isMinimized, setIsMinimized] = useState(false);
   const [position, setPosition] = useState({ x: 100, y: 100 });
-  const [size, setSize] = useState({ width: 800, height: 600 });
+  const [size, setSize] = useState({ width: 500, height: 600 });
   const [previousPosition, setPreviousPosition] = useState({ x: 100, y: 100 });
-  const [previousSize, setPreviousSize] = useState({ width: 800, height: 600 });
+  const [previousSize, setPreviousSize] = useState({ width: 500, height: 600 });
   const [isDragging, setIsDragging] = useState(false);
   const [isResizing, setIsResizing] = useState(false);
   const [dragStart, setDragStart] = useState({ x: 0, y: 0 });
@@ -34,23 +32,19 @@ const ChatOverlay = ({
   const messagesEndRef = useRef(null);
 
   const currentChatId = scene?.id ? getChatForScene(scene.id) : null;
+  const currentChat = getCurrentChat();
+  const workspaceMessages = currentChat?.messages || [];
 
   // Use the conversation hook for both messages and sending
   const { messages, isLoading, sendMessage } = useConversation({
     initialMessage: null, // Don't initialize with greeting in overlay - handled manually
     currentScene: scene,
     onSceneUpdate: onSceneUpdate,
-    chatId: currentChatId,
+    chatId: currentChatId || '',
     dataManager: dataManager,
-    workspaceMessages: workspaceMessages, // Pass workspace messages as fallback
-    updateConversation: (newMessages) => {
-      // Sync new messages to workspace for persistence
-      if (Array.isArray(newMessages)) {
-        newMessages.forEach(message => {
-          addMessage(message);
-        });
-      }
-    }
+    workspaceMessages: workspaceMessages as any, // Pass workspace messages as fallback
+    updateConversation: null, // Don't sync back - prevents loops
+    addMessageToWorkspace: addMessage // Direct persistence function
   });
 
   const [input, setInput] = useState('');
@@ -62,6 +56,16 @@ const ChatOverlay = ({
 
     // Send to AI (this will handle adding the message internally)
     await sendMessage(messageText);
+
+    // Update chat name if this is the first user message
+    if (currentChat && currentChat.messages) {
+      const userMessages = currentChat.messages.filter((msg: any) => msg.isUser);
+      if (userMessages.length === 1) {
+        // This is the first user message, update chat name
+        const truncatedName = messageText.length > 30 ? messageText.substring(0, 30) + '...' : messageText;
+        updateChatName(currentChat.id, truncatedName);
+      }
+    }
   };
 
   const handleKeyPress = (e) => {
@@ -80,6 +84,9 @@ const ChatOverlay = ({
   };
 
   const formatMessageText = (text) => {
+    // Handle null, undefined, or empty text
+    if (!text) return '';
+    
     // First, try to parse the text as JSON (in case it contains the full AI response)
     let cleanText = text;
     try {
@@ -101,7 +108,7 @@ const ChatOverlay = ({
     } catch (e) {
       // Not JSON, check if it's a raw AI response that needs cleaning
       // Sometimes AI responses include metadata or formatting that should be stripped
-      if (text.includes('```json') && text.includes('scene') && text.includes('objects')) {
+      if (text && typeof text === 'string' && text.includes('```json') && text.includes('scene') && text.includes('objects')) {
         // This looks like a raw AI response with scene JSON - extract text before JSON blocks
         const beforeJson = text.split(/```json/)[0].trim();
         if (beforeJson) {
@@ -112,7 +119,7 @@ const ChatOverlay = ({
     }
 
     // Enhanced formatting with LaTeX, modern LLM styling, and better code highlighting
-    let formatted = cleanText;
+    let formatted = cleanText || '';
 
     // LaTeX block equations ($$...$$) - using KaTeX classes
     formatted = formatted.replace(/\$\$([\s\S]*?)\$\$/g, (match, equation) => {
@@ -331,7 +338,6 @@ const ChatOverlay = ({
   }, [registerOverlay, unregisterOverlay]);
 
   // Get dynamic z-index and focused state
-  const { focusedOverlay } = useOverlay();
   const currentZIndex = getZIndex('chat-overlay');
   const isFocused = focusedOverlay === 'chat-overlay';
 
@@ -492,7 +498,7 @@ const ChatOverlay = ({
                       className={`message ${message.isUser ? 'user' : 'ai'}`}
                     >
                       <div className="message-content">
-                        <div className="message-text" dangerouslySetInnerHTML={{ __html: formatMessageText(message.text) }} />
+                        <div className="message-text" dangerouslySetInnerHTML={{ __html: formatMessageText((message as any).text || (message as any).content || '') }} />
                       </div>
                     </div>
                   ))}

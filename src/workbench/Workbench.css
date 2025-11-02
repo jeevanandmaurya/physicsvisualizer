@@ -231,7 +231,9 @@
   border-right: 1px solid var(--border-color);
   display: flex;
   overflow: hidden;
-  width: 250px;
+  width: 400px;
+  margin-left: 0;
+  margin-bottom: 0;
 }
 
 .left-panel {

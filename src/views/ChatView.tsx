@@ -13,7 +13,7 @@ import {
 
 import { useConversation } from "../ui-logic/chat/Conversation";
 import { useTheme } from "../contexts/ThemeContext";
-import { useWorkspaceChat, useWorkspace } from "../contexts/WorkspaceContext";
+import { useWorkspace } from "../contexts/WorkspaceContext";
 import { useDatabase } from "../contexts/DatabaseContext";
 
 declare global {
@@ -30,15 +30,16 @@ interface ModernChatInterfaceProps {
 function ModernChatInterface({ onViewChange }: ModernChatInterfaceProps) {
   const { theme } = useTheme();
   const { 
-    messages: workspaceMessages, 
-    addMessage, 
+    getCurrentScene,
     getCurrentChat, 
     getAllChats, 
     deleteChatSession, 
     addChatSession,
-    selectChatSession
-  } = useWorkspaceChat();
-  const { getCurrentScene } = useWorkspace();
+    selectChatSession,
+    updateChatName,
+    addMessage
+  } = useWorkspace();
+  const workspaceMessages = getCurrentChat()?.messages || [];
   const dataManager = useDatabase();
 
   const [input, setInput] = useState("");
@@ -52,43 +53,19 @@ function ModernChatInterface({ onViewChange }: ModernChatInterfaceProps) {
   const allChats = getAllChats();
   const currentChatId = currentChat?.id;
 
-  // Conversation hook - use messages from hook, not workspace! (like ChatOverlay)
+  // Conversation hook - with direct workspace integration
   const { messages, isLoading, sendMessage } = useConversation({
     initialMessage: null as any,
-    chatId: currentChatId || "default-chat",
+    chatId: currentChatId || '',
     currentScene: getCurrentScene() || { id: "chat-only", objects: [] },
     onSceneUpdate: () => {},
-    updateConversation: (newMessages: any[]) => {
-      // Sync new messages to workspace for persistence (like ChatOverlay does)
-      if (Array.isArray(newMessages)) {
-        newMessages.forEach((message: any) => {
-          addMessage({
-            id: message.id.toString(),
-            content: message.text,
-            isUser: message.isUser,
-            timestamp: message.timestamp || Date.now(),
-            sceneId: message.sceneId,
-            aiMetadata: message.aiMetadata
-          });
-        });
-      }
-    },
+    updateConversation: null, // Not used
     dataManager: dataManager,
-    workspaceMessages: workspaceMessages as any // Type mismatch is OK, just fallback
+    workspaceMessages: workspaceMessages as any, // Use workspace messages directly
+    addMessageToWorkspace: addMessage // Pass addMessage function for persistence
   });
 
-  // Add greeting on first load
-  useEffect(() => {
-    if (messages.length === 0) {
-      addMessage({
-        id: `greeting-${Date.now()}`,
-        content: "Hello! I'm your Physics AI Assistant. I can help you with physics concepts, create 3D visualizations, and discuss scientific phenomena. What would you like to explore today?",
-        isUser: false,
-        timestamp: Date.now(),
-        sceneId: null,
-      });
-    }
-  }, []); // Run once on mount
+  // Removed greeting - no automatic welcome message
 
   const scrollToBottom = useCallback(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
@@ -125,18 +102,19 @@ function ModernChatInterface({ onViewChange }: ModernChatInterfaceProps) {
     const messageText = input.trim();
     setInput("");
     
-    // Add user message immediately for instant feedback
-    const userMessage = {
-      id: `user-${Date.now()}`,
-      content: messageText,
-      isUser: true,
-      timestamp: Date.now(),
-      sceneId: getCurrentScene()?.id || null,
-    };
-    addMessage(userMessage);
-
-    // Send to AI (will add AI response via updateConversation callback)
+    // Send to AI (will add the message internally)
     await sendMessage(messageText);
+
+    // Update chat name if this is the first user message
+    const currentChat = getCurrentChat();
+    if (currentChat && currentChat.messages) {
+      const userMessages = currentChat.messages.filter((msg: any) => msg.isUser);
+      if (userMessages.length === 1) {
+        // This is the first user message, update chat name
+        const truncatedName = messageText.length > 30 ? messageText.substring(0, 30) + '...' : messageText;
+        updateChatName(currentChat.id, truncatedName);
+      }
+    }
   };
 
   const handleKeyPress = (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
@@ -155,6 +133,7 @@ function ModernChatInterface({ onViewChange }: ModernChatInterfaceProps) {
   };
 
   const formatMessageText = (text: string): string => {
+    if (!text) return '';
     let formatted = text;
 
     // LaTeX blocks
@@ -235,7 +214,6 @@ function ModernChatInterface({ onViewChange }: ModernChatInterfaceProps) {
 
   return (
     <div
-      key={currentChat?.id || 'no-chat'} // Force re-render when chat changes
       style={{
         display: "flex",
         height: "100%",
@@ -288,6 +266,36 @@ function ModernChatInterface({ onViewChange }: ModernChatInterfaceProps) {
                 <Plus size={18} />
                 New Chat
               </button>
+              
+              {/* Search Bar */}
+              <div style={{ position: "relative", marginTop: "12px" }}>
+                <Search
+                  size={16}
+                  style={{
+                    position: "absolute",
+                    left: "12px",
+                    top: "50%",
+                    transform: "translateY(-50%)",
+                    color: theme === "dark" ? "#666" : "#999",
+                  }}
+                />
+                <input
+                  type="text"
+                  placeholder="Search messages..."
+                  value={searchQuery}
+                  onChange={(e) => setSearchQuery(e.target.value)}
+                  style={{
+                    width: "100%",
+                    padding: "8px 12px 8px 36px",
+                    backgroundColor: theme === "dark" ? "#1a1a1a" : "#f0f0f0",
+                    border: "none",
+                    borderRadius: "8px",
+                    color: theme === "dark" ? "#e0e0e0" : "#1a1a1a",
+                    fontSize: "14px",
+                    boxSizing: "border-box",
+                  }}
+                />
+              </div>
             </div>
 
             <div style={{ flex: 1, overflowY: "auto", padding: "8px" }}>
@@ -371,34 +379,6 @@ function ModernChatInterface({ onViewChange }: ModernChatInterfaceProps) {
           </div>
 
           <div style={{ display: "flex", alignItems: "center", gap: "12px" }}>
-            <div style={{ position: "relative" }}>
-              <Search
-                size={16}
-                style={{
-                  position: "absolute",
-                  left: "12px",
-                  top: "50%",
-                  transform: "translateY(-50%)",
-                  color: theme === "dark" ? "#666" : "#999",
-                }}
-              />
-              <input
-                type="text"
-                placeholder="Search messages..."
-                value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
-                style={{
-                  padding: "8px 12px 8px 36px",
-                  backgroundColor: theme === "dark" ? "#1a1a1a" : "#f0f0f0",
-                  border: "none",
-                  borderRadius: "8px",
-                  color: theme === "dark" ? "#e0e0e0" : "#1a1a1a",
-                  fontSize: "14px",
-                  width: "200px",
-                }}
-              />
-            </div>
-
             <button
               style={{
                 background: "none",
@@ -487,7 +467,7 @@ function ModernChatInterface({ onViewChange }: ModernChatInterfaceProps) {
                     wordBreak: "break-word",
                   }}
                   dangerouslySetInnerHTML={{
-                    __html: formatMessageText(message.text),
+                    __html: formatMessageText(message.text || message.content || ''),
                   }}
                 />
 

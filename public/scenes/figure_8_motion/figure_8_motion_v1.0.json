@@ -1,0 +1,50 @@
+{
+  "id": "figure_8_motion",
+  "name": "Figure-8 Motion Demo",
+  "description": "Demonstrates NonPhysicsObject with custom JavaScript animation creating a figure-8 pattern",
+  "objects": [
+    {
+      "id": "figure_8_ball",
+      "type": "Sphere",
+      "position": [0, 5, 0],
+      "radius": 0.5,
+      "color": "#e74c3c",
+      "nonPhysics": true
+    },
+    {
+      "id": "reference_ball",
+      "type": "Sphere",
+      "position": [0, 5, 0],
+      "radius": 0.3,
+      "color": "#3498db",
+      "mass": 0,
+      "isStatic": true
+    }
+  ],
+  "functionCalls": [
+    {
+      "code": "globalNonPhysicsEngine.animateObject('figure_8_ball', { code: 'const a = 5; const b = 3; mesh.position.x = a * Math.sin(time); mesh.position.y = 5 + b * Math.sin(time) * Math.cos(time); mesh.position.z = 0;' }); return [];"
+    }
+  ],
+  "gravity": [0, -9.81, 0],
+  "hasGround": true,
+  "contactMaterial": {
+    "friction": 0.5,
+    "restitution": 0.7
+  },
+  "gravitationalPhysics": {
+    "enabled": false
+  },
+  "simulationScale": "terrestrial",
+  "controllers": [
+    {
+      "id": "time_speed",
+      "label": "Animation Speed",
+      "type": "slider",
+      "min": 0.1,
+      "max": 3,
+      "step": 0.1,
+      "value": 1
+    }
+  ]
+}

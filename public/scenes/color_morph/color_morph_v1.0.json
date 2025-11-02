@@ -1,0 +1,22 @@
+{
+  "id": "color_morph",
+  "name": "Color Morphing Grid",
+  "description": "Grid of spheres that morph colors and scale based on mathematical functions",
+  "objects": [],
+  "functionCalls": [
+    {
+      "code": "const objects = []; const gridSize = 8; const spacing = 2; for(let x=0; x<gridSize; x++) { for(let z=0; z<gridSize; z++) { const id = `sphere_${x}_${z}`; const px = (x - gridSize/2) * spacing; const pz = (z - gridSize/2) * spacing; objects.push({ id, type: 'Sphere', position: [px, 2, pz], radius: 0.4, color: '#ffffff', nonPhysics: true }); const dist = Math.sqrt(px*px + pz*pz); globalNonPhysicsEngine.animateObject(id, { code: `const wave = Math.sin(time * 2 - ${dist} * 0.3); mesh.position.y = 2 + wave * 2; const hue = (time * 50 + ${x * 45} + ${z * 45}) % 360; mesh.material.color.setHSL(hue / 360, 0.7, 0.5); const scale = 0.8 + wave * 0.4; mesh.scale.set(scale, scale, scale);` }); }} return objects;"
+    }
+  ],
+  "gravity": [0, -9.81, 0],
+  "hasGround": true,
+  "contactMaterial": {
+    "friction": 0.5,
+    "restitution": 0.7
+  },
+  "gravitationalPhysics": {
+    "enabled": false
+  },
+  "simulationScale": "terrestrial",
+  "controllers": []
+}

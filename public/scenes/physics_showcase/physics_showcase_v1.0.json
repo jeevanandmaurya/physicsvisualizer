@@ -1,0 +1,404 @@
+{
+  "id": "physics-showcase",
+  "name": "Physics Showcase - All Features",
+  "version": "1.0",
+  "description": "Comprehensive demonstration of all physics features including gravitational forces, constraints, fluid dynamics, and advanced visual annotations",
+  "gravity": [0, -9.81, 0],
+  "hasGround": true,
+  "simulationScale": "terrestrial",
+  "contactMaterial": {
+    "friction": 0.3,
+    "restitution": 0.6
+  },
+  "gravitationalPhysics": {
+    "enabled": false
+  },
+  "constraints": {
+    "enabled": true
+  },
+  "fluid": {
+    "enabled": true,
+    "density": 1.0,
+    "viscosity": 0.001,
+    "level": 0
+  },
+  "objects": [
+    {
+      "id": "ground",
+      "type": "Box",
+      "position": [0, -0.5, 0],
+      "dimensions": [50, 1, 50],
+      "mass": 0,
+      "isStatic": true,
+      "color": "#2a2a2a",
+      "friction": 0.7,
+      "restitution": 0.3
+    },
+    {
+      "id": "bouncing_sphere",
+      "type": "Sphere",
+      "position": [-8, 10, 0],
+      "radius": 0.8,
+      "mass": 2.5,
+      "velocity": [0, 0, 0],
+      "color": "#ff6347",
+      "restitution": 0.85,
+      "friction": 0.2
+    },
+    {
+      "id": "rotating_cube",
+      "type": "Box",
+      "position": [-4, 8, 0],
+      "dimensions": [1.5, 1.5, 1.5],
+      "mass": 3,
+      "velocity": [2, 0, 0],
+      "color": "#4169e1",
+      "restitution": 0.5,
+      "friction": 0.4
+    },
+    {
+      "id": "heavy_cylinder",
+      "type": "Cylinder",
+      "position": [0, 6, 0],
+      "radius": 0.7,
+      "height": 2,
+      "mass": 10,
+      "color": "#32cd32",
+      "restitution": 0.3,
+      "friction": 0.8
+    },
+    {
+      "id": "light_capsule",
+      "type": "Capsule",
+      "position": [4, 9, 0],
+      "radius": 0.4,
+      "height": 1.8,
+      "mass": 0.5,
+      "velocity": [-1, 0, 1],
+      "color": "#ffd700",
+      "restitution": 0.7,
+      "friction": 0.3
+    },
+    {
+      "id": "cone_top",
+      "type": "Cone",
+      "position": [8, 7, 0],
+      "radius": 0.8,
+      "height": 2,
+      "mass": 2,
+      "color": "#ff69b4",
+      "restitution": 0.6,
+      "friction": 0.5
+    },
+    {
+      "id": "pendulum_anchor",
+      "type": "Sphere",
+      "position": [-10, 8, -5],
+      "radius": 0.3,
+      "mass": 0,
+      "isStatic": true,
+      "color": "#666666"
+    },
+    {
+      "id": "pendulum_bob",
+      "type": "Sphere",
+      "position": [-10, 4, -5],
+      "radius": 0.6,
+      "mass": 2,
+      "color": "#ff8c00",
+      "constraints": [
+        {
+          "type": "spring",
+          "targetId": "pendulum_anchor",
+          "stiffness": 100,
+          "damping": 0.5,
+          "restLength": 4
+        }
+      ]
+    },
+    {
+      "id": "chain_anchor",
+      "type": "Sphere",
+      "position": [10, 8, -5],
+      "radius": 0.3,
+      "mass": 0,
+      "isStatic": true,
+      "color": "#666666"
+    },
+    {
+      "id": "chain_link1",
+      "type": "Sphere",
+      "position": [10, 6.5, -5],
+      "radius": 0.4,
+      "mass": 0.5,
+      "color": "#1e90ff",
+      "constraints": [
+        {
+          "type": "spring",
+          "targetId": "chain_anchor",
+          "stiffness": 150,
+          "damping": 0.3,
+          "restLength": 1.5
+        }
+      ]
+    },
+    {
+      "id": "chain_link2",
+      "type": "Sphere",
+      "position": [10, 5, -5],
+      "radius": 0.4,
+      "mass": 0.5,
+      "color": "#1e90ff",
+      "constraints": [
+        {
+          "type": "spring",
+          "targetId": "chain_link1",
+          "stiffness": 150,
+          "damping": 0.3,
+          "restLength": 1.5
+        }
+      ]
+    },
+    {
+      "id": "chain_link3",
+      "type": "Sphere",
+      "position": [10, 3.5, -5],
+      "radius": 0.4,
+      "mass": 0.5,
+      "color": "#1e90ff",
+      "constraints": [
+        {
+          "type": "spring",
+          "targetId": "chain_link2",
+          "stiffness": 150,
+          "damping": 0.3,
+          "restLength": 1.5
+        }
+      ]
+    },
+    {
+      "id": "fluid_ball_1",
+      "type": "Sphere",
+      "position": [-6, 12, 5],
+      "radius": 0.5,
+      "mass": 1,
+      "color": "#00ced1",
+      "restitution": 0.7,
+      "fluid": {
+        "dragCoefficient": 0.47,
+        "liftCoefficient": 0.2
+      }
+    },
+    {
+      "id": "fluid_ball_2",
+      "type": "Sphere",
+      "position": [-3, 12, 5],
+      "radius": 0.5,
+      "mass": 1,
+      "color": "#00ced1",
+      "restitution": 0.7,
+      "fluid": {
+        "dragCoefficient": 0.47,
+        "liftCoefficient": 0.2
+      }
+    },
+    {
+      "id": "ramp",
+      "type": "Box",
+      "position": [0, 2, 8],
+      "dimensions": [8, 0.3, 6],
+      "rotation": [0.4, 0, 0],
+      "mass": 0,
+      "isStatic": true,
+      "color": "#8b4513",
+      "friction": 0.1,
+      "restitution": 0.2
+    },
+    {
+      "id": "rolling_ball",
+      "type": "Sphere",
+      "position": [0, 6, 8],
+      "radius": 0.6,
+      "mass": 2,
+      "color": "#dc143c",
+      "friction": 0.8,
+      "restitution": 0.4
+    }
+  ],
+  "visualAnnotations": [
+    {
+      "id": "bouncing_velocity",
+      "type": "vector",
+      "attachedToObjectId": "bouncing_sphere",
+      "vectorType": "velocity",
+      "scale": 0.5,
+      "color": "#00ff00",
+      "visible": true,
+      "showWhenPlaying": true
+    },
+    {
+      "id": "bouncing_speed_label",
+      "type": "text",
+      "attachedToObjectId": "bouncing_sphere",
+      "contentType": "speed",
+      "offset": [0, 1.5, 0],
+      "fontSize": 0.3,
+      "color": "#ffffff",
+      "backgroundColor": "#000000",
+      "backgroundOpacity": 0.7,
+      "visible": true,
+      "showWhenPlaying": true,
+      "minSpeed": 0.1
+    },
+    {
+      "id": "rotating_velocity",
+      "type": "vector",
+      "attachedToObjectId": "rotating_cube",
+      "vectorType": "velocity",
+      "scale": 0.4,
+      "color": "#ffff00",
+      "visible": true,
+      "showWhenPlaying": true
+    },
+    {
+      "id": "rotating_momentum",
+      "type": "text",
+      "attachedToObjectId": "rotating_cube",
+      "contentType": "momentum",
+      "offset": [0, 2, 0],
+      "fontSize": 0.25,
+      "color": "#00ffff",
+      "backgroundColor": "#000033",
+      "backgroundOpacity": 0.8,
+      "visible": true,
+      "showWhenPlaying": true
+    },
+    {
+      "id": "heavy_velocity",
+      "type": "vector",
+      "attachedToObjectId": "heavy_cylinder",
+      "vectorType": "velocity",
+      "scale": 0.6,
+      "color": "#ff00ff",
+      "visible": true,
+      "showWhenPlaying": true
+    },
+    {
+      "id": "heavy_kinetic",
+      "type": "text",
+      "attachedToObjectId": "heavy_cylinder",
+      "contentType": "kineticEnergy",
+      "offset": [0, 2, 0],
+      "fontSize": 0.3,
+      "color": "#ffff00",
+      "backgroundColor": "#330033",
+      "backgroundOpacity": 0.7,
+      "visible": true,
+      "showWhenPlaying": true,
+      "minSpeed": 0.5
+    },
+    {
+      "id": "capsule_trail",
+      "type": "trail",
+      "attachedToObjectId": "light_capsule",
+      "maxLength": 50,
+      "color": "#ffd700",
+      "lineWidth": 3,
+      "visible": true,
+      "showWhenPlaying": true
+    },
+    {
+      "id": "capsule_velocity",
+      "type": "vector",
+      "attachedToObjectId": "light_capsule",
+      "vectorType": "velocity",
+      "scale": 0.5,
+      "color": "#ffffff",
+      "visible": true,
+      "showWhenPlaying": true
+    },
+    {
+      "id": "cone_position",
+      "type": "text",
+      "attachedToObjectId": "cone_top",
+      "contentType": "position",
+      "offset": [0, 1.8, 0],
+      "fontSize": 0.2,
+      "color": "#ffffff",
+      "backgroundColor": "#660066",
+      "backgroundOpacity": 0.8,
+      "visible": true,
+      "showWhenPlaying": true
+    },
+    {
+      "id": "pendulum_velocity",
+      "type": "vector",
+      "attachedToObjectId": "pendulum_bob",
+      "vectorType": "velocity",
+      "scale": 0.3,
+      "color": "#00ff00",
+      "visible": true,
+      "showWhenPlaying": true
+    },
+    {
+      "id": "pendulum_trail",
+      "type": "trail",
+      "attachedToObjectId": "pendulum_bob",
+      "maxLength": 100,
+      "color": "#ff8c00",
+      "lineWidth": 2,
+      "visible": true,
+      "showWhenPlaying": true
+    },
+    {
+      "id": "chain_trail",
+      "type": "trail",
+      "attachedToObjectId": "chain_link3",
+      "maxLength": 80,
+      "color": "#1e90ff",
+      "lineWidth": 2,
+      "visible": true,
+      "showWhenPlaying": true
+    },
+    {
+      "id": "fluid_velocity_1",
+      "type": "vector",
+      "attachedToObjectId": "fluid_ball_1",
+      "vectorType": "velocity",
+      "scale": 0.4,
+      "color": "#00ffff",
+      "visible": true,
+      "showWhenPlaying": true
+    },
+    {
+      "id": "fluid_velocity_2",
+      "type": "vector",
+      "attachedToObjectId": "fluid_ball_2",
+      "vectorType": "velocity",
+      "scale": 0.4,
+      "color": "#00ffff",
+      "visible": true,
+      "showWhenPlaying": true
+    },
+    {
+      "id": "rolling_velocity",
+      "type": "vector",
+      "attachedToObjectId": "rolling_ball",
+      "vectorType": "velocity",
+      "scale": 0.5,
+      "color": "#ffffff",
+      "visible": true,
+      "showWhenPlaying": true
+    },
+    {
+      "id": "rolling_trail",
+      "type": "trail",
+      "attachedToObjectId": "rolling_ball",
+      "maxLength": 100,
+      "color": "#dc143c",
+      "lineWidth": 3,
+      "visible": true,
+      "showWhenPlaying": true
+    }
+  ]
+}

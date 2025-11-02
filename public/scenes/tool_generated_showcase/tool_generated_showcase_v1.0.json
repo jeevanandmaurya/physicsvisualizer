@@ -1,0 +1,152 @@
+{
+  "id": "tool-generated-showcase",
+  "name": "Tool-Generated Content Showcase",
+  "version": "1.0",
+  "description": "Demonstration of JavaScript tool-generated physics and non-physics objects with procedural patterns and mathematical structures",
+  "gravity": [0, -9.81, 0],
+  "hasGround": true,
+  "simulationScale": "terrestrial",
+  "contactMaterial": {
+    "friction": 0.4,
+    "restitution": 0.7
+  },
+  "gravitationalPhysics": {
+    "enabled": false
+  },
+  "objects": [
+    {
+      "id": "ground",
+      "type": "Box",
+      "position": [0, -0.5, 0],
+      "dimensions": [60, 1, 60],
+      "mass": 0,
+      "isStatic": true,
+      "color": "#0a0a0a",
+      "friction": 0.8,
+      "restitution": 0.2
+    }
+  ],
+  "generatedObjects": {
+    "spiralTower": {
+      "code": "const objects = []; const levels = 12; const spheresPerLevel = 8; const radius = 4; for(let level = 0; level < levels; level++) { const y = level * 1.2; const levelRadius = radius - (level * 0.2); for(let i = 0; i < spheresPerLevel; i++) { const angle = (i / spheresPerLevel) * Math.PI * 2 + (level * 0.3); const x = Math.cos(angle) * levelRadius; const z = Math.sin(angle) * levelRadius; const hue = (level / levels) * 360; objects.push({ id: `spiral_${level}_${i}`, type: 'Sphere', position: [x, y + 5, z], radius: 0.3, mass: 0.5, color: `hsl(${hue}, 80%, 60%)`, restitution: 0.8, friction: 0.2 }); } } return objects;",
+      "enabled": true
+    },
+    "orbitingVisuals": {
+      "code": "const objects = []; const rings = 3; const objectsPerRing = 12; for(let ring = 0; ring < rings; ring++) { const ringRadius = 8 + ring * 2; const speed = 1 + ring * 0.3; const height = 8 + ring * 2; for(let i = 0; i < objectsPerRing; i++) { const phase = (i / objectsPerRing) * Math.PI * 2; const hue = (ring * 120 + i * 10) % 360; objects.push({ id: `orbiter_${ring}_${i}`, type: 'Sphere', position: [Math.cos(phase) * ringRadius, height, Math.sin(phase) * ringRadius], radius: 0.25, color: `hsl(${hue}, 90%, 65%)`, visualOnly: true, animation: { type: 'custom', code: `function animate(obj, time) { const r = ${ringRadius}; const s = ${speed}; const h = ${height}; const p = ${phase}; obj.position.x = Math.cos(time * s + p) * r; obj.position.z = Math.sin(time * s + p) * r; obj.position.y = h + Math.sin(time * 2) * 0.3; obj.rotation.y = time * s * 2; }` } }); } } return objects;",
+      "enabled": true
+    },
+    "waveField": {
+      "code": "const objects = []; const gridSize = 10; const spacing = 2; for(let x = 0; x < gridSize; x++) { for(let z = 0; z < gridSize; z++) { const px = (x - gridSize/2) * spacing - 15; const pz = (z - gridSize/2) * spacing - 15; const hue = ((x + z) / (gridSize * 2)) * 360; objects.push({ id: `wave_${x}_${z}`, type: 'Cylinder', position: [px, 0, pz], radius: 0.3, height: 0.5, color: `hsl(${hue}, 70%, 50%)`, visualOnly: true, animation: { type: 'custom', code: `function animate(obj, time) { const dist = Math.sqrt((${x - gridSize/2}) * (${x - gridSize/2}) + (${z - gridSize/2}) * (${z - gridSize/2})); obj.position.y = Math.sin(time * 2 + dist * 0.5) * 1.5; obj.scale = [1, 1 + Math.sin(time * 2 + dist * 0.5) * 0.5, 1]; }` } }); } } return objects;",
+      "enabled": true
+    },
+    "fibonacci": {
+      "code": "const objects = []; const count = 50; const goldenAngle = Math.PI * (3 - Math.sqrt(5)); for(let i = 0; i < count; i++) { const y = 10 - (i / count) * 10; const radius = Math.sqrt(i / count) * 5; const angle = i * goldenAngle; const x = Math.cos(angle) * radius + 15; const z = Math.sin(angle) * radius + 15; const size = 0.2 + (1 - i/count) * 0.3; const hue = (i / count) * 360; objects.push({ id: `fib_${i}`, type: 'Sphere', position: [x, y + 5, z], radius: size, color: `hsl(${hue}, 85%, 60%)`, visualOnly: true, animation: { type: 'rotation', axis: [0, 1, 0], speed: 1 + i * 0.02 } }); } return objects;",
+      "enabled": true
+    },
+    "pendulumArray": {
+      "code": "const objects = []; const count = 8; const spacing = 2; for(let i = 0; i < count; i++) { const x = (i - count/2) * spacing + 15; const length = 3 + i * 0.5; const hue = (i / count) * 360; objects.push({ id: `pend_anchor_${i}`, type: 'Sphere', position: [x, 10, -15], radius: 0.15, mass: 0, isStatic: true, color: '#555555' }); objects.push({ id: `pend_bob_${i}`, type: 'Sphere', position: [x, 10 - length, -15], radius: 0.4, mass: 1.5, velocity: i % 2 === 0 ? [2, 0, 0] : [-2, 0, 0], color: `hsl(${hue}, 75%, 55%)`, restitution: 0.5, constraints: [{ type: 'spring', targetId: `pend_anchor_${i}`, stiffness: 100, damping: 0.2, restLength: length }] }); } return objects;",
+      "enabled": true
+    },
+    "hexGrid": {
+      "code": "const objects = []; const rings = 3; for(let q = -rings; q <= rings; q++) { for(let r = Math.max(-rings, -q-rings); r <= Math.min(rings, -q+rings); r++) { const x = (Math.sqrt(3) * q + Math.sqrt(3)/2 * r) * 1.5 - 15; const z = (3/2 * r) * 1.5 + 15; const dist = Math.sqrt(q*q + r*r + q*r); const hue = (dist / rings) * 360; objects.push({ id: `hex_${q}_${r}`, type: 'Cylinder', position: [x, 12, z], radius: 0.6, height: 0.3, rotation: [Math.PI/2, 0, 0], mass: 0.8, color: `hsl(${hue}, 80%, 55%)`, restitution: 0.7, friction: 0.3 }); } } return objects;",
+      "enabled": true
+    },
+    "torusRing": {
+      "code": "const objects = []; const majorRadius = 6; const minorRadius = 2; const majorSegments = 24; const minorSegments = 12; for(let i = 0; i < majorSegments; i++) { for(let j = 0; j < minorSegments; j++) { const u = (i / majorSegments) * Math.PI * 2; const v = (j / minorSegments) * Math.PI * 2; const x = (majorRadius + minorRadius * Math.cos(v)) * Math.cos(u); const y = minorRadius * Math.sin(v) + 10; const z = (majorRadius + minorRadius * Math.cos(v)) * Math.sin(u); const hue = (i / majorSegments) * 360; objects.push({ id: `torus_${i}_${j}`, type: 'Sphere', position: [x, y, z - 15], radius: 0.15, color: `hsl(${hue}, 70%, 55%)`, visualOnly: true, animation: { type: 'custom', code: `function animate(obj, time) { const rotSpeed = 0.5; const newAngle = ${u} + time * rotSpeed; const r = ${majorRadius} + ${minorRadius} * Math.cos(${v}); obj.position.x = r * Math.cos(newAngle); obj.position.z = r * Math.sin(newAngle) - 15; }` } }); } } return objects;",
+      "enabled": true
+    }
+  },
+  "visualAnnotations": [
+    {
+      "id": "spiral_annotation",
+      "type": "text",
+      "attachedToObjectId": "spiral_0_0",
+      "contentType": "custom",
+      "customText": "Spiral Tower (Physics)",
+      "offset": [0, -3, 0],
+      "fontSize": 0.4,
+      "color": "#ffffff",
+      "backgroundColor": "#000000",
+      "backgroundOpacity": 0.8,
+      "visible": true
+    },
+    {
+      "id": "orbiter_annotation",
+      "type": "text",
+      "attachedToObjectId": "orbiter_0_0",
+      "contentType": "custom",
+      "customText": "3-Ring Orbital (Non-Physics)",
+      "offset": [0, 3, 0],
+      "fontSize": 0.4,
+      "color": "#ffffff",
+      "backgroundColor": "#003300",
+      "backgroundOpacity": 0.8,
+      "visible": true
+    },
+    {
+      "id": "wave_annotation",
+      "type": "text",
+      "attachedToObjectId": "wave_5_5",
+      "contentType": "custom",
+      "customText": "Wave Field (100 objects)",
+      "offset": [0, 3, 0],
+      "fontSize": 0.4,
+      "color": "#ffffff",
+      "backgroundColor": "#333300",
+      "backgroundOpacity": 0.8,
+      "visible": true
+    },
+    {
+      "id": "fib_annotation",
+      "type": "text",
+      "attachedToObjectId": "fib_0",
+      "contentType": "custom",
+      "customText": "Fibonacci Spiral",
+      "offset": [0, 2, 0],
+      "fontSize": 0.4,
+      "color": "#ffd700",
+      "backgroundColor": "#663300",
+      "backgroundOpacity": 0.8,
+      "visible": true
+    },
+    {
+      "id": "pendulum_annotation",
+      "type": "text",
+      "attachedToObjectId": "pend_bob_0",
+      "contentType": "custom",
+      "customText": "Pendulum Array (8 pendulums)",
+      "offset": [0, 2, 0],
+      "fontSize": 0.3,
+      "color": "#00ffff",
+      "backgroundColor": "#003333",
+      "backgroundOpacity": 0.8,
+      "visible": true
+    },
+    {
+      "id": "hex_annotation",
+      "type": "text",
+      "attachedToObjectId": "hex_0_0",
+      "contentType": "custom",
+      "customText": "Hexagonal Grid",
+      "offset": [0, 1.5, 0],
+      "fontSize": 0.35,
+      "color": "#ffffff",
+      "backgroundColor": "#006600",
+      "backgroundOpacity": 0.8,
+      "visible": true
+    },
+    {
+      "id": "torus_annotation",
+      "type": "text",
+      "attachedToObjectId": "torus_0_0",
+      "contentType": "custom",
+      "customText": "Rotating Torus Ring",
+      "offset": [0, -3, 0],
+      "fontSize": 0.4,
+      "color": "#ff00ff",
+      "backgroundColor": "#330033",
+      "backgroundOpacity": 0.8,
+      "visible": true
+    }
+  ]
+}

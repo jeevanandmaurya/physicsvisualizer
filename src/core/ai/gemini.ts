@@ -1,13 +1,20 @@
 // Import unified prompt file as raw text using Vite's ?raw import
 import agentPromptRaw from './prompts/agentPrompt.txt?raw';
 import ScenePatcher from '../scene/patcher';
+import { toolRegistry } from '../tools';
 
 // Gemini AI Manager for Physics Chat Integration
 class GeminiAIManager {
+  private apiKey: string | undefined;
+  private prompt: string;
+  private isInitialized: boolean;
+  private scenePatcher: ScenePatcher | null;
+
   constructor() {
     this.apiKey = import.meta.env.VITE_GEMINI_API_KEY;
     this.prompt = agentPromptRaw;
     this.isInitialized = false;
+    this.scenePatcher = null;
   }
 
   // Initialize prompts (no longer async since we import directly)
@@ -130,6 +137,8 @@ class GeminiAIManager {
   // Apply JSON patches to scene using the proper ScenePatcher
   applyScenePatches(scene, patches) {
     console.log('🔧 GeminiAIManager: Applying scene patches using ScenePatcher...');
+    console.log('📥 Input scene objects:', scene?.objects?.length || 0);
+    console.log('📝 Patches to apply:', patches.length);
 
     if (!this.scenePatcher) {
       this.scenePatcher = new ScenePatcher();
@@ -139,15 +148,17 @@ class GeminiAIManager {
 
     if (result.success) {
       console.log(`✅ Successfully applied ${result.appliedPatches}/${result.totalPatches} patches`);
+      console.log('📤 Output scene objects:', result.scene?.objects?.length || 0);
       return result.scene;
     } else {
       console.error('❌ Failed to apply scene patches:', result.error);
+      console.log('📤 Returning original scene with objects:', scene?.objects?.length || 0);
       return scene; // Return original scene on failure
     }
   }
 
   // Parse AI response to determine type and extract content
-  parseAIResponse(response, sceneContext) {
+  async parseAIResponse(response, sceneContext) {
     console.log('🤖 Parsing AI Response:', response.substring(0, 200) + '...');
 
     // First, try to parse the entire response as structured JSON
@@ -166,6 +177,123 @@ class GeminiAIManager {
         console.log(`🎯 Detected structured response - ${parsedResponse.type} mode`);
 
         switch (parsedResponse.type) {
+          case 'tool_call':
+            // Handle tool execution
+            console.log(`🔧 Executing tool: ${parsedResponse.tool}`);
+            try {
+              const toolResult = await toolRegistry.executeTool(
+                parsedResponse.tool,
+                parsedResponse.parameters || {},
+                { scene: sceneContext }
+              );
+
+              if (toolResult.success) {
+                // Process tool result
+                let updatedScene = sceneContext;
+                let message = parsedResponse.message || 'Tool executed successfully';
+
+                // Handle different tool result types
+                if (toolResult.data) {
+                  // If tool returned objects array, add to scene
+                  if (toolResult.data.result && Array.isArray(toolResult.data.result)) {
+                    const objects = toolResult.data.result;
+                    message += ` Generated ${objects.length} objects.`;
+                    
+                    // Add objects to scene
+                    const patches = objects.map(obj => ({
+                      op: 'add',
+                      path: '/objects/-',
+                      value: obj
+                    }));
+                    
+                    // applyScenePatches returns the scene directly
+                    updatedScene = this.applyScenePatches(sceneContext, patches);
+                  }
+                  // If tool returned complete scene, use it
+                  else if (toolResult.data.result && toolResult.data.result.id && toolResult.data.result.objects) {
+                    updatedScene = toolResult.data.result;
+                    message += ' Generated complete scene.';
+                  }
+                  // If tool returned analysis data
+                  else if (toolResult.data.energy || toolResult.data.momentum) {
+                    message += `\n\n**Physics Analysis:**\n`;
+                    if (toolResult.data.energy) {
+                      message += `- Kinetic Energy: ${toolResult.data.energy.kinetic.toFixed(3)} J\n`;
+                      message += `- Potential Energy: ${toolResult.data.energy.potential.toFixed(3)} J\n`;
+                      message += `- Total Energy: ${toolResult.data.energy.total.toFixed(3)} J\n`;
+                    }
+                    if (toolResult.data.momentum) {
+                      message += `- Total Momentum: [${toolResult.data.momentum.total.map(v => v.toFixed(3)).join(', ')}]\n`;
+                      message += `- Momentum Magnitude: ${toolResult.data.momentum.magnitude.toFixed(3)} kg⋅m/s\n`;
+                    }
+                    if (toolResult.data.centerOfMass) {
+                      message += `- Center of Mass: [${toolResult.data.centerOfMass.map(v => v.toFixed(3)).join(', ')}]\n`;
+                    }
+                  }
+                  // If tool returned HTML preview
+                  else if (toolResult.data.html) {
+                    message += '\n\n**Three.js Preview Generated**\nYou can save this HTML and open it in a browser.';
+                    // Store HTML for potential download
+                    updatedScene = {
+                      ...sceneContext,
+                      _htmlPreview: toolResult.data.html
+                    };
+                  }
+                  // If workflow result
+                  else if (toolResult.data.steps) {
+                    const successfulSteps = toolResult.data.steps.filter((s: any) => s.success).length;
+                    message += ` Completed ${successfulSteps}/${toolResult.data.steps.length} workflow steps.`;
+                    if (toolResult.data.finalScene) {
+                      updatedScene = toolResult.data.finalScene;
+                    }
+                  }
+                }
+
+                return {
+                  type: 'tool_result',
+                  text: message,
+                  sceneModifications: [],
+                  updatedScene: updatedScene,
+                  toolResult: toolResult,
+                  metadata: {
+                    timestamp: new Date().toISOString(),
+                    intent: 'tool_call',
+                    hasModifications: updatedScene !== sceneContext,
+                    tool: parsedResponse.tool,
+                    mode: 'tool_execution'
+                  }
+                };
+              } else {
+                // Tool execution failed
+                return {
+                  type: 'chat',
+                  text: `❌ Tool execution failed: ${toolResult.error}\n\n${parsedResponse.message || 'I tried to use a tool but encountered an error.'}`,
+                  sceneModifications: [],
+                  updatedScene: sceneContext,
+                  metadata: {
+                    timestamp: new Date().toISOString(),
+                    intent: 'error',
+                    hasModifications: false,
+                    mode: 'tool_error'
+                  }
+                };
+              }
+            } catch (error) {
+              console.error('❌ Tool execution error:', error);
+              return {
+                type: 'chat',
+                text: `❌ Tool execution error: ${error.message}\n\n${parsedResponse.message || 'I tried to use a tool but encountered an error.'}`,
+                sceneModifications: [],
+                updatedScene: sceneContext,
+                metadata: {
+                  timestamp: new Date().toISOString(),
+                  intent: 'error',
+                  hasModifications: false,
+                  mode: 'tool_error'
+                }
+              };
+            }
+
           case 'chat':
             return {
               type: 'chat',
@@ -199,12 +327,8 @@ class GeminiAIManager {
           case 'edit_patches':
             let updatedScene = sceneContext;
             if (parsedResponse.patches && parsedResponse.patches.length > 0) {
-              const patchResult = this.applyScenePatches(sceneContext, parsedResponse.patches);
-              if (patchResult.success) {
-                updatedScene = patchResult.scene;
-              } else {
-                console.error('❌ Failed to apply scene patches:', patchResult.error);
-              }
+              // applyScenePatches returns the scene directly (or original on failure)
+              updatedScene = this.applyScenePatches(sceneContext, parsedResponse.patches);
             }
 
             return {

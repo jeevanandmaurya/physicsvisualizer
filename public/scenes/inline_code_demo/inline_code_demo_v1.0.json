@@ -1,0 +1,32 @@
+{
+  "id": "inline_code_demo",
+  "version": "1.0",
+  "name": "Inline Code Demo: Hexagonal Grid",
+  "description": "Demonstrates inline JavaScript execution. The AI wrote this JavaScript code directly in JSON, no pre-defined functions! The code runs on the client and generates 37 cylinders in a hexagonal pattern.",
+  "objects": [],
+  "functionCalls": [
+    {
+      "code": "const objects = []; const rings = 3; const spacing = 2.5; for(let q=-rings; q<=rings; q++) { const r1 = Math.max(-rings, -q-rings); const r2 = Math.min(rings, -q+rings); for(let r=r1; r<=r2; r++) { const x = (Math.sqrt(3)*q + Math.sqrt(3)/2*r) * spacing; const z = (3/2*r) * spacing; objects.push({ id: `hex_${q}_${r}`, type: 'Cylinder', position: [x, 1, z], radius: 0.9, height: 0.8, mass: 2, rotation: [Math.PI/2, 0, 0], color: '#32cd32', restitution: 0.7, friction: 0.4 }); }} return objects;",
+      "parameters": {}
+    }
+  ],
+  "gravity": [0, -9.81, 0],
+  "hasGround": true,
+  "contactMaterial": {
+    "friction": 0.5,
+    "restitution": 0.6
+  },
+  "controllers": [],
+  "metadata": {
+    "author": "Inline Code System",
+    "created": "2025-11-02",
+    "difficulty": "intermediate",
+    "concepts": [
+      "Inline JavaScript Execution",
+      "Hexagonal Grid Algorithm",
+      "Procedural Generation",
+      "No Pre-defined Functions"
+    ],
+    "educationalNotes": "This scene demonstrates the TRUE power of the system: The AI can write ANY JavaScript code directly in the scene JSON. No need for pre-defined functions! The code is executed on the client to generate the 37 cylinders. Want 100 spheres in a spiral? Just write the JavaScript! Want a fractal tree? Write the code! The possibilities are UNLIMITED."
+  }
+}

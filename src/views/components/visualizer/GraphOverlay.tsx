@@ -8,6 +8,7 @@ import zoomPlugin from 'chartjs-plugin-zoom';
 import { useWorkspace } from '../../../contexts/WorkspaceContext';
 import { useTheme } from '../../../contexts/ThemeContext';
 import { useOverlay } from '../../../contexts/OverlayContext';
+import { usePhysicsHistory } from '../../../core/physics/usePhysicsDataStore';
 import './GraphOverlay.css';
 
 ChartJS.register(CategoryScale, LinearScale, PointElement, LineElement, Title, Tooltip, Legend, zoomPlugin);
@@ -53,7 +54,7 @@ interface PlotDataPoint {
 }
 
 function GraphOverlay({ isOpen, onToggle }: GraphOverlayProps) {
-  const { openGraphs, removeGraph, objectHistory } = useWorkspace();
+  const { openGraphs, removeGraph } = useWorkspace();
   const chartRef = useRef(null);
 
   if (!isOpen) return null;
@@ -65,7 +66,7 @@ function GraphOverlay({ isOpen, onToggle }: GraphOverlayProps) {
           key={graphConfig.id}
           id={graphConfig.id}
           initialType={graphConfig.initialType}
-          data={objectHistory}
+          data={{}} // Data is now pulled directly from store inside component
           onClose={removeGraph}
           initialPosition={{ x: 20 + index * 30, y: 80 + index * 30 }}
         />
@@ -79,7 +80,10 @@ function OverlayGraph({ id, initialType, data, onClose }) {
   const { registerOverlay, unregisterOverlay, focusOverlay, getZIndex } = useOverlay();
   const { dataTimeStep, updateDataTimeStep } = useWorkspace();
   const chartRef = useRef(null);
-  const objectIds = Object.keys(data);
+  
+  // NEW: Get data directly from PhysicsDataStore (no React prop drilling!)
+  const physicsHistory = usePhysicsHistory();
+  const objectIds = Object.keys(physicsHistory);
 
   // --- STATE FOR USER CONTROLS ---
   const [selectedObjectId, setSelectedObjectId] = useState(objectIds[0] || null);
@@ -92,11 +96,12 @@ function OverlayGraph({ id, initialType, data, onClose }) {
   // Minimize state (similar to ChatOverlay)
   const [isMinimized, setIsMinimized] = useState(false);
   const [position, setPosition] = useState({ x: 20, y: 80 });
-  const [size, setSize] = useState({ width: 550, height: 380 });
+  const [size, setSize] = useState({ width: 500, height: 600 });
   const [previousPosition, setPreviousPosition] = useState({ x: 20, y: 80 });
-  const [previousSize, setPreviousSize] = useState({ width: 550, height: 380 });
+  const [previousSize, setPreviousSize] = useState({ width: 500, height: 600 });
 
   // --- DATA PROCESSING ---
+  // Use physicsHistory instead of props data
   const { plotData, labels, tableData } = useMemo(() => {
     const objectLabel = selectedObjectId ? `Object ${selectedObjectId}` : 'Select Object';
     let newLabels;
@@ -111,8 +116,8 @@ function OverlayGraph({ id, initialType, data, onClose }) {
       case 'energy': newLabels = { title: `Energy vs Time (${objectLabel})`, xlabel: 'Time (s)', ylabel: 'Energy (J)' }; break;
       default: newLabels = { title: 'Graph', xlabel: 'X', ylabel: 'Y' };
     }
-    if (!selectedObjectId || !data[selectedObjectId]) return { plotData: [], labels: newLabels, tableData: [] };
-    const history = data[selectedObjectId];
+    if (!selectedObjectId || !physicsHistory[selectedObjectId]) return { plotData: [], labels: newLabels, tableData: [] };
+    const history = physicsHistory[selectedObjectId];
     
     // Prepare table data (most recent rows first for live view)
     const newTableData = [...history].reverse().slice(0, maxTableRows);
@@ -172,7 +177,7 @@ function OverlayGraph({ id, initialType, data, onClose }) {
     }
 
     return { plotData: newPlotData, labels: newLabels, tableData: newTableData };
-  }, [selectedObjectId, data, initialType, maxTableRows]);
+  }, [selectedObjectId, physicsHistory, initialType, maxTableRows]);
 
   // --- CHART UPDATE EFFECT ---
   useEffect(() => {

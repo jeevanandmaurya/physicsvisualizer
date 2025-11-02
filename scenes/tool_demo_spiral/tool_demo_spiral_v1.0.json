@@ -1,0 +1,74 @@
+{
+  "id": "tool_demo_spiral",
+  "version": "1.0",
+  "name": "Tool Demo: Dynamic Spiral",
+  "description": "Demonstrates the new tool system with a procedurally generated spiral of colorful spheres. This scene is created using real-time JavaScript execution, showcasing how the AI can generate complex patterns programmatically rather than manually defining each object.",
+  "objects": [],
+  "functionCalls": [
+    {
+      "name": "generateSpiral",
+      "parameters": {
+        "count": 40,
+        "center": [0, 5, 0],
+        "radiusStart": 2,
+        "radiusEnd": 10,
+        "height": 20,
+        "turns": 4,
+        "size": 0.4,
+        "mass": 0.5,
+        "type": "Sphere",
+        "color": "#ff6b6b"
+      }
+    }
+  ],
+  "gravity": [0, -9.81, 0],
+  "hasGround": true,
+  "contactMaterial": {
+    "friction": 0.3,
+    "restitution": 0.8
+  },
+  "controllers": [
+    {
+      "id": "spiral_turns",
+      "label": "Spiral Turns",
+      "type": "slider",
+      "min": 1,
+      "max": 8,
+      "step": 0.5,
+      "value": 4,
+      "propertyPath": "functionCalls[0].parameters.turns"
+    },
+    {
+      "id": "spiral_height",
+      "label": "Height",
+      "type": "slider",
+      "min": 5,
+      "max": 40,
+      "step": 1,
+      "value": 20,
+      "propertyPath": "functionCalls[0].parameters.height"
+    },
+    {
+      "id": "sphere_count",
+      "label": "Sphere Count",
+      "type": "slider",
+      "min": 10,
+      "max": 100,
+      "step": 5,
+      "value": 40,
+      "propertyPath": "functionCalls[0].parameters.count"
+    }
+  ],
+  "metadata": {
+    "author": "Tool System Demo",
+    "created": "2025-11-02",
+    "difficulty": "intermediate",
+    "concepts": [
+      "Procedural Generation",
+      "Function Calls",
+      "Tool System",
+      "Dynamic Object Creation"
+    ],
+    "educationalNotes": "This scene demonstrates the power of the new tool system. Instead of manually defining 40 sphere objects, we use a function call that generates them programmatically. This approach scales much better and allows for easy parameter adjustment through controllers."
+  }
+}

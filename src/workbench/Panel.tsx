@@ -1,5 +1,5 @@
 import React, { useState, useCallback, useEffect } from 'react';
-import { useWorkspace, useWorkspaceScene, useWorkspaceChat, useWorkspaceSettings } from '../contexts/WorkspaceContext';
+import { useWorkspace, useWorkspaceScene, useWorkspaceChat } from '../contexts/WorkspaceContext';
 import { useDatabase, SceneData } from '../contexts/DatabaseContext';
 import SceneSelectorUI from '../views/components/scene-management/SceneSelectorUI';
 import SceneDetailsUI from '../views/components/scene-management/SceneDetailsUI';
@@ -8,7 +8,6 @@ const SidePanel = ({ showSceneDetails = false, onToggleSceneDetails, onClosePane
   const { setCurrentView, workspaceScenes, clearScenes } = useWorkspace();
   const { scene, replaceCurrentScene } = useWorkspaceScene();
   const { messages, addMessage } = useWorkspaceChat();
-  const { uiMode } = useWorkspaceSettings();
   const dataManager = useDatabase();
 
   const [currentChatId, setCurrentChatId] = useState(null);
@@ -16,7 +15,7 @@ const SidePanel = ({ showSceneDetails = false, onToggleSceneDetails, onClosePane
   const [refreshTrigger, setRefreshTrigger] = useState(0);
     const [userScenes, setUserScenes] = useState<SceneData[]>([]);
   const [loadingUserScenes, setLoadingUserScenes] = useState(false);
-  const [activeTab, setActiveTab] = useState(uiMode === 'simple' ? 'examples' : 'chats');
+  const [activeTab, setActiveTab] = useState('chats');
   const [sceneListRefreshTrigger, setSceneListRefreshTrigger] = useState(0);
 
   // Load user scenes

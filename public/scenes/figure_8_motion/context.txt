@@ -1,0 +1,42 @@
+# Figure-8 Motion Demo
+
+This scene demonstrates the **NonPhysicsObject** animation system with custom JavaScript code.
+
+## Features
+
+- **NonPhysics Object**: Red sphere that moves in a figure-8 pattern
+- **Custom Animation**: JavaScript code that calculates position using parametric equations
+- **Zero Physics Overhead**: No physics simulation for the animated ball
+
+## How It Works
+
+The animation uses parametric equations for a figure-8 (lemniscate) pattern:
+```javascript
+x = a * sin(t)
+y = b * sin(t) * cos(t)
+```
+
+This creates the classic infinity symbol shape.
+
+## Animation Code
+
+```javascript
+const a = 5;  // Width of figure-8
+const b = 3;  // Height of figure-8
+mesh.position.x = a * Math.sin(time);
+mesh.position.y = 5 + b * Math.sin(time) * Math.cos(time);
+mesh.position.z = 0;
+```
+
+## Key Concepts
+
+1. **nonPhysics: true** - Marks object as visual-only
+2. **globalNonPhysicsEngine.animateObject()** - Sets up animation
+3. **Custom code** - Full JavaScript with Math functions
+4. **Access to**: mesh, obj, time, t, Math, deltaTime
+
+## Performance
+
+- ✅ No physics computation
+- ✅ Direct mesh manipulation
+- ✅ 60 FPS with thousands of NonPhysics objects possible

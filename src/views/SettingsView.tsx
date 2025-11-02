@@ -185,9 +185,9 @@ function SettingsView() {
             }}>
               <input
                 type="range"
-                min="0.1"
+                min="0"
                 max="1"
-                step="0.1"
+                step="0.05"
                 value={overlayOpacity.chat}
                 onChange={(e) => handleOpacityChange('chat', e.target.value)}
                 style={{
@@ -245,9 +245,9 @@ function SettingsView() {
             }}>
               <input
                 type="range"
-                min="0.1"
+                min="0"
                 max="1"
-                step="0.1"
+                step="0.05"
                 value={overlayOpacity.graph}
                 onChange={(e) => handleOpacityChange('graph', e.target.value)}
                 style={{
@@ -305,7 +305,7 @@ function SettingsView() {
             }}>
               <input
                 type="range"
-                min="0.1"
+                min="0"
                 max="1"
                 step="0.05"
                 value={overlayOpacity.controller}
@@ -365,7 +365,7 @@ function SettingsView() {
             }}>
               <input
                 type="range"
-                min="0.1"
+                min="0"
                 max="1"
                 step="0.05"
                 value={overlayOpacity.sceneSelector}
@@ -425,7 +425,7 @@ function SettingsView() {
             }}>
               <input
                 type="range"
-                min="0.1"
+                min="0"
                 max="1"
                 step="0.05"
                 value={overlayOpacity.activityBar}

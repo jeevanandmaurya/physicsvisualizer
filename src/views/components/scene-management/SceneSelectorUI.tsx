@@ -1,12 +1,16 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { useDatabase } from '../../../contexts/DatabaseContext';
 import { useWorkspace } from '../../../contexts/WorkspaceContext';
+import { useTheme } from '../../../contexts/ThemeContext';
+import { useOverlay } from '../../../contexts/OverlayContext';
 import { useSceneSelector } from '../../../ui-logic/scene-management/useSceneSelector';
 import './SceneSelector.css';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { faUser, faBookOpen, faSpinner, faExclamationTriangle, faEllipsisV, faTrash, faSave, faEdit, faComments, faTimes, faCube, faEye, faChevronRight, faChevronDown, faChevronUp, faExpand, faCompress } from '@fortawesome/free-solid-svg-icons';
 
 function SceneSelectorUI({
+    isOpen,
+    onToggle,
     currentScene,
     handleSceneChange,
     userScenes,
@@ -22,15 +26,26 @@ function SceneSelectorUI({
     activeTab: externalActiveTab,
     onTabChange: externalOnTabChange,
     onToggleSceneDetails,
-    onClose,
-    onToggleMaximize,
-    isMaximized,
     onRefreshSceneList,
     workspaceScenes // Add workspace scenes
 }) {
     const dataManager = useDatabase();
     const GEMINI_API_KEY = import.meta.env.VITE_GEMINI_API_KEY;
     const { setCurrentScene: setWorkspaceCurrentScene } = useWorkspace(); // Get workspace scene switching function
+    const { overlayOpacity } = useTheme();
+    const { registerOverlay, unregisterOverlay, focusOverlay, getZIndex, focusedOverlay } = useOverlay();
+    
+    // Overlay state
+    const [isMinimized, setIsMinimized] = useState(true);
+    const overlayRef = useRef(null);
+
+    // Register overlay
+    useEffect(() => {
+        if (isOpen) {
+            registerOverlay('sceneSelector', 'sceneSelector', 1000);
+            return () => unregisterOverlay('sceneSelector');
+        }
+    }, [isOpen, registerOverlay, unregisterOverlay]);
 
     const {
         activeTab,
@@ -54,15 +69,17 @@ function SceneSelectorUI({
         onDeleteScene,
         onSaveScene,
         onUpdateScene,
+        onShareToPublic: null, // Not used
+        onOpenProperties: null, // Not used
         currentChatId,
         onChatSelect,
         onNewChat,
         onSceneButtonClick,
         refreshTrigger,
-        externalActiveTab,
+        externalActiveTab: externalActiveTab || 'examples', // Default to examples tab
         externalOnTabChange,
-        dataManager,
-        GEMINI_API_KEY,
+        dataManager, // Add dataManager from context
+        GEMINI_API_KEY, // Add API key
         workspaceScenes // Pass workspace scenes
     });
 
@@ -245,39 +262,64 @@ function SceneSelectorUI({
         handleSceneChange(newScene);
     };
 
+    if (!isOpen) return null;
+
+    const isFocused = focusedOverlay === 'sceneSelector';
+    const zIndex = getZIndex('sceneSelector');
+
     return (
-        <div className="scene-selector-container">
-            <div className="scene-selector">
-                <div className="scene-list-panel">
-                    {/* New Scene Button & Close Button - Same line */}
-                    <div className="scene-selector-top-bar">
+        <div className="scene-selector-overlay" style={{ zIndex }}>
+            <div 
+                ref={overlayRef}
+                className={`scene-selector-overlay-container ${isFocused ? 'focused' : ''} ${isMinimized ? 'minimized' : ''}`}
+                style={{
+                    '--scene-selector-opacity': overlayOpacity.sceneSelector
+                } as React.CSSProperties}
+                onClick={() => focusOverlay('sceneSelector')}
+            >
+                {/* Header without drag functionality */}
+                <div 
+                    className="scene-selector-overlay-header"
+                >
+                    <div className="scene-selector-overlay-title">Scene Selector</div>
+                    <div className="scene-selector-overlay-header-controls">
                         <button
-                            className="new-scene-btn"
-                            onClick={handleNewScene}
-                            title="Create a new empty scene"
+                            className="scene-selector-overlay-control-btn"
+                            onClick={(e) => {
+                                e.stopPropagation();
+                                setIsMinimized(!isMinimized);
+                            }}
+                            title={isMinimized ? 'Maximize' : 'Minimize'}
                         >
-                            <FontAwesomeIcon icon={faCube} />
-                            New Scene
+                            <FontAwesomeIcon icon={isMinimized ? faChevronUp : faChevronDown} />
                         </button>
-                        {onToggleMaximize && (
-                            <button
-                                className="scene-selector-maximize-btn"
-                                onClick={onToggleMaximize}
-                                title={isMaximized ? "Minimize" : "Maximize"}
-                            >
-                                <FontAwesomeIcon icon={isMaximized ? faCompress : faExpand} />
-                            </button>
-                        )}
-                        {onClose && (
-                            <button
-                                className="scene-selector-close-btn"
-                                onClick={onClose}
-                                title="Close"
-                            >
-                                <FontAwesomeIcon icon={faTimes} />
-                            </button>
-                        )}
+                        <button
+                            className="scene-selector-overlay-control-btn close-btn"
+                            onClick={(e) => {
+                                e.stopPropagation();
+                                onToggle();
+                            }}
+                            title="Close"
+                        >
+                            <FontAwesomeIcon icon={faTimes} />
+                        </button>
                     </div>
+                </div>
+
+                {/* Content */}
+                <div className="scene-selector-overlay-content">
+                    <div className="scene-list-panel">
+                        {/* New Scene Button */}
+                        <div className="scene-selector-top-bar">
+                            <button
+                                className="new-scene-btn"
+                                onClick={handleNewScene}
+                                title="Create a new empty scene"
+                            >
+                                <FontAwesomeIcon icon={faCube} />
+                                New Scene
+                            </button>
+                        </div>
 
                     {/* Workspace Scenes - Currently Active Scenes */}
                     {workspaceScenes && workspaceScenes.length > 1 && (
@@ -336,6 +378,7 @@ function SceneSelectorUI({
                         {userScenesExpanded && renderSceneList(userScenes, loadingUserScenes, "No saved scenes yet.", true)}
                     </div>
                 </div>
+            </div>
             </div>
         </div>
     );

@@ -9,7 +9,17 @@
  */
 
 class Workspace {
-  constructor(id, name = 'New Workspace') {
+  id: string;
+  name: string;
+  scenes: any[];
+  currentSceneIndex: number;
+  chats: any[];
+  currentChatId: string;
+  settings: any;
+  metadata: any;
+  sceneChatLinks: Map<string, string>;
+
+  constructor(id: string, name: string = 'New Workspace') {
     this.id = id;
     this.name = name;
 
@@ -64,7 +74,7 @@ class Workspace {
   }
 
   // Set active scene by index
-  setCurrentScene(index) {
+  setCurrentScene(index: number) {
     if (index >= 0 && index < this.scenes.length) {
       this.currentSceneIndex = index;
       this.metadata.updatedAt = new Date().toISOString();
@@ -73,36 +83,57 @@ class Workspace {
     return null;
   }
 
-  // Add new scene
-  addScene(sceneData = null) {
+  // Add new scene and switch to it
+  addScene(sceneData: any = null) {
     const newScene = sceneData || this.createDefaultScene();
     newScene.id = `scene-${Date.now()}-${this.scenes.length}`;
     this.scenes.push(newScene);
+    // IMPORTANT: Switch to the new scene immediately
+    this.currentSceneIndex = this.scenes.length - 1;
     this.metadata.updatedAt = new Date().toISOString();
     return newScene;
   }
 
   // Update current scene
-  updateCurrentScene(updates) {
+  updateCurrentScene(updates: any) {
     if (this.currentSceneIndex >= 0 && this.currentSceneIndex < this.scenes.length) {
+      console.log('🔧 WorkspaceManager: Updating scene at index', this.currentSceneIndex);
+      console.log('📥 Current scene objects:', this.scenes[this.currentSceneIndex].objects?.length || 0);
+      console.log('📝 Update objects:', updates.objects?.length || 0);
+      
+      // Increment version to force React re-processing
+      const currentVersion = this.scenes[this.currentSceneIndex]._version || 0;
+      
       // Replace the entire scene object to trigger React re-renders
-      this.scenes[this.currentSceneIndex] = { ...this.scenes[this.currentSceneIndex], ...updates };
+      this.scenes[this.currentSceneIndex] = { 
+        ...this.scenes[this.currentSceneIndex], 
+        ...updates,
+        _version: currentVersion + 1,
+        _updatedAt: Date.now()
+      };
+      
+      console.log('📤 Updated scene objects:', this.scenes[this.currentSceneIndex].objects?.length || 0);
+      console.log('🔄 Scene version incremented to:', this.scenes[this.currentSceneIndex]._version);
       this.metadata.updatedAt = new Date().toISOString();
     }
     return this;
   }
 
   // Replace current scene with new scene data (for loading examples or external scenes)
-  replaceCurrentScene(newScene) {
+  replaceCurrentScene(newScene: any) {
     if (this.currentSceneIndex >= 0 && this.currentSceneIndex < this.scenes.length) {
-      this.scenes[this.currentSceneIndex] = { ...newScene };
+      this.scenes[this.currentSceneIndex] = { 
+        ...newScene,
+        _version: 0,
+        _updatedAt: Date.now()
+      };
       this.metadata.updatedAt = new Date().toISOString();
     }
     return this;
   }
 
   // Delete scene by index
-  deleteScene(index) {
+  deleteScene(index: number) {
     if (index >= 0 && index < this.scenes.length && this.scenes.length > 1) {
       this.scenes.splice(index, 1);
       if (this.currentSceneIndex >= index && this.currentSceneIndex > 0) {
@@ -115,12 +146,12 @@ class Workspace {
   }
 
   // Legacy method for backward compatibility
-  updateScene(updates) {
+  updateScene(updates: any) {
     return this.updateCurrentScene(updates);
   }
 
   // Add chat message to the current chat
-  addMessage(message) {
+  addMessage(message: any) {
     const currentChat = this.getChatById(this.currentChatId);
     if (currentChat) {
       currentChat.messages.push({
@@ -136,7 +167,7 @@ class Workspace {
   }
 
   // Add a new chat session
-  addChat(chatData = null) {
+  addChat(chatData: any = null) {
     const newChat = chatData || this.createDefaultChat();
     newChat.id = `chat-${Date.now()}-${this.chats.length}`;
     newChat.name = newChat.name || `Chat ${this.chats.length + 1}`;
@@ -146,12 +177,12 @@ class Workspace {
   }
 
   // Get a chat by its ID
-  getChatById(chatId) {
-    return this.chats.find(chat => chat.id === chatId);
+  getChatById(chatId: string) {
+    return this.chats.find((chat: any) => chat.id === chatId);
   }
 
   // Set the current active chat
-  setCurrentChat(chatId) {
+  setCurrentChat(chatId: string) {
     const chat = this.getChatById(chatId);
     if (chat) {
       this.currentChatId = chatId;
@@ -162,9 +193,9 @@ class Workspace {
   }
 
   // Delete a chat session by ID
-  deleteChat(chatId) {
+  deleteChat(chatId: string) {
     if (this.chats.length > 1) { // Prevent deleting the last chat
-      const index = this.chats.findIndex(chat => chat.id === chatId);
+      const index = this.chats.findIndex((chat: any) => chat.id === chatId);
       if (index !== -1) {
         this.chats.splice(index, 1);
         // If the deleted chat was the current one, switch to another
@@ -183,7 +214,7 @@ class Workspace {
   }
 
   // Update settings
-  updateSettings(updates) {
+  updateSettings(updates: any) {
     this.settings = { ...this.settings, ...updates };
     this.metadata.updatedAt = new Date().toISOString();
     return this;
@@ -200,15 +231,15 @@ class Workspace {
   }
 
   // Link a scene to a chat (when AI modifies a scene)
-  linkSceneToChat(sceneId, chatId) {
+  linkSceneToChat(sceneId: string, chatId: string) {
     this.sceneChatLinks.set(sceneId, chatId);
     this.metadata.updatedAt = new Date().toISOString();
     return this;
   }
 
   // Get the chat ID that last modified a scene
-  getChatForScene(sceneId) {
-    return this.sceneChatLinks.get(sceneId);
+  getChatForScene(sceneId: string) {
+    return this.sceneChatLinks.get(sceneId) || null;
   }
 
   // Export for saving
@@ -227,7 +258,7 @@ class Workspace {
   }
 
   // Import from saved data
-  static fromJSON(data) {
+  static fromJSON(data: any) {
     const workspace = new Workspace(data.id, data.name);
 
     // Handle migration from old single-scene format
@@ -262,10 +293,28 @@ class Workspace {
 
     return workspace;
   }
+
+  // Update chat name
+  updateChatName(chatId: string, name: string) {
+    const chat = this.getChatById(chatId);
+    if (chat) {
+      chat.name = name;
+      chat.updatedAt = new Date().toISOString();
+      this.metadata.updatedAt = new Date().toISOString();
+      return true;
+    }
+    return false;
+  }
 }
 
 class WorkspaceManager {
-  constructor(database) {
+  database: any;
+  currentWorkspace: Workspace | null;
+  workspaces: Map<string, Workspace>;
+  listeners: Set<(event: string, data: any) => void>;
+  autoSaveInterval: NodeJS.Timeout | null;
+
+  constructor(database: any) {
     this.database = database;
     this.currentWorkspace = null;
     this.workspaces = new Map();
@@ -274,7 +323,7 @@ class WorkspaceManager {
   }
 
   // Create new workspace
-  createWorkspace(name = 'New Workspace') {
+  createWorkspace(name: string = 'New Workspace') {
     const id = `workspace-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
     const workspace = new Workspace(id, name);
     this.workspaces.set(id, workspace);
@@ -284,7 +333,7 @@ class WorkspaceManager {
   }
 
   // Load workspace by ID
-  async loadWorkspace(id) {
+  async loadWorkspace(id: string) {
     try {
       // Try to load from database first
       const data = await this.database.getWorkspace?.(id);
@@ -311,13 +360,13 @@ class WorkspaceManager {
   }
 
   // Migrate from legacy scene + chat format
-  async migrateFromLegacy(sceneId) {
+  async migrateFromLegacy(sceneId: string) {
     try {
       const scene = await this.database.getSceneById(sceneId);
       if (!scene) return null;
 
       const chats = await this.database.getChatHistory();
-      const chat = chats.find(c => c.sceneId === sceneId);
+      const chat = chats.find((c: any) => c.sceneId === sceneId);
 
       const workspace = new Workspace(`workspace-${sceneId}`, scene.name);
       workspace.scenes = [scene];
@@ -359,7 +408,7 @@ class WorkspaceManager {
   }
 
   // Set current workspace
-  setCurrentWorkspace(workspace) {
+  setCurrentWorkspace(workspace: Workspace) {
     this.currentWorkspace = workspace;
     this.notifyListeners('currentWorkspaceChanged', workspace);
   }
@@ -370,7 +419,7 @@ class WorkspaceManager {
   }
 
   // Update current workspace
-  updateCurrentWorkspace(updater, silent = false) {
+  updateCurrentWorkspace(updater: any, silent: boolean = false) {
     if (!this.currentWorkspace) return;
 
     if (typeof updater === 'function') {
@@ -391,28 +440,28 @@ class WorkspaceManager {
   addChatSession() {
     if (!this.currentWorkspace) return null;
     const newChat = this.currentWorkspace.addChat();
-    this.updateCurrentWorkspace(workspace => workspace); // Trigger update
+    this.updateCurrentWorkspace((_workspace: Workspace) => _workspace); // Trigger update
     this.notifyListeners('chatAdded', newChat);
     return newChat;
   }
 
   // Delete a chat session from the current workspace
-  deleteChatSession(chatId) {
+  deleteChatSession(chatId: string) {
     if (!this.currentWorkspace) return false;
     const success = this.currentWorkspace.deleteChat(chatId);
     if (success) {
-      this.updateCurrentWorkspace(workspace => workspace); // Trigger update
+      this.updateCurrentWorkspace((_workspace: Workspace) => _workspace); // Trigger update
       this.notifyListeners('chatDeleted', chatId);
     }
     return success;
   }
 
   // Set the active chat session for the current workspace
-  selectChatSession(chatId) {
+  selectChatSession(chatId: string) {
     if (!this.currentWorkspace) return false;
     const success = this.currentWorkspace.setCurrentChat(chatId);
     if (success) {
-      this.updateCurrentWorkspace(workspace => workspace); // Trigger update
+      this.updateCurrentWorkspace((_workspace: Workspace) => _workspace); // Trigger update
       this.notifyListeners('chatSelected', chatId);
     }
     return success;
@@ -421,24 +470,26 @@ class WorkspaceManager {
   // Get the current chat for the workspace
   getCurrentChat() {
     if (!this.currentWorkspace) return null;
-    return this.currentWorkspace.getChatById(this.currentChatId);
+    // FIXED: Use workspace.currentChatId instead of this.currentChatId
+    return this.currentWorkspace.getChatById(this.currentWorkspace.currentChatId);
   }
 
   // Get all chats for the workspace
   getAllChats() {
-    return this.currentWorkspace?.chats || [];
+    if (!this.currentWorkspace) return [];
+    return this.currentWorkspace.chats || [];
   }
 
   // Event system for UI updates
-  addListener(callback) {
+  addListener(callback: (event: string, data: any) => void) {
     this.listeners.add(callback);
   }
 
-  removeListener(callback) {
+  removeListener(callback: (event: string, data: any) => void) {
     this.listeners.delete(callback);
   }
 
-  notifyListeners(event, data) {
+  notifyListeners(event: string, data: any) {
     this.listeners.forEach(callback => {
       try {
         callback(event, data);
@@ -449,10 +500,10 @@ class WorkspaceManager {
   }
 
   // Auto-save functionality
-  startAutoSave(intervalMs = 30000) {
+  startAutoSave(intervalMs: number = 30000) {
     this.autoSaveInterval = setInterval(() => {
       if (this.currentWorkspace?.settings?.autoSave && this.currentWorkspace.hasUnsavedChanges()) {
-        this.saveCurrentWorkspace().catch(error => {
+        this.saveCurrentWorkspace().catch((error: any) => {
           console.warn('Auto-save failed:', error);
         });
       }

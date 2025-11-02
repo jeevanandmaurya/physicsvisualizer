@@ -1,0 +1,272 @@
+# Inline Code Demo: Hexagonal Grid
+
+## 🚀 The Game Changer
+
+This scene demonstrates the **TRUE POWER** of the enhanced system:
+
+**The AI can write ANY JavaScript code directly in the scene JSON!**
+
+No pre-defined functions. No limitations. Pure, unlimited creative freedom.
+
+## How It Works
+
+### Traditional Approach (Limited)
+```json
+{
+  "objects": [
+    {"id": "obj1", "type": "Sphere", "position": [0,0,0]},
+    {"id": "obj2", "type": "Sphere", "position": [2,0,0]},
+    // ... manually define 100 objects? 😱
+  ]
+}
+```
+
+### Old Function Calling (Better but still limited)
+```json
+{
+  "functionCalls": [
+    {"name": "generateSpiral", "parameters": {"count": 50}}
+  ]
+}
+```
+❌ Limited to pre-defined functions
+❌ Need to create a new function for each pattern
+❌ Not flexible
+
+### NEW: Inline JavaScript (UNLIMITED! 🎉)
+```json
+{
+  "functionCalls": [{
+    "code": "const objects = []; for(let i=0; i<100; i++) { /* any JS code! */ } return objects;"
+  }]
+}
+```
+✅ AI writes ANY JavaScript directly
+✅ No pre-defined functions needed
+✅ Unlimited possibilities
+✅ Client executes the code safely
+
+## This Scene's Code
+
+```javascript
+const objects = [];
+const rings = 3;
+const spacing = 2.5;
+
+// Hexagonal grid algorithm
+for(let q=-rings; q<=rings; q++) {
+  const r1 = Math.max(-rings, -q-rings);
+  const r2 = Math.min(rings, -q+rings);
+  
+  for(let r=r1; r<=r2; r++) {
+    // Calculate hex grid coordinates
+    const x = (Math.sqrt(3)*q + Math.sqrt(3)/2*r) * spacing;
+    const z = (3/2*r) * spacing;
+    
+    // Create cylinder at this position
+    objects.push({
+      id: `hex_${q}_${r}`,
+      type: 'Cylinder',
+      position: [x, 1, z],
+      radius: 0.9,
+      height: 0.8,
+      mass: 2,
+      rotation: [Math.PI/2, 0, 0],
+      color: '#32cd32',
+      restitution: 0.7,
+      friction: 0.4
+    });
+  }
+}
+
+return objects;
+```
+
+**Result**: 37 cylinders in perfect hexagonal pattern!
+
+## Available Utilities
+
+The inline code has access to:
+
+### Math
+```javascript
+Math.sin, Math.cos, Math.tan
+Math.sqrt, Math.pow, Math.abs
+Math.random, Math.PI, Math.E
+// ... all standard Math functions
+```
+
+### Vector3 (Custom Class)
+```javascript
+const v = new Vector3(1, 2, 3);
+v.add(other);
+v.magnitude();
+v.normalize();
+v.toArray(); // [1, 2, 3]
+```
+
+### Physics Utilities
+```javascript
+Physics.gravityForce(m1, m2, distance);
+Physics.springForce(k, displacement);
+Physics.kineticEnergy(mass, velocity);
+Physics.potentialEnergy(mass, height);
+```
+
+### Helper Functions
+```javascript
+lerp(a, b, t);           // Linear interpolation
+clamp(val, min, max);    // Clamp value
+random(min, max);        // Random number
+```
+
+### Parameters & Scene
+```javascript
+params    // Access to parameters object
+scene     // Access to current scene
+console   // Debug logging
+```
+
+## Example: AI Can Generate ANYTHING
+
+### Spiral (50 spheres)
+```javascript
+const objects = [];
+for(let i=0; i<50; i++) {
+  const t = i/49;
+  const angle = t * 5 * Math.PI * 2;
+  const r = 2 + t * 8;
+  objects.push({
+    id: `sphere_${i}`,
+    type: 'Sphere',
+    position: [Math.cos(angle)*r, t*15, Math.sin(angle)*r],
+    radius: 0.3,
+    mass: 1,
+    color: `hsl(${t*360}, 70%, 50%)`
+  });
+}
+return objects;
+```
+
+### Wave Pattern (grid with sine wave)
+```javascript
+const objects = [];
+for(let x=0; x<20; x++) {
+  for(let z=0; z<20; z++) {
+    const y = Math.sin(x * 0.5) * Math.cos(z * 0.5) * 3 + 5;
+    objects.push({
+      id: `wave_${x}_${z}`,
+      type: 'Sphere',
+      position: [x*2-20, y, z*2-20],
+      radius: 0.4,
+      mass: 1,
+      color: `hsl(${(x+z)*5}, 70%, 50%)`
+    });
+  }
+}
+return objects;
+```
+
+### Random Distribution (particle system)
+```javascript
+const objects = [];
+for(let i=0; i<100; i++) {
+  objects.push({
+    id: `particle_${i}`,
+    type: 'Sphere',
+    position: [
+      random(-20, 20),
+      random(5, 15),
+      random(-20, 20)
+    ],
+    radius: 0.2,
+    mass: 0.5,
+    velocity: [random(-2,2), random(-2,2), random(-2,2)],
+    color: ['#ff6347', '#4169e1', '#32cd32', '#ffd700'][Math.floor(Math.random()*4)]
+  });
+}
+return objects;
+```
+
+### Fractal Tree (recursive structure)
+```javascript
+const objects = [];
+let id = 0;
+
+function branch(pos, dir, length, depth) {
+  if (depth <= 0 || length < 0.5) return;
+  
+  const endPos = [
+    pos[0] + dir[0] * length,
+    pos[1] + dir[1] * length,
+    pos[2] + dir[2] * length
+  ];
+  
+  objects.push({
+    id: `branch_${id++}`,
+    type: 'Cylinder',
+    position: [
+      (pos[0] + endPos[0]) / 2,
+      (pos[1] + endPos[1]) / 2,
+      (pos[2] + endPos[2]) / 2
+    ],
+    radius: length * 0.1,
+    height: length,
+    mass: 1,
+    color: '#8b4513'
+  });
+  
+  // Recursive branches
+  branch(endPos, [dir[0]*0.9, dir[1]*0.9, dir[2]*0.9+0.3], length*0.7, depth-1);
+  branch(endPos, [dir[0]*0.9, dir[1]*0.9, dir[2]*0.9-0.3], length*0.7, depth-1);
+}
+
+branch([0, 0, 0], [0, 1, 0], 5, 5);
+return objects;
+```
+
+## Why This is Revolutionary
+
+1. **No Limitations**: AI can write ANY algorithm
+2. **No Pre-definition**: Don't need to create function types
+3. **Instant Results**: Code runs immediately on client
+4. **Educational**: Students can see and learn from the code
+5. **Flexible**: Change the code, change the result
+6. **Powerful**: Generate 1000s of objects with few lines
+
+## Security
+
+Don't worry! The code execution is:
+- ✅ Sandboxed (no file/network access)
+- ✅ Timeout protected (won't hang)
+- ✅ Memory limited (won't crash)
+- ✅ Validated (results checked)
+
+## Comparison
+
+| Feature | Manual JSON | Pre-defined Functions | Inline JavaScript |
+|---------|-------------|---------------------|-------------------|
+| Flexibility | ❌ Very Low | ⚠️ Medium | ✅ Unlimited |
+| AI Freedom | ❌ None | ⚠️ Limited | ✅ Total |
+| Code Visibility | ❌ Hidden | ❌ Hidden | ✅ Visible |
+| Easy to Add Patterns | ❌ No | ⚠️ Need Dev | ✅ AI Does It |
+| Educational Value | ⚠️ Medium | ⚠️ Medium | ✅ High |
+| Scalability | ❌ Poor | ✅ Good | ✅ Excellent |
+
+## The Future
+
+With inline JavaScript, the AI can:
+- ✅ Create any mathematical pattern
+- ✅ Generate fractals and complex structures
+- ✅ Implement physics algorithms
+- ✅ Build procedural content
+- ✅ Visualize mathematical concepts
+- ✅ Create educational demonstrations
+- ✅ Generate game-like scenarios
+- ✅ Build interactive experiments
+
+**The only limit is imagination!** 🚀
+
+---
+
+**This is what makes us more than just an LLM chat app. We actually EXECUTE code!**

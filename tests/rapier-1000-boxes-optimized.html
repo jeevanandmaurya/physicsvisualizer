@@ -1,0 +1,284 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Rapier 3D Physics Demo - 9000 Boxes OPTIMIZED</title>
+    <style>
+        body {
+            margin: 0;
+            overflow: hidden;
+            font-family: Arial, sans-serif;
+        }
+        canvas { display: block; }
+        #info {
+            position: absolute;
+            top: 10px;
+            left: 10px;
+            color: white;
+            background: rgba(0,0,0,0.7);
+            padding: 15px;
+            border-radius: 5px;
+            z-index: 100;
+            font-size: 14px;
+        }
+        #fps {
+            position: absolute;
+            top: 10px;
+            right: 10px;
+            color: white;
+            background: rgba(0,0,0,0.7);
+            padding: 15px;
+            border-radius: 5px;
+            z-index: 100;
+            font-size: 16px;
+            font-weight: bold;
+        }
+        .metric {
+            color: #4af;
+        }
+    </style>
+</head>
+<body>
+    <div id="info">
+        <div><strong>OPTIMIZED</strong> Rapier Physics Demo</div>
+        <div>Boxes: <span class="metric" id="boxCount">9000</span></div>
+        <div>Draw Calls: <span class="metric">1</span> (Instanced)</div>
+        <div>Geometries: <span class="metric">1</span> (Shared)</div>
+        <div>Materials: <span class="metric">1</span> (Shared)</div>
+        <div>Shadows: <span class="metric">OFF</span> (Performance)</div>
+    </div>
+    <div id="fps">
+        <div>FPS: <span id="fpsValue">--</span></div>
+        <div style="font-size: 12px;">CPU: <span id="cpuTime">--</span>ms</div>
+        <div style="font-size: 12px;">GPU: <span id="gpuTime">--</span>ms</div>
+    </div>
+
+    <script async src="https://unpkg.com/es-module-shims@1.6.3/dist/es-module-shims.js"></script>
+    <script type="importmap">
+        {
+            "imports": {
+                "three": "https://unpkg.com/three@0.158.0/build/three.module.js",
+                "three/examples/jsm/controls/OrbitControls.js": "https://unpkg.com/three@0.158.0/examples/jsm/controls/OrbitControls.js",
+                "@dimforge/rapier3d-compat": "https://cdn.skypack.dev/@dimforge/rapier3d-compat@0.11.2"
+            }
+        }
+    </script>
+
+    <script type="module">
+        import * as THREE from 'three';
+        import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls.js';
+        import RAPIER from '@dimforge/rapier3d-compat';
+
+        let scene, camera, renderer, world, controls;
+        let instancedMesh;
+        let bodies = [];
+        let fps = 0;
+        let lastTime = performance.now();
+        let frameCount = 0;
+        let cpuTime = 0;
+        let gpuTime = 0;
+
+        // Configuration
+        const BOX_COUNT = 9000;
+        const USE_INSTANCING = true; // Toggle to compare performance
+
+        async function init() {
+            console.log('🚀 Initializing OPTIMIZED physics demo...');
+            
+            // Initialize Rapier with WASM
+            await RAPIER.init();
+
+            // Create physics world
+            world = new RAPIER.World({ x: 0.0, y: -9.81, z: 0.0 });
+
+            // Setup Three.js scene
+            scene = new THREE.Scene();
+            scene.background = new THREE.Color(0x87CEEB);
+
+            // Camera
+            camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000);
+            camera.position.set(20, 10, 20);
+            camera.lookAt(0, 0, 0);
+
+            // Renderer with performance settings
+            renderer = new THREE.WebGLRenderer({ 
+                antialias: false, // Disable for performance
+                powerPreference: 'high-performance',
+                stencil: false,
+                depth: true
+            });
+            renderer.setSize(window.innerWidth, window.innerHeight);
+            renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2)); // Cap at 2x
+            renderer.shadowMap.enabled = false; // CRITICAL: Disable shadows for performance
+            document.body.appendChild(renderer.domElement);
+
+            // Orbit Controls
+            controls = new OrbitControls(camera, renderer.domElement);
+            controls.enableDamping = true;
+            controls.dampingFactor = 0.05;
+            controls.target.set(0, 0, 0);
+
+            // Lights
+            scene.add(new THREE.AmbientLight(0x404040, 0.8));
+
+            const light = new THREE.DirectionalLight(0xffffff, 0.6);
+            light.position.set(10, 10, 5);
+            scene.add(light);
+
+            // Ground
+            const groundMesh = new THREE.Mesh(
+                new THREE.PlaneGeometry(200, 200),
+                new THREE.MeshLambertMaterial({ color: 0x888888 })
+            );
+            groundMesh.rotation.x = -Math.PI / 2;
+            scene.add(groundMesh);
+
+            // Ground physics
+            const groundBody = world.createRigidBody(RAPIER.RigidBodyDesc.fixed());
+            world.createCollider(RAPIER.ColliderDesc.cuboid(100, 0.1, 100), groundBody);
+
+            // Add boxes with instancing
+            console.log(`Adding ${BOX_COUNT} boxes with instancing...`);
+            const startTime = performance.now();
+            addBoxesWithInstancing();
+            const endTime = performance.now();
+            console.log(`✅ Added ${BOX_COUNT} boxes in ${(endTime - startTime).toFixed(2)}ms`);
+
+            // Handle resize
+            window.addEventListener('resize', () => {
+                camera.aspect = window.innerWidth / window.innerHeight;
+                camera.updateProjectionMatrix();
+                renderer.setSize(window.innerWidth, window.innerHeight);
+            });
+
+            animate();
+        }
+
+        function addBoxesWithInstancing() {
+            // Create ONE shared geometry and material
+            const geometry = new THREE.BoxGeometry(0.5, 0.5, 0.5);
+            const material = new THREE.MeshLambertMaterial({ 
+                color: 0x00ff00,
+                flatShading: true // Better performance
+            });
+
+            // Create InstancedMesh for ALL boxes
+            instancedMesh = new THREE.InstancedMesh(geometry, material, BOX_COUNT);
+            instancedMesh.castShadow = false; // Disable shadows
+            instancedMesh.receiveShadow = false;
+            scene.add(instancedMesh);
+
+            // Generate boxes in grid
+            const boxesPerRow = 30;
+            const rows = 30;
+            const layers = 10;
+            const spacing = 2.5;
+            const startY = 5;
+
+            const matrix = new THREE.Matrix4();
+            const color = new THREE.Color();
+
+            let index = 0;
+            for (let layer = 0; layer < layers && index < BOX_COUNT; layer++) {
+                for (let row = 0; row < rows && index < BOX_COUNT; row++) {
+                    for (let col = 0; col < boxesPerRow && index < BOX_COUNT; col++) {
+                        const x = (col - boxesPerRow/2) * spacing;
+                        const y = startY + layer * spacing * 1.2;
+                        const z = (row - rows/2) * spacing;
+
+                        // Set instance transform
+                        matrix.setPosition(x, y, z);
+                        instancedMesh.setMatrixAt(index, matrix);
+
+                        // Set instance color (rainbow)
+                        color.setHSL((index % 360) / 360, 0.8, 0.6);
+                        instancedMesh.setColorAt(index, color);
+
+                        // Create physics body
+                        const bodyDesc = RAPIER.RigidBodyDesc.dynamic()
+                            .setTranslation(x, y, z);
+                        const body = world.createRigidBody(bodyDesc);
+                        world.createCollider(
+                            RAPIER.ColliderDesc.cuboid(0.25, 0.25, 0.25)
+                                .setRestitution(0.2)
+                                .setFriction(0.5),
+                            body
+                        );
+
+                        bodies.push(body);
+                        index++;
+                    }
+                }
+            }
+
+            instancedMesh.instanceMatrix.needsUpdate = true;
+            if (instancedMesh.instanceColor) {
+                instancedMesh.instanceColor.needsUpdate = true;
+            }
+
+            console.log(`✅ Created ${bodies.length} physics bodies`);
+            document.getElementById('boxCount').textContent = bodies.length;
+        }
+
+        function animate() {
+            requestAnimationFrame(animate);
+
+            const frameStart = performance.now();
+
+            controls.update();
+
+            // Step physics (CPU-bound)
+            const physicsStart = performance.now();
+            world.step();
+            const physicsEnd = performance.now();
+
+            // Sync instances with physics bodies (FAST - uses instancing)
+            const syncStart = performance.now();
+            const matrix = new THREE.Matrix4();
+            const quaternion = new THREE.Quaternion();
+            const position = new THREE.Vector3();
+
+            for (let i = 0; i < bodies.length; i++) {
+                const body = bodies[i];
+                const pos = body.translation();
+                const rot = body.rotation();
+                
+                position.set(pos.x, pos.y, pos.z);
+                quaternion.set(rot.x, rot.y, rot.z, rot.w);
+                matrix.compose(position, quaternion, new THREE.Vector3(1, 1, 1));
+                
+                instancedMesh.setMatrixAt(i, matrix);
+            }
+            instancedMesh.instanceMatrix.needsUpdate = true;
+            const syncEnd = performance.now();
+
+            // Render (GPU-bound)
+            const renderStart = performance.now();
+            renderer.render(scene, camera);
+            const renderEnd = performance.now();
+
+            // Calculate timings
+            const frameEnd = performance.now();
+            const frameTime = frameEnd - frameStart;
+            cpuTime = (physicsEnd - physicsStart) + (syncEnd - syncStart);
+            gpuTime = renderEnd - renderStart;
+
+            // Update FPS display (every 30 frames)
+            frameCount++;
+            if (frameCount % 30 === 0) {
+                const currentTime = performance.now();
+                const deltaTime = currentTime - lastTime;
+                fps = (30 * 1000) / deltaTime;
+                lastTime = currentTime;
+
+                document.getElementById('fpsValue').textContent = fps.toFixed(1);
+                document.getElementById('cpuTime').textContent = cpuTime.toFixed(2);
+                document.getElementById('gpuTime').textContent = gpuTime.toFixed(2);
+            }
+        }
+
+        init();
+    </script>
+</body>
+</html>

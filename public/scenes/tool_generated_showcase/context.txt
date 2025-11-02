@@ -1,0 +1,74 @@
+Tool-Generated Content Showcase
+
+This scene demonstrates the power of JavaScript tool-based procedural generation:
+
+PROCEDURALLY GENERATED STRUCTURES:
+
+1. SPIRAL TOWER (Physics - 96 spheres)
+   - 12 levels with 8 spheres each
+   - Decreasing radius as it goes up
+   - Color gradient from bottom to top
+   - All physics-enabled with collision
+
+2. 3-RING ORBITAL SYSTEM (Non-Physics - 36 spheres)
+   - 3 concentric rings at different heights
+   - 12 objects per ring
+   - Different orbital speeds per ring
+   - Custom animation code for each object
+
+3. WAVE FIELD (Non-Physics - 100 cylinders)
+   - 10x10 grid of animated cylinders
+   - Sine wave propagation based on distance
+   - Dynamic scaling and height
+   - Color gradient across grid
+
+4. FIBONACCI SPIRAL (Non-Physics - 50 spheres)
+   - Golden ratio angle distribution
+   - Spherical arrangement
+   - Size gradient (larger at top)
+   - Each with unique rotation speed
+
+5. PENDULUM ARRAY (Physics - 16 objects)
+   - 8 pendulums with increasing lengths
+   - Alternating initial velocities
+   - Spring constraints
+   - Synchronized wave motion
+
+6. HEXAGONAL GRID (Physics - 37 cylinders)
+   - Honeycomb pattern using hex coordinates
+   - 3-ring hexagonal arrangement
+   - Color based on distance from center
+   - All physics-enabled
+
+7. ROTATING TORUS RING (Non-Physics - 288 spheres)
+   - Mathematical torus surface
+   - 24 major segments, 12 minor segments
+   - Continuous rotation animation
+   - Color gradient along major axis
+
+TOTAL OBJECT COUNT: 600+ objects
+- ~150 physics objects
+- ~450+ non-physics animated objects
+
+TECHNICAL FEATURES:
+✓ JavaScript code execution for object generation
+✓ Mathematical pattern generation
+✓ Procedural color gradients (HSL)
+✓ Custom animation code per object
+✓ Spring constraint generation
+✓ Coordinate system calculations (hex, torus, fibonacci)
+✓ Efficient batch object creation
+
+TOOL CAPABILITIES DEMONSTRATED:
+- execute_javascript tool
+- generate_scene_objects tool
+- Mathematical calculations (sin, cos, sqrt)
+- Array manipulation
+- Loop-based generation
+- Coordinate transformations
+- HSL color generation
+- Custom animation code injection
+
+This scene showcases how the AI can generate complex scenes with hundreds
+of objects using mathematical algorithms and procedural generation, all
+through the JavaScript execution tools.

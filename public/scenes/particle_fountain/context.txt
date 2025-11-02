@@ -1,0 +1,86 @@
+# Particle Fountain
+
+50 particles simulating a fountain with ballistic motion, demonstrating physics calculations in NonPhysics objects!
+
+## Features
+
+- **Projectile Motion**: Physics equations without physics engine
+- **Cyclic Animation**: Particles respawn and repeat
+- **Fade Out**: Opacity decreases with "lifetime"
+- **Size Change**: Particles grow as they fall
+- **Visibility Toggle**: Hide particles below ground
+- **Rainbow Colors**: Each particle has unique hue
+
+## Physics in NonPhysics!
+
+### Kinematic Equations
+```javascript
+// Position with constant acceleration
+x(t) = v_x * t
+y(t) = v_y * t - 0.5 * g * t²
+z(t) = v_z * t
+```
+
+### Implementation
+```javascript
+const g = 9.81; // Gravity
+mesh.position.x = vx * t;
+mesh.position.y = vy * t - 0.5 * g * t * t;
+mesh.position.z = vz * t;
+```
+
+## Advanced Techniques
+
+### 1. Lifetime System
+```javascript
+const cycleTime = 3; // 3 second cycle
+const t = (time + phase) % cycleTime; // Loop with phase offset
+const life = 1 - (t / cycleTime); // 1.0 → 0.0
+```
+
+### 2. Opacity Fade
+```javascript
+mesh.material.opacity = life * 0.8;
+```
+Material transparency changes over time.
+
+### 3. Visibility Control
+```javascript
+if(mesh.position.y < 0) {
+  mesh.visible = false; // Hide underground
+} else {
+  mesh.visible = true;
+}
+```
+
+### 4. Dynamic Scale
+```javascript
+const size = 0.15 + (1 - life) * 0.2;
+mesh.scale.set(size, size, size);
+```
+Particles grow from 0.15 to 0.35 radius.
+
+## Why NonPhysics?
+
+This could use real physics, BUT:
+- ✅ **Predictable**: Exact trajectories
+- ✅ **Efficient**: No collision detection
+- ✅ **Looping**: Perfect cycle timing
+- ✅ **Visual Effects**: Fade/scale not physics properties
+- ✅ **Simple**: Mathematical equations, no engine complexity
+
+## Use Cases
+
+Perfect for:
+- VFX and particle effects
+- Fireworks simulations
+- Water fountains
+- Sparkles and trails
+- Any deterministic motion
+
+## Try This
+
+**Higher fountain**: `const vy = speed * 1.5;`
+**More particles**: `const numParticles = 100;`
+**Faster cycle**: `const cycleTime = 2;`
+**Different spread**: Change angle calculation

@@ -1,0 +1,238 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Performance Diagnostic Tool</title>
+    <style>
+        body {
+            margin: 20px;
+            font-family: 'Courier New', monospace;
+            background: #000;
+            color: #0f0;
+        }
+        .section {
+            border: 2px solid #0f0;
+            padding: 20px;
+            margin: 10px 0;
+        }
+        .good { color: #0f0; }
+        .bad { color: #f00; }
+        .warning { color: #ff0; }
+        h2 { color: #0ff; }
+        button {
+            background: #0f0;
+            color: #000;
+            border: none;
+            padding: 10px 20px;
+            font-size: 16px;
+            cursor: pointer;
+            margin: 5px;
+        }
+        button:hover { background: #0ff; }
+        #canvas { border: 2px solid #0f0; }
+    </style>
+</head>
+<body>
+    <h1>🔍 PERFORMANCE DIAGNOSTIC TOOL</h1>
+    
+    <div class="section">
+        <h2>System Information</h2>
+        <div id="systemInfo"></div>
+    </div>
+
+    <div class="section">
+        <h2>Browser Limitations</h2>
+        <div id="browserInfo"></div>
+    </div>
+
+    <div class="section">
+        <h2>Real-time Performance Monitor</h2>
+        <button onclick="startTest()">START STRESS TEST</button>
+        <button onclick="stopTest()">STOP</button>
+        <div id="perfInfo" style="margin-top: 20px;"></div>
+    </div>
+
+    <div class="section">
+        <canvas id="canvas" width="800" height="600"></canvas>
+    </div>
+
+    <script>
+        let running = false;
+        let frameCount = 0;
+        let lastTime = performance.now();
+
+        // System Info
+        const systemInfo = document.getElementById('systemInfo');
+        systemInfo.innerHTML = `
+            <div>Platform: <span class="good">${navigator.platform}</span></div>
+            <div>User Agent: <span class="good">${navigator.userAgent}</span></div>
+            <div>Hardware Concurrency: <span class="good">${navigator.hardwareConcurrency} cores</span></div>
+            <div>Device Memory: <span class="good">${navigator.deviceMemory || 'Unknown'} GB</span></div>
+            <div>Screen Resolution: <span class="good">${screen.width}x${screen.height}</span></div>
+            <div>Device Pixel Ratio: <span class="good">${window.devicePixelRatio}</span></div>
+        `;
+
+        // Browser Info
+        const browserInfo = document.getElementById('browserInfo');
+        const checkBrowserLimits = () => {
+            const issues = [];
+            
+            // Check if tab is hidden
+            if (document.hidden) {
+                issues.push('<div class="bad">❌ Tab is HIDDEN - Browser throttles hidden tabs to 1-4 FPS!</div>');
+            } else {
+                issues.push('<div class="good">✅ Tab is visible</div>');
+            }
+
+            // Check battery status
+            if ('getBattery' in navigator) {
+                navigator.getBattery().then(battery => {
+                    const batteryDiv = document.createElement('div');
+                    if (battery.charging) {
+                        batteryDiv.className = 'good';
+                        batteryDiv.textContent = '✅ Plugged in (no power throttling)';
+                    } else {
+                        batteryDiv.className = 'warning';
+                        batteryDiv.textContent = '⚠️ On battery (may throttle performance)';
+                    }
+                    browserInfo.appendChild(batteryDiv);
+                });
+            }
+
+            // Check WebGL
+            const canvas = document.createElement('canvas');
+            const gl = canvas.getContext('webgl2') || canvas.getContext('webgl');
+            if (gl) {
+                const debugInfo = gl.getExtension('WEBGL_debug_renderer_info');
+                if (debugInfo) {
+                    const vendor = gl.getParameter(debugInfo.UNMASKED_VENDOR_WEBGL);
+                    const renderer = gl.getParameter(debugInfo.UNMASKED_RENDERER_WEBGL);
+                    issues.push(`<div class="good">✅ GPU: ${renderer}</div>`);
+                    issues.push(`<div class="good">✅ Vendor: ${vendor}</div>`);
+                } else {
+                    issues.push('<div class="good">✅ WebGL 2.0 available</div>');
+                }
+            } else {
+                issues.push('<div class="bad">❌ WebGL not available!</div>');
+            }
+
+            // Check requestAnimationFrame timing
+            let rafCount = 0;
+            let rafStart = performance.now();
+            const checkRAF = () => {
+                rafCount++;
+                if (rafCount < 120) {
+                    requestAnimationFrame(checkRAF);
+                } else {
+                    const elapsed = performance.now() - rafStart;
+                    const avgFPS = (rafCount / elapsed) * 1000;
+                    const fpsDiv = document.createElement('div');
+                    if (avgFPS < 55) {
+                        fpsDiv.className = 'bad';
+                        fpsDiv.innerHTML = `❌ requestAnimationFrame capped at ${avgFPS.toFixed(1)} FPS<br>→ Browser is throttling! Check power settings.`;
+                    } else if (avgFPS > 100) {
+                        fpsDiv.className = 'good';
+                        fpsDiv.textContent = `✅ High refresh rate: ${avgFPS.toFixed(0)} Hz`;
+                    } else {
+                        fpsDiv.className = 'good';
+                        fpsDiv.textContent = `✅ Standard refresh: ${avgFPS.toFixed(0)} Hz`;
+                    }
+                    browserInfo.appendChild(fpsDiv);
+                }
+            };
+            requestAnimationFrame(checkRAF);
+
+            browserInfo.innerHTML += issues.join('');
+        };
+        checkBrowserLimits();
+
+        // Stress Test
+        const canvas = document.getElementById('canvas');
+        const ctx = canvas.getContext('2d');
+        const perfInfo = document.getElementById('perfInfo');
+
+        function startTest() {
+            running = true;
+            frameCount = 0;
+            lastTime = performance.now();
+            stressTest();
+        }
+
+        function stopTest() {
+            running = false;
+        }
+
+        function stressTest() {
+            if (!running) return;
+
+            const frameStart = performance.now();
+
+            // CPU Stress: Heavy calculations
+            let cpuWork = 0;
+            for (let i = 0; i < 100000; i++) {
+                cpuWork += Math.sqrt(i) * Math.sin(i) * Math.cos(i);
+            }
+
+            // GPU Stress: Heavy canvas drawing
+            ctx.fillStyle = '#000';
+            ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+            for (let i = 0; i < 1000; i++) {
+                ctx.fillStyle = `hsl(${(i + frameCount) % 360}, 80%, 50%)`;
+                ctx.beginPath();
+                ctx.arc(
+                    Math.random() * canvas.width,
+                    Math.random() * canvas.height,
+                    Math.random() * 50,
+                    0,
+                    Math.PI * 2
+                );
+                ctx.fill();
+            }
+
+            const frameEnd = performance.now();
+            const frameTime = frameEnd - frameStart;
+
+            frameCount++;
+
+            // Update stats every 30 frames
+            if (frameCount % 30 === 0) {
+                const now = performance.now();
+                const elapsed = now - lastTime;
+                const fps = (30 * 1000) / elapsed;
+                lastTime = now;
+
+                let status = '';
+                if (fps < 30) {
+                    status = `<div class="bad">❌ LOW FPS: ${fps.toFixed(1)}</div>`;
+                    status += `<div class="bad">Frame time: ${frameTime.toFixed(2)}ms (should be &lt;16ms for 60fps)</div>`;
+                    status += `<div class="warning">⚠️ DIAGNOSIS: Browser is throttling OR hardware is limiting</div>`;
+                    status += `<div class="warning">→ Check: Task Manager (actual CPU/GPU usage)</div>`;
+                    status += `<div class="warning">→ Check: Power mode (should be High Performance)</div>`;
+                    status += `<div class="warning">→ Check: This tab is active (not background)</div>`;
+                } else if (fps < 55) {
+                    status = `<div class="warning">⚠️ MODERATE FPS: ${fps.toFixed(1)}</div>`;
+                    status += `<div class="warning">Possible 30 FPS V-Sync cap or battery saving mode</div>`;
+                } else {
+                    status = `<div class="good">✅ GOOD FPS: ${fps.toFixed(1)}</div>`;
+                    status += `<div class="good">Frame time: ${frameTime.toFixed(2)}ms</div>`;
+                }
+
+                status += `<div>Frames rendered: ${frameCount}</div>`;
+                status += `<div>CPU work result: ${cpuWork.toFixed(0)}</div>`;
+
+                perfInfo.innerHTML = status;
+            }
+
+            requestAnimationFrame(stressTest);
+        }
+
+        // Tab visibility detection
+        document.addEventListener('visibilitychange', () => {
+            if (document.hidden) {
+                alert('⚠️ TAB HIDDEN! Browser will throttle to 1-4 FPS. Keep tab active for accurate test.');
+            }
+        });
+    </script>
+</body>
+</html>

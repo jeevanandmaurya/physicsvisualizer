@@ -1,0 +1,22 @@
+{
+  "id": "dna_helix",
+  "name": "DNA Double Helix",
+  "description": "Animated double helix structure demonstrating parametric curves",
+  "objects": [],
+  "functionCalls": [
+    {
+      "code": "const objects = []; const segments = 30; const radius = 3; const height = 20; const turnSpeed = 0.5; for(let i=0; i<segments; i++) { const t = i / segments; const y = t * height - height/2; const baseAngle = t * Math.PI * 4; const id1 = `helix1_${i}`; const id2 = `helix2_${i}`; const idLink = `link_${i}`; objects.push({ id: id1, type: 'Sphere', position: [radius, y, 0], radius: 0.3, color: '#3498db', nonPhysics: true }); objects.push({ id: id2, type: 'Sphere', position: [-radius, y, 0], radius: 0.3, color: '#e74c3c', nonPhysics: true }); objects.push({ id: idLink, type: 'Cylinder', position: [0, y, 0], radius: 0.1, height: radius * 2, rotation: [0, 0, Math.PI/2], color: '#95a5a6', nonPhysics: true, opacity: 0.5 }); globalNonPhysicsEngine.animateObject(id1, { code: `const angle = ${baseAngle} + time * ${turnSpeed}; mesh.position.x = ${radius} * Math.cos(angle); mesh.position.z = ${radius} * Math.sin(angle);` }); globalNonPhysicsEngine.animateObject(id2, { code: `const angle = ${baseAngle} + Math.PI + time * ${turnSpeed}; mesh.position.x = ${radius} * Math.cos(angle); mesh.position.z = ${radius} * Math.sin(angle);` }); globalNonPhysicsEngine.animateObject(idLink, { code: `const angle = ${baseAngle} + time * ${turnSpeed}; const x1 = ${radius} * Math.cos(angle); const z1 = ${radius} * Math.sin(angle); const x2 = ${radius} * Math.cos(angle + Math.PI); const z2 = ${radius} * Math.sin(angle + Math.PI); mesh.position.x = (x1 + x2) / 2; mesh.position.z = (z1 + z2) / 2; mesh.rotation.z = Math.PI/2; mesh.rotation.y = angle;` }); } return objects;"
+    }
+  ],
+  "gravity": [0, 0, 0],
+  "hasGround": false,
+  "contactMaterial": {
+    "friction": 0.5,
+    "restitution": 0.7
+  },
+  "gravitationalPhysics": {
+    "enabled": false
+  },
+  "simulationScale": "terrestrial",
+  "controllers": []
+}

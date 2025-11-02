@@ -118,7 +118,135 @@ export class FunctionCallSystem {
   }
 
   /**
+   * Execute inline JavaScript code to generate objects
+   * This is the KEY feature - AI can write ANY JavaScript function
+   * @param {string} code - JavaScript code that returns objects array
+   * @param {Object} parameters - Parameters to pass to the function
+   * @param {Object} scene - Current scene context
+   * @returns {Array|Object} Generated objects
+   */
+  executeInlineCode(code, parameters = {}, scene = null) {
+    console.log(`🚀 Executing inline JavaScript code...`);
+    
+    try {
+      // Create a safe execution environment with utilities
+      const helpers = {
+        // Math utilities
+        Math: Math,
+        
+        // Vector3 utility class
+        Vector3: class {
+          constructor(x = 0, y = 0, z = 0) {
+            this.x = x;
+            this.y = y;
+            this.z = z;
+          }
+          
+          toArray() {
+            return [this.x, this.y, this.z];
+          }
+          
+          static fromArray(arr) {
+            return new this(arr[0] || 0, arr[1] || 0, arr[2] || 0);
+          }
+          
+          add(v) {
+            return new Vector3(this.x + v.x, this.y + v.y, this.z + v.z);
+          }
+          
+          magnitude() {
+            return Math.sqrt(this.x * this.x + this.y * this.y + this.z * this.z);
+          }
+          
+          normalize() {
+            const mag = this.magnitude();
+            return mag > 0 ? new Vector3(this.x / mag, this.y / mag, this.z / mag) : new Vector3();
+          }
+        },
+        
+        // Physics utilities
+        Physics: {
+          gravityForce: (m1, m2, d, G = 6.674e-11) => d > 0 ? (G * m1 * m2) / (d * d) : 0,
+          springForce: (k, x) => -k * x,
+          kineticEnergy: (m, v) => 0.5 * m * v * v,
+          potentialEnergy: (m, h, g = 9.81) => m * g * h,
+          momentum: (m, v) => m * v
+        },
+        
+        // Utility functions
+        lerp: (a, b, t) => a + (b - a) * t,
+        clamp: (val, min, max) => Math.max(min, Math.min(max, val)),
+        random: (min = 0, max = 1) => Math.random() * (max - min) + min,
+        
+        // Access to parameters and scene
+        params: parameters,
+        scene: scene,
+        
+        // NonPhysics engine for animations
+        globalNonPhysicsEngine: globalNonPhysicsEngine,
+        
+        // Function call system for nested calls
+        animateNonPhysicsObject: (objectId, codeOrType, config) => {
+          return this.callFunction('animateNonPhysicsObject', [objectId, codeOrType, config], scene);
+        },
+        moveNonPhysicsObject: (objectId, position) => {
+          return this.callFunction('moveNonPhysicsObject', [objectId, position], scene);
+        },
+        rotateNonPhysicsObject: (objectId, rotation) => {
+          return this.callFunction('rotateNonPhysicsObject', [objectId, rotation], scene);
+        },
+        scaleNonPhysicsObject: (objectId, scale) => {
+          return this.callFunction('scaleNonPhysicsObject', [objectId, scale], scene);
+        },
+        setNonPhysicsColor: (objectId, color) => {
+          return this.callFunction('setNonPhysicsColor', [objectId, color], scene);
+        },
+        setNonPhysicsOpacity: (objectId, opacity) => {
+          return this.callFunction('setNonPhysicsOpacity', [objectId, opacity], scene);
+        },
+        
+        // Console for debugging
+        console: console
+      };
+      
+      // Create the function with access to helpers
+      // The code should return an array of objects or a single object
+      const func = new Function(
+        'helpers',
+        `
+        with (helpers) {
+          ${code}
+        }
+        `
+      );
+      
+      // Execute the code
+      console.log('📝 Executing inline code:', code.substring(0, 200) + '...');
+      const result = func(helpers);
+      console.log('📊 Inline code result:', result);
+      
+      // Validate and return
+      if (Array.isArray(result)) {
+        console.log(`✅ Returning ${result.length} objects from inline code`);
+        return result.map(obj => this.validateGeneratedObject(obj, { code }));
+      } else if (result && typeof result === 'object' && result.id) {
+        console.log('✅ Returning single object from inline code');
+        return this.validateGeneratedObject(result, { code });
+      }
+      
+      // If code returns nothing/undefined (e.g., just setting up animations), that's OK
+      console.log('ℹ️ Inline code completed without returning objects (animation setup)');
+      return [];
+      
+    } catch (error) {
+      console.error('❌ Error executing inline code:', error);
+      throw new Error(`Inline code execution failed: ${error.message}`);
+    }
+  }
+
+  /**
    * Process scene function calls and generate objects
+   * AI can pass raw JavaScript code that gets executed to generate objects
    * @param {Object} scene - Scene object with functionCalls array
    * @returns {Object} Modified scene with generated objects
    */
@@ -139,16 +267,16 @@ export class FunctionCallSystem {
           const objects = this.executeObjectGenerator(functionCall, processedScene);
 
           if (Array.isArray(objects)) {
-            console.log(`✅ Generated ${objects.length} objects from function "${functionCall.name}"`);
+            console.log(`✅ Generated ${objects.length} objects from inline function`);
             processedScene.objects.push(...objects);
           } else if (objects) {
-            console.log(`✅ Generated 1 object from function "${functionCall.name}"`);
+            console.log(`✅ Generated 1 object from inline function`);
             processedScene.objects.push(objects);
           } else {
-            console.warn(`⚠️ Function "${functionCall.name}" returned no objects`);
+            console.warn(`⚠️ Function returned no objects`);
           }
         } catch (error) {
-          const errorMsg = `Failed to execute function "${functionCall.name}": ${error.message}`;
+          const errorMsg = `Failed to execute function: ${error.message}`;
           console.error(`❌ ${errorMsg}`);
           processedScene.errors.push(errorMsg);
         }
@@ -162,16 +290,23 @@ export class FunctionCallSystem {
   }
 
   /**
-   * Execute an object generator function
+   * Execute an object generator function (supports both pre-defined and inline code)
    * @param {Object} functionCall - Function call specification
    * @param {Object} scene - Current scene context
    * @returns {Array|Object|null} Generated objects
    */
   executeObjectGenerator(functionCall, scene) {
+    // NEW: Support inline code directly in JSON
+    if (functionCall.code && typeof functionCall.code === 'string') {
+      console.log(`🔧 Executing inline JavaScript code...`);
+      return this.executeInlineCode(functionCall.code, functionCall.parameters || {}, scene);
+    }
+
+    // LEGACY: Support pre-defined function names
     const { name, parameters = {} } = functionCall;
 
     if (typeof name !== 'string' || !name) {
-      throw new Error('Function call must have a valid "name" property');
+      throw new Error('Function call must have either "code" or "name" property');
     }
 
     const funcDef = this.generators[name] || this.functions[name];
@@ -296,6 +431,47 @@ export class FunctionCallSystem {
 
 // Global function call system instance
 export const functionCallSystem = new FunctionCallSystem();
+
+// Import NonPhysicsEngine for non-physics object manipulation
+import { globalNonPhysicsEngine } from '../physics/engine.js';
+
+// Non-physics object manipulation tools
+functionCallSystem.defineFunction('moveNonPhysicsObject', (args) => {
+  const [objectId, position] = args;
+  return globalNonPhysicsEngine.updateTransform(objectId, { position });
+}, { description: 'Move a non-physics object without affecting physics simulation' });
+
+functionCallSystem.defineFunction('rotateNonPhysicsObject', (args) => {
+  const [objectId, rotation] = args;
+  return globalNonPhysicsEngine.updateTransform(objectId, { rotation });
+}, { description: 'Rotate a non-physics object' });
+
+functionCallSystem.defineFunction('scaleNonPhysicsObject', (args) => {
+  const [objectId, scale] = args;
+  return globalNonPhysicsEngine.updateTransform(objectId, { scale });
+}, { description: 'Scale a non-physics object' });
+
+functionCallSystem.defineFunction('setNonPhysicsColor', (args) => {
+  const [objectId, color] = args;
+  return globalNonPhysicsEngine.updateMaterial(objectId, { color });
+}, { description: 'Change color of non-physics object' });
+
+functionCallSystem.defineFunction('setNonPhysicsOpacity', (args) => {
+  const [objectId, opacity] = args;
+  return globalNonPhysicsEngine.updateMaterial(objectId, { opacity });
+}, { description: 'Change opacity of non-physics object' });
+
+functionCallSystem.defineFunction('animateNonPhysicsObject', (args) => {
+  const [objectId, codeOrType, config] = args;
+  
+  // If first arg is JavaScript code string (contains statements), use it directly
+  if (typeof codeOrType === 'string' && (codeOrType.includes(';') || codeOrType.includes('mesh.'))) {
+    return globalNonPhysicsEngine.animateObject(objectId, { code: codeOrType });
+  }
+  
+  // Otherwise, use legacy animation type system (for backward compatibility)
+  return globalNonPhysicsEngine.animateObject(objectId, { type: codeOrType, ...config });
+}, { description: 'Animate non-physics object with custom JavaScript code or built-in types (rotate, oscillate, orbit)' });
 
 // Built-in utility functions
 functionCallSystem.defineFunction('vectorMag', (args) => {

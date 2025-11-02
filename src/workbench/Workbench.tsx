@@ -1,13 +1,12 @@
 import { useState, useEffect } from "react";
 import ActivityBar from "./ActivityBar";
-import Panel from "./Panel";
 import EditorArea from "./EditorArea";
 import StatusBar from "./StatusBar";
-import Overlay from "./Overlay";
 import logo from '../assets/icon-transparent.svg';
 import ChatOverlay from "../views/components/chat/ChatOverlay";
 import GraphOverlay from "../views/components/visualizer/GraphOverlay";
 import ControllerOverlay from "../views/components/visualizer/ControllerOverlay";
+import SceneSelectorUI from "../views/components/scene-management/SceneSelectorUI";
 import {
   useWorkspace,
   useWorkspaceScene,
@@ -24,9 +23,12 @@ const Workbench = () => {
   const [chatOpen, setChatOpen] = useState(false);
   const [graphOpen, setGraphOpen] = useState(false);
   const [controllerOpen, setControllerOpen] = useState(false);
-  const [showSceneDetails, setShowSceneDetails] = useState(false);
-  const [panelOpen, setPanelOpen] = useState(true);
-  const [panelMaximized, setPanelMaximized] = useState(false);
+  const [sceneSelectorOpen, setSceneSelectorOpen] = useState(false);
+
+  // Open scene selector by default only in visualizer view
+  useEffect(() => {
+    setSceneSelectorOpen(currentView === 'visualizer');
+  }, [currentView]);
 
   // VS Code-inspired layout configuration for each view
   const getLayoutConfig = (view: string) => { // Added type for view
@@ -122,28 +124,6 @@ const Workbench = () => {
         <div className="workbench-main">
           <div className="workbench-content">
             <EditorArea activeView={currentView} onViewChange={setCurrentView} />
-            {currentView === "visualizer" && (
-              <Overlay
-                id="scene-selector"
-                type="sceneSelector"
-                position="bottom"
-                isOpen={panelOpen}
-                height={panelMaximized ? 'calc(100vh - 70px)' : '50vh'}
-                width="250px"
-                zIndex={50}
-                onClose={() => setPanelOpen(false)}
-              >
-                <Panel
-                  showSceneDetails={showSceneDetails}
-                  onToggleSceneDetails={() =>
-                    setShowSceneDetails(!showSceneDetails)
-                  }
-                  onClosePanel={() => setPanelOpen(false)}
-                  onToggleMaximize={() => setPanelMaximized(!panelMaximized)}
-                  isMaximized={panelMaximized}
-                />
-              </Overlay>
-            )}
           </div>
         </div>
       </div>
@@ -155,8 +135,29 @@ const Workbench = () => {
         onGraphToggle={() => setGraphOpen(!graphOpen)}
         controllerOpen={controllerOpen}
         onControllerToggle={() => setControllerOpen(!controllerOpen)}
-        panelOpen={panelOpen}
-        onPanelToggle={() => setPanelOpen(!panelOpen)}
+        sceneSelectorOpen={sceneSelectorOpen}
+        onSceneSelectorToggle={() => setSceneSelectorOpen(!sceneSelectorOpen)}
+      />
+      <SceneSelectorUI
+        isOpen={sceneSelectorOpen}
+        onToggle={() => setSceneSelectorOpen(!sceneSelectorOpen)}
+        currentScene={scene}
+        handleSceneChange={updateScene}
+        userScenes={[]}
+        loadingUserScenes={false}
+        onDeleteScene={() => {}}
+        onSaveScene={() => {}}
+        onUpdateScene={() => {}}
+        currentChatId={null}
+        onChatSelect={() => {}}
+        onNewChat={() => {}}
+        onSceneButtonClick={() => {}}
+        refreshTrigger={0}
+        activeTab="examples"
+        onTabChange={() => {}}
+        onToggleSceneDetails={() => {}}
+        onRefreshSceneList={() => {}}
+        workspaceScenes={[scene]}
       />
       <ChatOverlay
         isOpen={chatOpen}

@@ -1,0 +1,415 @@
+{
+  "id": "nonphysics-showcase",
+  "name": "Non-Physics Showcase - Animations & Visuals",
+  "version": "1.0",
+  "description": "Comprehensive demonstration of non-physics objects with advanced animations, visual effects, and tool-generated content",
+  "gravity": [0, 0, 0],
+  "hasGround": false,
+  "simulationScale": "custom",
+  "gravitationalPhysics": {
+    "enabled": false
+  },
+  "objects": [
+    {
+      "id": "rotating_sphere",
+      "type": "Sphere",
+      "position": [-8, 0, 0],
+      "radius": 1,
+      "color": "#ff6347",
+      "visualOnly": true,
+      "animation": {
+        "code": "mesh.rotation.y += deltaTime * 1.5;"
+      }
+    },
+    {
+      "id": "pulsing_cube",
+      "type": "Box",
+      "position": [-4, 0, 0],
+      "dimensions": [1, 1, 1],
+      "color": "#4169e1",
+      "visualOnly": true,
+      "animation": {
+        "code": "const scale = 1 + Math.sin(time * Math.PI) * 0.5; mesh.scale.set(scale, scale, scale);"
+      }
+    },
+    {
+      "id": "floating_cylinder",
+      "type": "Cylinder",
+      "position": [0, 0, 0],
+      "radius": 0.6,
+      "height": 2,
+      "color": "#32cd32",
+      "visualOnly": true,
+      "animation": {
+        "code": "mesh.position.y = Math.sin(time * 2 * Math.PI / 3) * 3;"
+      }
+    },
+    {
+      "id": "orbiting_capsule",
+      "type": "Capsule",
+      "position": [4, 0, 0],
+      "radius": 0.4,
+      "height": 1.5,
+      "color": "#ffd700",
+      "visualOnly": true,
+      "animation": {
+        "code": "const radius = 3; const speed = 1; mesh.position.x = 4 + Math.cos(time * speed) * radius; mesh.position.z = Math.sin(time * speed) * radius; mesh.rotation.y = time * 2;"
+      }
+    },
+    {
+      "id": "color_morphing_sphere",
+      "type": "Sphere",
+      "position": [8, 0, 0],
+      "radius": 1,
+      "color": "#ff00ff",
+      "visualOnly": true,
+      "animation": {
+        "code": "const hue = (time * 50) % 360; if (mesh.material) mesh.material.color.setStyle(`hsl(${hue}, 80%, 60%)`); mesh.rotation.x = time * 0.5; mesh.rotation.y = time * 0.7;"
+      }
+    },
+    {
+      "id": "spiral_path",
+      "type": "Sphere",
+      "position": [-8, 3, -4],
+      "radius": 0.4,
+      "color": "#00ced1",
+      "visualOnly": true,
+      "animation": {
+        "code": "const radius = 2; const height = 0.5; mesh.position.x = -8 + Math.cos(time * 2) * radius; mesh.position.y = 3 + Math.sin(time * 4) * height; mesh.position.z = -4 + Math.sin(time * 2) * radius;"
+      }
+    },
+    {
+      "id": "figure8_sphere",
+      "type": "Sphere",
+      "position": [-4, 3, -4],
+      "radius": 0.5,
+      "color": "#ff1493",
+      "visualOnly": true,
+      "animation": {
+        "code": "const scale = 2; mesh.position.x = -4 + Math.sin(time) * scale; mesh.position.y = 3 + Math.sin(time * 2) * scale * 0.5;"
+      }
+    },
+    {
+      "id": "lissajous_cube",
+      "type": "Box",
+      "position": [0, 3, -4],
+      "dimensions": [0.6, 0.6, 0.6],
+      "color": "#7fff00",
+      "visualOnly": true,
+      "animation": {
+        "code": "const A = 2; const B = 2; const a = 3; const b = 2; mesh.position.x = 0 + A * Math.sin(a * time); mesh.position.y = 3 + B * Math.sin(b * time); mesh.rotation.x = time; mesh.rotation.y = time * 1.5;"
+      }
+    },
+    {
+      "id": "wave_pattern_1",
+      "type": "Sphere",
+      "position": [4, 3, -4],
+      "radius": 0.3,
+      "color": "#ff6347",
+      "visualOnly": true,
+      "animation": {
+        "type": "custom",
+        "code": "mesh.position.y = 3 + Math.sin(time * 2 + 0) * 1.5;"
+      }
+    },
+    {
+      "id": "wave_pattern_2",
+      "type": "Sphere",
+      "position": [4.5, 3, -4],
+      "radius": 0.3,
+      "color": "#ff8c00",
+      "visualOnly": true,
+      "animation": {
+        "type": "custom",
+        "code": "mesh.position.y = 3 + Math.sin(time * 2 + 0.5) * 1.5;"
+      }
+    },
+    {
+      "id": "wave_pattern_3",
+      "type": "Sphere",
+      "position": [5, 3, -4],
+      "radius": 0.3,
+      "color": "#ffd700",
+      "visualOnly": true,
+      "animation": {
+        "type": "custom",
+        "code": "mesh.position.y = 3 + Math.sin(time * 2 + 1) * 1.5;"
+      }
+    },
+    {
+      "id": "wave_pattern_4",
+      "type": "Sphere",
+      "position": [5.5, 3, -4],
+      "radius": 0.3,
+      "color": "#9acd32",
+      "visualOnly": true,
+      "animation": {
+        "type": "custom",
+        "code": "mesh.position.y = 3 + Math.sin(time * 2 + 1.5) * 1.5;"
+      }
+    },
+    {
+      "id": "wave_pattern_5",
+      "type": "Sphere",
+      "position": [6, 3, -4],
+      "radius": 0.3,
+      "color": "#00ff00",
+      "visualOnly": true,
+      "animation": {
+        "type": "custom",
+        "code": "mesh.position.y = 3 + Math.sin(time * 2 + 2) * 1.5;"
+      }
+    },
+    {
+      "id": "helix_point_1",
+      "type": "Sphere",
+      "position": [8, 3, -4],
+      "radius": 0.3,
+      "color": "#1e90ff",
+      "visualOnly": true,
+      "animation": {
+        "type": "custom",
+        "code": "const radius = 1; const height = 2; mesh.position.x = 8 + Math.cos(time * 2 + 0) * radius; mesh.position.y = 3 + (time * 0.5 % height) - height/2; mesh.position.z = -4 + Math.sin(time * 2 + 0) * radius;"
+      }
+    },
+    {
+      "id": "helix_point_2",
+      "type": "Sphere",
+      "position": [8, 3, -4],
+      "radius": 0.3,
+      "color": "#ff1493",
+      "visualOnly": true,
+      "animation": {
+        "type": "custom",
+        "code": "const radius = 1; const height = 2; mesh.position.x = 8 + Math.cos(time * 2 + Math.PI) * radius; mesh.position.y = 3 + (time * 0.5 % height) - height/2; mesh.position.z = -4 + Math.sin(time * 2 + Math.PI) * radius;"
+      }
+    },
+    {
+      "id": "transparency_sphere",
+      "type": "Sphere",
+      "position": [-8, -3, 4],
+      "radius": 0.8,
+      "color": "#00ffff",
+      "opacity": 0.5,
+      "visualOnly": true,
+      "animation": {
+        "type": "custom",
+        "code": "if (mesh.material) { mesh.material.opacity = 0.3 + Math.sin(time * 2) * 0.4; mesh.material.transparent = true; } mesh.rotation.y = time;"
+      }
+    },
+    {
+      "id": "metallic_cube",
+      "type": "Box",
+      "position": [-4, -3, 4],
+      "dimensions": [1.2, 1.2, 1.2],
+      "color": "#c0c0c0",
+      "metalness": 0.9,
+      "roughness": 0.1,
+      "visualOnly": true,
+      "animation": {
+        "code": "mesh.rotation.x += deltaTime * 0.8 * 0.707; mesh.rotation.y += deltaTime * 0.8 * 0.707;"
+      }
+    },
+    {
+      "id": "rough_cylinder",
+      "type": "Cylinder",
+      "position": [0, -3, 4],
+      "radius": 0.6,
+      "height": 1.8,
+      "color": "#8b4513",
+      "metalness": 0.1,
+      "roughness": 0.9,
+      "visualOnly": true,
+      "animation": {
+        "type": "custom",
+        "code": "mesh.position.y = -3 + Math.sin(time * 1.5) * 0.5; mesh.rotation.x = time * 0.5;"
+      }
+    },
+    {
+      "id": "complex_motion",
+      "type": "Capsule",
+      "position": [4, -3, 4],
+      "radius": 0.4,
+      "height": 1.5,
+      "color": "#ff00ff",
+      "visualOnly": true,
+      "animation": {
+        "type": "custom",
+        "code": "const r = 2; mesh.position.x = 4 + Math.cos(time) * r * Math.sin(time * 0.5); mesh.position.y = -3 + Math.sin(time * 3) * 1; mesh.position.z = 4 + Math.sin(time) * r * Math.sin(time * 0.5); mesh.rotation.x = time * 2; mesh.rotation.y = time * 3; mesh.rotation.z = time;"
+      }
+    },
+    {
+      "id": "scaling_cone",
+      "type": "Cone",
+      "position": [8, -3, 4],
+      "radius": 0.6,
+      "height": 1.5,
+      "color": "#ffff00",
+      "visualOnly": true,
+      "animation": {
+        "type": "custom",
+        "code": "const scale = 1 + Math.sin(time * 2) * 0.5; mesh.scale.set(scale, scale, scale); mesh.rotation.y = time * 1.5;"
+      }
+    }
+  ],
+  "visualAnnotations": [
+    {
+      "id": "rotating_label",
+      "type": "text",
+      "attachedToObjectId": "rotating_sphere",
+      "contentType": "custom",
+      "customText": "Rotating Animation",
+      "offset": [0, 2, 0],
+      "fontSize": 0.25,
+      "color": "#ffffff",
+      "backgroundColor": "#660000",
+      "backgroundOpacity": 0.8,
+      "visible": true
+    },
+    {
+      "id": "pulsing_label",
+      "type": "text",
+      "attachedToObjectId": "pulsing_cube",
+      "contentType": "custom",
+      "customText": "Scale Animation",
+      "offset": [0, 2, 0],
+      "fontSize": 0.25,
+      "color": "#ffffff",
+      "backgroundColor": "#000066",
+      "backgroundOpacity": 0.8,
+      "visible": true
+    },
+    {
+      "id": "floating_trail",
+      "type": "trail",
+      "attachedToObjectId": "floating_cylinder",
+      "maxLength": 60,
+      "color": "#32cd32",
+      "lineWidth": 3,
+      "visible": true,
+      "showWhenPlaying": true
+    },
+    {
+      "id": "orbiting_trail",
+      "type": "trail",
+      "attachedToObjectId": "orbiting_capsule",
+      "maxLength": 100,
+      "color": "#ffd700",
+      "lineWidth": 2,
+      "visible": true,
+      "showWhenPlaying": true
+    },
+    {
+      "id": "color_morph_label",
+      "type": "text",
+      "attachedToObjectId": "color_morphing_sphere",
+      "contentType": "custom",
+      "customText": "Color Morphing",
+      "offset": [0, 2, 0],
+      "fontSize": 0.25,
+      "color": "#ffffff",
+      "backgroundColor": "#660066",
+      "backgroundOpacity": 0.8,
+      "visible": true
+    },
+    {
+      "id": "spiral_trail",
+      "type": "trail",
+      "attachedToObjectId": "spiral_path",
+      "maxLength": 80,
+      "color": "#00ced1",
+      "lineWidth": 2,
+      "visible": true,
+      "showWhenPlaying": true
+    },
+    {
+      "id": "figure8_trail",
+      "type": "trail",
+      "attachedToObjectId": "figure8_sphere",
+      "maxLength": 100,
+      "color": "#ff1493",
+      "lineWidth": 3,
+      "visible": true,
+      "showWhenPlaying": true
+    },
+    {
+      "id": "lissajous_trail",
+      "type": "trail",
+      "attachedToObjectId": "lissajous_cube",
+      "maxLength": 150,
+      "color": "#7fff00",
+      "lineWidth": 2,
+      "visible": true,
+      "showWhenPlaying": true
+    },
+    {
+      "id": "helix_trail_1",
+      "type": "trail",
+      "attachedToObjectId": "helix_point_1",
+      "maxLength": 120,
+      "color": "#1e90ff",
+      "lineWidth": 2,
+      "visible": true,
+      "showWhenPlaying": true
+    },
+    {
+      "id": "helix_trail_2",
+      "type": "trail",
+      "attachedToObjectId": "helix_point_2",
+      "maxLength": 120,
+      "color": "#ff1493",
+      "lineWidth": 2,
+      "visible": true,
+      "showWhenPlaying": true
+    },
+    {
+      "id": "transparency_label",
+      "type": "text",
+      "attachedToObjectId": "transparency_sphere",
+      "contentType": "custom",
+      "customText": "Opacity Animation",
+      "offset": [0, 1.5, 0],
+      "fontSize": 0.2,
+      "color": "#00ffff",
+      "backgroundColor": "#003333",
+      "backgroundOpacity": 0.7,
+      "visible": true
+    },
+    {
+      "id": "metallic_label",
+      "type": "text",
+      "attachedToObjectId": "metallic_cube",
+      "contentType": "custom",
+      "customText": "Metallic Material",
+      "offset": [0, 1.8, 0],
+      "fontSize": 0.2,
+      "color": "#ffffff",
+      "backgroundColor": "#333333",
+      "backgroundOpacity": 0.8,
+      "visible": true
+    },
+    {
+      "id": "rough_label",
+      "type": "text",
+      "attachedToObjectId": "rough_cylinder",
+      "contentType": "custom",
+      "customText": "Rough Material",
+      "offset": [0, 1.5, 0],
+      "fontSize": 0.2,
+      "color": "#ffffff",
+      "backgroundColor": "#553311",
+      "backgroundOpacity": 0.8,
+      "visible": true
+    },
+    {
+      "id": "complex_trail",
+      "type": "trail",
+      "attachedToObjectId": "complex_motion",
+      "maxLength": 200,
+      "color": "#ff00ff",
+      "lineWidth": 3,
+      "visible": true,
+      "showWhenPlaying": true
+    }
+  ]
+}

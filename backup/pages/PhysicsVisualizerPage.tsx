@@ -112,7 +112,7 @@ function PhysicsVisualizerPage() {
 
   // Workspace hooks
   const { createWorkspace, loadWorkspace, saveWorkspace, updateWorkspace, setIsPlaying } = useWorkspace();
-  const { scene, updateScene, scenes: workspaceScenes } = useWorkspaceScene();
+  const { scene, updateScene, scenes: workspaceScenes, setCurrentScene, currentSceneIndex } = useWorkspaceScene();
   const { messages: workspaceMessages, addMessage: addWorkspaceMessage } = useWorkspaceChat();
   const { uiMode: workspaceUIMode, setUIMode: setWorkspaceUIMode } = useWorkspaceSettings();
 
@@ -844,6 +844,9 @@ onPreviewMode={(mode) => {
           userScenes={[]}
           loadingUserScenes={false}
           extractedScenes={extractedScenes}
+          workspaceScenes={workspaceScenes}
+          currentSceneIndex={currentSceneIndex}
+          onSetCurrentScene={setCurrentScene}
           onExtractedScene={handleExtractedScene}
           onDeleteScene={handleDeleteScene}
           onSaveScene={handleSaveScene}

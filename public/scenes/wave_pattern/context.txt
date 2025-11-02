@@ -1,0 +1,48 @@
+# Wave Pattern Animation
+
+A mesmerizing wave pattern created with 20 NonPhysics spheres, each animated with a phase-shifted sine wave.
+
+## Features
+
+- **20 Animated Spheres**: Each with unique color and phase offset
+- **Procedural Generation**: All objects created with inline JavaScript
+- **Synchronized Animation**: Creates flowing wave effect
+- **Zero Physics Overhead**: All visual-only objects
+
+## How It Works
+
+```javascript
+// Generate 20 spheres in a line
+for(let i=0; i<20; i++) {
+  const id = `wave_${i}`;
+  
+  // Create sphere with rainbow colors
+  objects.push({
+    id,
+    type: 'Sphere',
+    position: [i*2 - 20, 5, 0],
+    radius: 0.4,
+    color: `hsl(${i*18}, 70%, 50%)`,
+    nonPhysics: true
+  });
+  
+  // Animate with phase offset
+  globalNonPhysicsEngine.animateObject(id, {
+    code: `mesh.position.y = 5 + Math.sin(time * 2 + ${i * 0.5}) * 3;`
+  });
+}
+```
+
+## Key Concepts
+
+1. **Phase Offset**: `${i * 0.5}` creates the wave propagation effect
+2. **Color Gradient**: HSL colors with hue based on index
+3. **Procedural Setup**: All done in one function call
+4. **Individual Animations**: Each sphere has unique animation code
+
+## Try This
+
+Change the animation code to create different patterns:
+- Circular motion: `mesh.position.x = Math.cos(time + ${i}) * 3;`
+- Scale pulse: `mesh.scale.set(1 + Math.sin(time * 3) * 0.5, ...)`
+- Rotation: `mesh.rotation.y = time * 2;`

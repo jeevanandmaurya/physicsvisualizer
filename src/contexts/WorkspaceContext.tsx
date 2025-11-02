@@ -1,5 +1,5 @@
 import React, { createContext, useContext, useEffect, useState, useCallback } from 'react';
-import { WorkspaceManager, Workspace } from '../core/workspace/WorkspaceManager';
+import { WorkspaceManager } from '../core/workspace/WorkspaceManager';
 import { useDatabase } from './DatabaseContext';
 import { SceneData } from './DatabaseContext';
 
@@ -59,7 +59,6 @@ export interface WorkspaceContextType {
   // State
   currentWorkspace: WorkspaceObject | null;
   currentView: string;
-  workspaceUpdateTrigger: number;
   loading: boolean;
   error: string | null;
   // Visualizer state
@@ -95,8 +94,6 @@ export interface WorkspaceContextType {
   updateScene: (updates: any) => Promise<void>;
   addMessage: (message: WorkspaceChatMessage) => void;
   updateSettings: (settings: WorkspaceSettings) => void;
-  getUIMode: () => string;
-  setUIMode: (mode: string) => void;
   // Visualizer actions
   togglePlayPause: () => void;
   play: () => void;
@@ -120,6 +117,7 @@ export interface WorkspaceContextType {
   selectChatSession: (chatId: string) => boolean;
   getCurrentChat: () => WorkspaceChat | null | undefined;
   getAllChats: () => WorkspaceChat[];
+  updateChatName: (chatId: string, name: string) => boolean;
   // Scene-chat linking methods
   linkSceneToChat: (sceneId: string, chatId: string) => void;
   getChatForScene: (sceneId: string) => string | null;
@@ -133,8 +131,7 @@ export function WorkspaceProvider({ children }: { children: React.ReactNode }) {
   const database = useDatabase();
   const [workspaceManager] = useState(() => new WorkspaceManager(database));
   const [currentWorkspace, setCurrentWorkspace] = useState<WorkspaceObject | null>(null);
-  const [currentView, setCurrentView] = useState('dashboard'); // Add currentView state
-  const [workspaceUpdateTrigger, setWorkspaceUpdateTrigger] = useState(0); // Force re-renders
+  const [currentView, setCurrentView] = useState('dashboard');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
 
@@ -218,6 +215,7 @@ export function WorkspaceProvider({ children }: { children: React.ReactNode }) {
 
   const saveCurrentScene = useCallback(async (sceneData: SceneData): Promise<string> => {
     try {
+      if (!database) throw new Error('Database not initialized');
       const savedId = await database.saveScene(sceneData);
       return savedId;
     } catch (err) {
@@ -226,54 +224,72 @@ export function WorkspaceProvider({ children }: { children: React.ReactNode }) {
     }
   }, [database]);
 
-  // Initialize workspace manager listeners and create default workspace
+  // Subscribe to workspace updates
   useEffect(() => {
-    const initializeWorkspace = async () => {
-      // For session-only mode we do not load a saved workspace from storage.
-      // Always create a fresh default workspace for the session.
-      if (!workspaceManager.getCurrentWorkspace()) {
-        const defaultWorkspace = workspaceManager.createWorkspace('Default Workspace');
-        workspaceManager.setCurrentWorkspace(defaultWorkspace);
+    const handleWorkspaceUpdate = (event: string, workspace: any) => {
+      if (event === 'workspaceUpdated') {
+        setCurrentWorkspace({ ...workspace }); // Create new object reference to trigger re-renders
       }
     };
 
-    const handleWorkspaceChange = (event: any, workspace: WorkspaceObject) => {
-      // Use the workspace object directly (it has methods)
-      setCurrentWorkspace(workspace);
-      // Increment trigger to force re-renders
-      setWorkspaceUpdateTrigger(prev => prev + 1);
-      setError(null);
-    };
-
-    const handleWorkspaceError = (event: any, error: any) => {
-      setError(error?.message || 'Unknown workspace error');
-    };
-
-    workspaceManager.addListener(handleWorkspaceChange);
-    workspaceManager.addListener(handleWorkspaceError);
-
-    initializeWorkspace();
-
-  // NOTE: Auto-save is disabled for session-only mode.
+    workspaceManager.addListener(handleWorkspaceUpdate);
 
     return () => {
-      workspaceManager.removeListener(handleWorkspaceChange);
-      workspaceManager.removeListener(handleWorkspaceError);
-      workspaceManager.stopAutoSave();
+      workspaceManager.removeListener(handleWorkspaceUpdate);
     };
+  }, [workspaceManager]);
+
+  // Initialize workspace manager and sync state
+  useEffect(() => {
+    const initializeWorkspace = async () => {
+      // Try to load saved workspace from IndexedDB
+      if (!workspaceManager.getCurrentWorkspace()) {
+        try {
+          if (database) {
+            const savedWorkspace = await database.getWorkspace('default');
+            if (savedWorkspace) {
+              // Load from IndexedDB
+              const workspace = await workspaceManager.loadWorkspace(savedWorkspace.id);
+              setCurrentWorkspace(workspace);
+              console.log('✅ Loaded workspace from IndexedDB');
+              return;
+            }
+          }
+        } catch (err) {
+          console.warn('Could not load workspace from IndexedDB, creating new:', err);
+        }
+        
+        // Create fresh default workspace if loading failed
+        const defaultWorkspace = workspaceManager.createWorkspace('Default Workspace');
+        // Override ID to always use 'default' for the main workspace
+        defaultWorkspace.id = 'default';
+        setCurrentWorkspace(defaultWorkspace);
+        console.log('✅ Created new default workspace');
+        
+        // Save the new workspace to IndexedDB with 'default' key
+        try {
+          await workspaceManager.saveCurrentWorkspace();
+          console.log('✅ Saved default workspace to IndexedDB with id: default');
+        } catch (err) {
+          console.error('❌ Failed to save default workspace:', err);
+        }
+      }
+    };
+
+    initializeWorkspace();
   }, [workspaceManager, database]);
 
   // No persistent saves in session-only mode
 
   // Workspace operations
-  const createWorkspace = useCallback(async (name) => {
+  const createWorkspace = useCallback(async (name: string) => {
     try {
       setLoading(true);
       setError(null);
       const workspace = workspaceManager.createWorkspace(name);
       await workspaceManager.saveCurrentWorkspace();
       return workspace;
-    } catch (err) {
+    } catch (err: any) {
       setError(err.message);
       throw err;
     } finally {
@@ -281,13 +297,13 @@ export function WorkspaceProvider({ children }: { children: React.ReactNode }) {
     }
   }, [workspaceManager]);
 
-  const loadWorkspace = useCallback(async (id) => {
+  const loadWorkspace = useCallback(async (id: string) => {
     try {
       setLoading(true);
       setError(null);
       const workspace = await workspaceManager.loadWorkspace(id);
       return workspace;
-    } catch (err) {
+    } catch (err: any) {
       setError(err.message);
       throw err;
     } finally {
@@ -300,7 +316,7 @@ export function WorkspaceProvider({ children }: { children: React.ReactNode }) {
       setLoading(true);
       setError(null);
       await workspaceManager.saveCurrentWorkspace();
-    } catch (err) {
+    } catch (err: any) {
       setError(err.message);
       throw err;
     } finally {
@@ -308,7 +324,7 @@ export function WorkspaceProvider({ children }: { children: React.ReactNode }) {
     }
   }, [workspaceManager]);
 
-  const updateWorkspace = useCallback((updater) => {
+  const updateWorkspace = useCallback((updater: any) => {
     workspaceManager.updateCurrentWorkspace(updater);
   }, [workspaceManager]);
 
@@ -321,18 +337,16 @@ export function WorkspaceProvider({ children }: { children: React.ReactNode }) {
     return workspaceManager.getCurrentWorkspace()?.getCurrentScene();
   }, [workspaceManager]);
 
-  const setCurrentScene = useCallback((index) => {
-    updateWorkspace(workspace => workspace.setCurrentScene(index));
+  const setCurrentScene = useCallback((index: number) => {
+    updateWorkspace((workspace: any) => workspace.setCurrentScene(index));
   }, [updateWorkspace]);
 
-  const addScene = useCallback((sceneData) => {
-    updateWorkspace(workspace => workspace.addScene(sceneData));
+  const addScene = useCallback((sceneData: SceneData) => {
+    updateWorkspace((workspace: any) => workspace.addScene(sceneData));
   }, [updateWorkspace]);
 
-  const updateCurrentScene = useCallback(async (updates) => {
-    updateWorkspace(workspace => {
-      const currentScene = workspace.getCurrentScene();
-
+  const updateCurrentScene = useCallback(async (updates: any) => {
+    updateWorkspace((workspace: any) => {
       // Keep the scene as "New Scene" - don't rename it
       return workspace.updateCurrentScene(updates);
     });
@@ -348,8 +362,8 @@ export function WorkspaceProvider({ children }: { children: React.ReactNode }) {
     }
   }, [updateWorkspace, getCurrentScene, saveCurrentScene]);
 
-  const replaceCurrentScene = useCallback(async (newScene) => {
-    updateWorkspace(workspace => workspace.replaceCurrentScene(newScene));
+  const replaceCurrentScene = useCallback(async (newScene: SceneData) => {
+    updateWorkspace((workspace: any) => workspace.replaceCurrentScene(newScene));
 
     // Auto-save the scene if it's not the default empty scene
     if (newScene && newScene.id && !newScene.id.startsWith('new-scene-')) {
@@ -363,12 +377,12 @@ export function WorkspaceProvider({ children }: { children: React.ReactNode }) {
 
 
 
-  const deleteScene = useCallback((index) => {
-    updateWorkspace(workspace => workspace.deleteScene(index));
+  const deleteScene = useCallback((index: number) => {
+    updateWorkspace((workspace: any) => workspace.deleteScene(index));
   }, [updateWorkspace]);
 
   const clearScenes = useCallback(() => {
-    updateWorkspace(workspace => {
+    updateWorkspace((workspace: any) => {
       workspace.scenes = [];
       workspace.currentSceneIndex = -1;
       return workspace;
@@ -376,70 +390,169 @@ export function WorkspaceProvider({ children }: { children: React.ReactNode }) {
   }, [updateWorkspace]);
 
   // Legacy method for backward compatibility
-  const updateScene = useCallback((updates) => {
+  const updateScene = useCallback((updates: any) => {
     return updateCurrentScene(updates);
   }, [updateCurrentScene]);
 
-  const addMessage = useCallback((message) => {
-    workspaceManager.updateCurrentWorkspace(workspace => {
-      // Only add message if it doesn't already exist
-      const exists = workspace.chat?.messages?.some(m => m.id === message.id);
-      if (!exists) {
-        return workspace.addMessage(message);
-      }
-      return workspace;
-    }, false); // NOT silent - trigger re-render!
-    // Force update trigger
-    setWorkspaceUpdateTrigger(prev => prev + 1);
-    // In session-only mode we do not persist to storage.
+  // ==================== CHAT SYSTEM - CLEAN REWRITE ====================
+  // Direct state updates, no events, proper IndexedDB sync
+  
+  const addMessage = useCallback((message: WorkspaceChatMessage) => {
+    const workspace = workspaceManager.getCurrentWorkspace();
+    if (!workspace) {
+      console.warn('Cannot add message: no workspace');
+      return;
+    }
+    
+    const currentChat = workspace.getChatById(workspace.currentChatId);
+    if (!currentChat) {
+      console.warn('Cannot add message: no current chat');
+      return;
+    }
+    
+    // Check if message already exists (prevent duplicates)
+    const exists = currentChat.messages?.some((m: any) => m.id === message.id);
+    if (exists) {
+      console.log('Message already exists, skipping:', message.id);
+      return;
+    }
+    
+    // Add message directly to workspace
+    workspace.addMessage(message);
+    
+    // Update React state to trigger re-render (spread creates new reference)
+    setCurrentWorkspace({...workspace});
+    
+    // Save to IndexedDB immediately (no delay)
+    workspaceManager.saveCurrentWorkspace().catch(err => {
+      console.error('Failed to save workspace after adding message:', err);
+    });
   }, [workspaceManager]);
 
-  const updateSettings = useCallback((settings) => {
-    updateWorkspace(workspace => workspace.updateSettings(settings));
+  const updateSettings = useCallback((settings: WorkspaceSettings) => {
+    updateWorkspace((workspace: any) => workspace.updateSettings(settings));
   }, [updateWorkspace]);
 
-  const getUIMode = useCallback(() => {
-    return currentWorkspace?.settings?.uiMode || 'simple';
-  }, [currentWorkspace]);
+  // UI mode functionality removed - not needed
 
-  const setUIMode = useCallback((mode) => {
-    updateSettings({ uiMode: mode });
-  }, [updateSettings]);
-
-  // Chat management methods exposed from WorkspaceManager
+  // Chat session management - clean and direct
   const addChatSession = useCallback(() => {
-    const result = workspaceManager.addChatSession();
-    setWorkspaceUpdateTrigger(prev => prev + 1);
-    return result;
+    const workspace = workspaceManager.getCurrentWorkspace();
+    if (!workspace) {
+      console.warn('Cannot add chat session: no workspace');
+      return null;
+    }
+    
+    // Add new chat to workspace
+    const newChat = workspace.addChat();
+    
+    // Switch to the new chat
+    workspace.setCurrentChat(newChat.id);
+    
+    // Update React state to trigger re-render
+    setCurrentWorkspace({...workspace});
+    
+    // Save to IndexedDB immediately
+    workspaceManager.saveCurrentWorkspace().catch(err => {
+      console.error('Failed to save workspace after adding chat:', err);
+    });
+    
+    return newChat;
   }, [workspaceManager]);
 
-  const deleteChatSession = useCallback((chatId) => {
-    const result = workspaceManager.deleteChatSession(chatId);
-    setWorkspaceUpdateTrigger(prev => prev + 1);
-    return result;
+  const deleteChatSession = useCallback((chatId: string) => {
+    const workspace = workspaceManager.getCurrentWorkspace();
+    if (!workspace) {
+      console.warn('Cannot delete chat session: no workspace');
+      return false;
+    }
+    
+    // Delete chat from workspace (handles switching to another chat if needed)
+    const success = workspace.deleteChat(chatId);
+    if (!success) {
+      console.warn('Failed to delete chat:', chatId);
+      return false;
+    }
+    
+    // Update React state to trigger re-render
+    setCurrentWorkspace({...workspace});
+    
+    // Save to IndexedDB immediately
+    workspaceManager.saveCurrentWorkspace().catch(err => {
+      console.error('Failed to save workspace after deleting chat:', err);
+    });
+    
+    return true;
   }, [workspaceManager]);
 
-  const selectChatSession = useCallback((chatId) => {
-    const result = workspaceManager.selectChatSession(chatId);
-    // Force workspace update to trigger re-render
-    setWorkspaceUpdateTrigger(prev => prev + 1);
-    return result;
+  const selectChatSession = useCallback((chatId: string) => {
+    const workspace = workspaceManager.getCurrentWorkspace();
+    if (!workspace) {
+      console.warn('Cannot select chat session: no workspace');
+      return false;
+    }
+    
+    // Set current chat in workspace
+    const success = workspace.setCurrentChat(chatId);
+    if (!success) {
+      console.warn('Failed to select chat:', chatId);
+      return false;
+    }
+    
+    // Update React state to trigger re-render
+    setCurrentWorkspace({...workspace});
+    
+    // Save to IndexedDB immediately
+    workspaceManager.saveCurrentWorkspace().catch(err => {
+      console.error('Failed to save workspace after selecting chat:', err);
+    });
+    
+    return true;
   }, [workspaceManager]);
 
   const getCurrentChat = useCallback(() => {
-    return workspaceManager.getCurrentChat();
-  }, [workspaceManager]);
+    const workspace = workspaceManager.getCurrentWorkspace();
+    if (!workspace) return null;
+    
+    // Get current chat from workspace
+    return workspace.getChatById(workspace.currentChatId);
+  }, [workspaceManager, currentWorkspace]);
 
   const getAllChats = useCallback(() => {
-    return workspaceManager.getAllChats();
+    const workspace = workspaceManager.getCurrentWorkspace();
+    return workspace?.chats || [];
+  }, [workspaceManager, currentWorkspace]);
+
+  const updateChatName = useCallback((chatId: string, name: string) => {
+    const workspace = workspaceManager.getCurrentWorkspace();
+    if (!workspace) {
+      console.warn('Cannot update chat name: no workspace');
+      return false;
+    }
+    
+    const success = workspace.updateChatName(chatId, name);
+    if (!success) {
+      console.warn('Failed to update chat name:', chatId);
+      return false;
+    }
+    
+    // Update React state to trigger re-render
+    setCurrentWorkspace({...workspace});
+    
+    // Save to IndexedDB immediately
+    workspaceManager.saveCurrentWorkspace().catch(err => {
+      console.error('Failed to save workspace after updating chat name:', err);
+    });
+    
+    return true;
   }, [workspaceManager]);
 
   // Scene-chat linking methods
-  const linkSceneToChat = useCallback((sceneId, chatId) => {
-    workspaceManager.updateCurrentWorkspace(workspace => workspace.linkSceneToChat(sceneId, chatId), true); // Silent update
+  const linkSceneToChat = useCallback((sceneId: string, chatId: string) => {
+    workspaceManager.updateCurrentWorkspace((workspace: any) => workspace.linkSceneToChat(sceneId, chatId), true); // Silent update
   }, [workspaceManager]);
 
-  const getChatForScene = useCallback((sceneId) => {
+  const getChatForScene = useCallback((sceneId: string) => {
     if (!currentWorkspace || typeof currentWorkspace.getChatForScene !== 'function') {
       return null;
     }
@@ -452,7 +565,6 @@ export function WorkspaceProvider({ children }: { children: React.ReactNode }) {
     // State
     currentWorkspace,
     currentView,
-    workspaceUpdateTrigger, // Include trigger for re-renders
     loading,
     error,
 
@@ -497,8 +609,6 @@ export function WorkspaceProvider({ children }: { children: React.ReactNode }) {
     updateScene,
     addMessage,
     updateSettings,
-    getUIMode,
-    setUIMode,
 
     // Visualizer actions
     togglePlayPause,
@@ -523,6 +633,7 @@ export function WorkspaceProvider({ children }: { children: React.ReactNode }) {
     selectChatSession,
     getCurrentChat,
     getAllChats,
+    updateChatName,
 
     // Scene-chat linking methods
     linkSceneToChat,
@@ -549,7 +660,7 @@ export function useWorkspace() {
 
 // Hook for workspace-aware components
 export function useWorkspaceScene() {
-  const { currentWorkspace, workspaceUpdateTrigger, getCurrentScene, updateCurrentScene, replaceCurrentScene, setCurrentScene, addScene, deleteScene } = useWorkspace();
+  const { currentWorkspace, getCurrentScene, updateCurrentScene, replaceCurrentScene, setCurrentScene, addScene, deleteScene } = useWorkspace();
 
   return {
     scene: getCurrentScene(),
@@ -565,13 +676,12 @@ export function useWorkspaceScene() {
 }
 
 export function useWorkspaceChat() {
-  const { currentWorkspace, addMessage, selectChatSession, getCurrentChat, getAllChats, addChatSession, deleteChatSession } = useWorkspace();
+  const { addMessage, selectChatSession, getCurrentChat, getAllChats, addChatSession, deleteChatSession } = useWorkspace();
 
   return {
     // Use the current chat's messages
     messages: getCurrentChat()?.messages || [],
     addMessage,
-    chatSettings: getCurrentChat()?.settings,
     // Expose chat management functions
     selectChatSession,
     getCurrentChat,
@@ -582,12 +692,10 @@ export function useWorkspaceChat() {
 }
 
 export function useWorkspaceSettings() {
-  const { currentWorkspace, updateSettings, getUIMode, setUIMode } = useWorkspace();
+  const { currentWorkspace, updateSettings } = useWorkspace();
 
   return {
     settings: currentWorkspace?.settings,
-    updateSettings,
-    uiMode: getUIMode(),
-    setUIMode
+    updateSettings
   };
 }

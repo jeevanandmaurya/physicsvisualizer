@@ -1,0 +1,507 @@
+{
+  "id": "hybrid-showcase",
+  "name": "Hybrid Showcase - Physics + Non-Physics + Tools",
+  "version": "1.0",
+  "description": "Advanced demonstration combining physics simulation, non-physics animations, tool-generated content, and comprehensive visual annotations",
+  "gravity": [0, -9.81, 0],
+  "hasGround": true,
+  "simulationScale": "terrestrial",
+  "contactMaterial": {
+    "friction": 0.5,
+    "restitution": 0.6
+  },
+  "gravitationalPhysics": {
+    "enabled": false
+  },
+  "constraints": {
+    "enabled": true
+  },
+  "objects": [
+    {
+      "id": "ground",
+      "type": "Box",
+      "position": [0, -0.5, 0],
+      "dimensions": [40, 1, 40],
+      "mass": 0,
+      "isStatic": true,
+      "color": "#1a1a1a",
+      "friction": 0.7,
+      "restitution": 0.3
+    },
+    {
+      "id": "physics_ball_1",
+      "type": "Sphere",
+      "position": [-5, 8, 0],
+      "radius": 0.5,
+      "mass": 1,
+      "velocity": [2, 0, 1],
+      "color": "#ff4500",
+      "restitution": 0.8,
+      "friction": 0.3
+    },
+    {
+      "id": "physics_ball_2",
+      "type": "Sphere",
+      "position": [-3, 10, 0],
+      "radius": 0.5,
+      "mass": 1,
+      "velocity": [-1, 0, -1],
+      "color": "#ff6347",
+      "restitution": 0.8,
+      "friction": 0.3
+    },
+    {
+      "id": "physics_ball_3",
+      "type": "Sphere",
+      "position": [-1, 9, 0],
+      "radius": 0.5,
+      "mass": 1,
+      "velocity": [0, 0, 2],
+      "color": "#ff7f50",
+      "restitution": 0.8,
+      "friction": 0.3
+    },
+    {
+      "id": "pendulum_anchor_1",
+      "type": "Sphere",
+      "position": [5, 8, -5],
+      "radius": 0.2,
+      "mass": 0,
+      "isStatic": true,
+      "color": "#444444"
+    },
+    {
+      "id": "pendulum_bob_1",
+      "type": "Sphere",
+      "position": [5, 4, -5],
+      "radius": 0.7,
+      "mass": 3,
+      "velocity": [2, 0, 0],
+      "color": "#00bfff",
+      "constraints": [
+        {
+          "type": "spring",
+          "targetId": "pendulum_anchor_1",
+          "stiffness": 120,
+          "damping": 0.3,
+          "restLength": 4
+        }
+      ]
+    },
+    {
+      "id": "pendulum_anchor_2",
+      "type": "Sphere",
+      "position": [8, 8, -5],
+      "radius": 0.2,
+      "mass": 0,
+      "isStatic": true,
+      "color": "#444444"
+    },
+    {
+      "id": "pendulum_bob_2",
+      "type": "Sphere",
+      "position": [8, 5, -5],
+      "radius": 0.6,
+      "mass": 2,
+      "velocity": [-3, 0, 0],
+      "color": "#1e90ff",
+      "constraints": [
+        {
+          "type": "spring",
+          "targetId": "pendulum_anchor_2",
+          "stiffness": 100,
+          "damping": 0.4,
+          "restLength": 3
+        }
+      ]
+    },
+    {
+      "id": "orbital_center",
+      "type": "Sphere",
+      "position": [0, 5, 8],
+      "radius": 0.8,
+      "color": "#ffd700",
+      "visualOnly": true,
+      "animation": {
+        "code": "mesh.rotation.y += deltaTime * 0.5;"
+      }
+    },
+    {
+      "id": "orbiter_1",
+      "type": "Sphere",
+      "position": [3, 5, 8],
+      "radius": 0.4,
+      "color": "#00ff00",
+      "visualOnly": true,
+      "animation": {
+        "type": "custom",
+        "code": "const cx = 0; const cz = 8; const radius = 3; const speed = 1; mesh.position.x = cx + Math.cos(time * speed) * radius; mesh.position.z = cz + Math.sin(time * speed) * radius; mesh.rotation.y = -time * speed;"
+      }
+    },
+    {
+      "id": "orbiter_2",
+      "type": "Sphere",
+      "position": [-3, 5, 8],
+      "radius": 0.4,
+      "color": "#00ffff",
+      "visualOnly": true,
+      "animation": {
+        "type": "custom",
+        "code": "const cx = 0; const cz = 8; const radius = 3; const speed = 1.5; mesh.position.x = cx + Math.cos(time * speed + Math.PI) * radius; mesh.position.z = cz + Math.sin(time * speed + Math.PI) * radius; mesh.rotation.y = -time * speed;"
+      }
+    },
+    {
+      "id": "orbiter_3",
+      "type": "Sphere",
+      "position": [0, 5, 11],
+      "radius": 0.4,
+      "color": "#ff00ff",
+      "visualOnly": true,
+      "animation": {
+        "type": "custom",
+        "code": "const cx = 0; const cz = 8; const radius = 3; const speed = 2; mesh.position.x = cx + Math.cos(time * speed + Math.PI/2) * radius; mesh.position.z = cz + Math.sin(time * speed + Math.PI/2) * radius; mesh.rotation.y = -time * speed;"
+      }
+    },
+    {
+      "id": "backdrop_ring_1",
+      "type": "Cylinder",
+      "position": [-10, 3, -8],
+      "radius": 0.1,
+      "height": 0.1,
+      "color": "#ffffff",
+      "opacity": 0.3,
+      "visualOnly": true,
+      "animation": {
+        "type": "custom",
+        "code": "const scale = 1 + Math.sin(time * 2) * 0.3; mesh.scale.set(scale * 3, 1, scale * 3); mesh.rotation.x = Math.PI / 2; if (mesh.material) { mesh.material.opacity = 0.2 + Math.sin(time * 2) * 0.15; mesh.material.transparent = true; }"
+      }
+    },
+    {
+      "id": "backdrop_ring_2",
+      "type": "Cylinder",
+      "position": [-10, 5, -8],
+      "radius": 0.1,
+      "height": 0.1,
+      "color": "#00ffff",
+      "opacity": 0.3,
+      "visualOnly": true,
+      "animation": {
+        "type": "custom",
+        "code": "const scale = 1 + Math.sin(time * 2 + 1) * 0.3; mesh.scale.set(scale * 2.5, 1, scale * 2.5); mesh.rotation.x = Math.PI / 2; if (mesh.material) { mesh.material.opacity = 0.2 + Math.sin(time * 2 + 1) * 0.15; mesh.material.transparent = true; }"
+      }
+    },
+    {
+      "id": "backdrop_ring_3",
+      "type": "Cylinder",
+      "position": [-10, 7, -8],
+      "radius": 0.1,
+      "height": 0.1,
+      "color": "#ff00ff",
+      "opacity": 0.3,
+      "visualOnly": true,
+      "animation": {
+        "type": "custom",
+        "code": "const scale = 1 + Math.sin(time * 2 + 2) * 0.3; mesh.scale.set(scale * 2, 1, scale * 2); mesh.rotation.x = Math.PI / 2; if (mesh.material) { mesh.material.opacity = 0.2 + Math.sin(time * 2 + 2) * 0.15; mesh.material.transparent = true; }"
+      }
+    },
+    {
+      "id": "floating_platform",
+      "type": "Box",
+      "position": [10, 3, 0],
+      "dimensions": [3, 0.3, 3],
+      "color": "#4169e1",
+      "visualOnly": true,
+      "animation": {
+        "type": "custom",
+        "code": "mesh.position.y = 3 + Math.sin(time * 0.8) * 1.5; mesh.rotation.y = time * 0.3;"
+      }
+    },
+    {
+      "id": "platform_ball",
+      "type": "Sphere",
+      "position": [10, 6, 0],
+      "radius": 0.5,
+      "mass": 1,
+      "color": "#ffa500",
+      "restitution": 0.9,
+      "friction": 0.2
+    },
+    {
+      "id": "wave_sphere_1",
+      "type": "Sphere",
+      "position": [-8, 0, 5],
+      "radius": 0.35,
+      "color": "#ff0000",
+      "visualOnly": true,
+      "animation": {
+        "type": "custom",
+        "code": "mesh.position.y = Math.sin(time * 3 + 0) * 2;"
+      }
+    },
+    {
+      "id": "wave_sphere_2",
+      "type": "Sphere",
+      "position": [-7, 0, 5],
+      "radius": 0.35,
+      "color": "#ff4500",
+      "visualOnly": true,
+      "animation": {
+        "type": "custom",
+        "code": "mesh.position.y = Math.sin(time * 3 + 0.6) * 2;"
+      }
+    },
+    {
+      "id": "wave_sphere_3",
+      "type": "Sphere",
+      "position": [-6, 0, 5],
+      "radius": 0.35,
+      "color": "#ff8c00",
+      "visualOnly": true,
+      "animation": {
+        "type": "custom",
+        "code": "mesh.position.y = Math.sin(time * 3 + 1.2) * 2;"
+      }
+    },
+    {
+      "id": "wave_sphere_4",
+      "type": "Sphere",
+      "position": [-5, 0, 5],
+      "radius": 0.35,
+      "color": "#ffd700",
+      "visualOnly": true,
+      "animation": {
+        "type": "custom",
+        "code": "mesh.position.y = Math.sin(time * 3 + 1.8) * 2;"
+      }
+    },
+    {
+      "id": "wave_sphere_5",
+      "type": "Sphere",
+      "position": [-4, 0, 5],
+      "radius": 0.35,
+      "color": "#adff2f",
+      "visualOnly": true,
+      "animation": {
+        "type": "custom",
+        "code": "mesh.position.y = Math.sin(time * 3 + 2.4) * 2;"
+      }
+    },
+    {
+      "id": "wave_sphere_6",
+      "type": "Sphere",
+      "position": [-3, 0, 5],
+      "radius": 0.35,
+      "color": "#00ff00",
+      "visualOnly": true,
+      "animation": {
+        "type": "custom",
+        "code": "mesh.position.y = Math.sin(time * 3 + 3.0) * 2;"
+      }
+    }
+  ],
+  "visualAnnotations": [
+    {
+      "id": "physics_ball_1_velocity",
+      "type": "vector",
+      "attachedToObjectId": "physics_ball_1",
+      "vectorType": "velocity",
+      "scale": 0.4,
+      "color": "#00ff00",
+      "visible": true,
+      "showWhenPlaying": true
+    },
+    {
+      "id": "physics_ball_1_trail",
+      "type": "trail",
+      "attachedToObjectId": "physics_ball_1",
+      "maxLength": 100,
+      "color": "#ff4500",
+      "lineWidth": 3,
+      "visible": true,
+      "showWhenPlaying": true
+    },
+    {
+      "id": "physics_ball_1_speed",
+      "type": "text",
+      "attachedToObjectId": "physics_ball_1",
+      "contentType": "speed",
+      "offset": [0, 1.2, 0],
+      "fontSize": 0.25,
+      "color": "#ffffff",
+      "backgroundColor": "#330000",
+      "backgroundOpacity": 0.8,
+      "visible": true,
+      "showWhenPlaying": true,
+      "minSpeed": 0.1
+    },
+    {
+      "id": "physics_ball_2_velocity",
+      "type": "vector",
+      "attachedToObjectId": "physics_ball_2",
+      "vectorType": "velocity",
+      "scale": 0.4,
+      "color": "#00ff00",
+      "visible": true,
+      "showWhenPlaying": true
+    },
+    {
+      "id": "physics_ball_2_trail",
+      "type": "trail",
+      "attachedToObjectId": "physics_ball_2",
+      "maxLength": 100,
+      "color": "#ff6347",
+      "lineWidth": 3,
+      "visible": true,
+      "showWhenPlaying": true
+    },
+    {
+      "id": "physics_ball_3_velocity",
+      "type": "vector",
+      "attachedToObjectId": "physics_ball_3",
+      "vectorType": "velocity",
+      "scale": 0.4,
+      "color": "#00ff00",
+      "visible": true,
+      "showWhenPlaying": true
+    },
+    {
+      "id": "physics_ball_3_trail",
+      "type": "trail",
+      "attachedToObjectId": "physics_ball_3",
+      "maxLength": 100,
+      "color": "#ff7f50",
+      "lineWidth": 3,
+      "visible": true,
+      "showWhenPlaying": true
+    },
+    {
+      "id": "pendulum_1_velocity",
+      "type": "vector",
+      "attachedToObjectId": "pendulum_bob_1",
+      "vectorType": "velocity",
+      "scale": 0.3,
+      "color": "#ffff00",
+      "visible": true,
+      "showWhenPlaying": true
+    },
+    {
+      "id": "pendulum_1_trail",
+      "type": "trail",
+      "attachedToObjectId": "pendulum_bob_1",
+      "maxLength": 150,
+      "color": "#00bfff",
+      "lineWidth": 2,
+      "visible": true,
+      "showWhenPlaying": true
+    },
+    {
+      "id": "pendulum_1_energy",
+      "type": "text",
+      "attachedToObjectId": "pendulum_bob_1",
+      "contentType": "kineticEnergy",
+      "offset": [0, 1.5, 0],
+      "fontSize": 0.2,
+      "color": "#00ffff",
+      "backgroundColor": "#003366",
+      "backgroundOpacity": 0.8,
+      "visible": true,
+      "showWhenPlaying": true
+    },
+    {
+      "id": "pendulum_2_velocity",
+      "type": "vector",
+      "attachedToObjectId": "pendulum_bob_2",
+      "vectorType": "velocity",
+      "scale": 0.3,
+      "color": "#ffff00",
+      "visible": true,
+      "showWhenPlaying": true
+    },
+    {
+      "id": "pendulum_2_trail",
+      "type": "trail",
+      "attachedToObjectId": "pendulum_bob_2",
+      "maxLength": 150,
+      "color": "#1e90ff",
+      "lineWidth": 2,
+      "visible": true,
+      "showWhenPlaying": true
+    },
+    {
+      "id": "orbital_center_label",
+      "type": "text",
+      "attachedToObjectId": "orbital_center",
+      "contentType": "custom",
+      "customText": "Orbital System",
+      "offset": [0, 1.5, 0],
+      "fontSize": 0.3,
+      "color": "#ffd700",
+      "backgroundColor": "#664400",
+      "backgroundOpacity": 0.8,
+      "visible": true
+    },
+    {
+      "id": "orbiter_1_trail",
+      "type": "trail",
+      "attachedToObjectId": "orbiter_1",
+      "maxLength": 120,
+      "color": "#00ff00",
+      "lineWidth": 2,
+      "visible": true,
+      "showWhenPlaying": true
+    },
+    {
+      "id": "orbiter_2_trail",
+      "type": "trail",
+      "attachedToObjectId": "orbiter_2",
+      "maxLength": 120,
+      "color": "#00ffff",
+      "lineWidth": 2,
+      "visible": true,
+      "showWhenPlaying": true
+    },
+    {
+      "id": "orbiter_3_trail",
+      "type": "trail",
+      "attachedToObjectId": "orbiter_3",
+      "maxLength": 120,
+      "color": "#ff00ff",
+      "lineWidth": 2,
+      "visible": true,
+      "showWhenPlaying": true
+    },
+    {
+      "id": "platform_ball_velocity",
+      "type": "vector",
+      "attachedToObjectId": "platform_ball",
+      "vectorType": "velocity",
+      "scale": 0.4,
+      "color": "#ffffff",
+      "visible": true,
+      "showWhenPlaying": true
+    },
+    {
+      "id": "platform_ball_trail",
+      "type": "trail",
+      "attachedToObjectId": "platform_ball",
+      "maxLength": 80,
+      "color": "#ffa500",
+      "lineWidth": 3,
+      "visible": true,
+      "showWhenPlaying": true
+    },
+    {
+      "id": "floating_platform_label",
+      "type": "text",
+      "attachedToObjectId": "floating_platform",
+      "contentType": "custom",
+      "customText": "Animated Platform",
+      "offset": [0, 1, 0],
+      "fontSize": 0.25,
+      "color": "#ffffff",
+      "backgroundColor": "#000066",
+      "backgroundOpacity": 0.7,
+      "visible": true
+    }
+  ]
+}

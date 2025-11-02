@@ -19,7 +19,8 @@ import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { faCube } from '@fortawesome/free-solid-svg-icons';
 import { useWorkspace } from '../../contexts/WorkspaceContext';
 import SceneDetailsUI from '../../views/components/scene-management/SceneDetailsUI';
-import { functionCallSystem } from '../../core/FunctionCallSystem.js';
+import { functionCallSystem } from '../../core/tools/FunctionCallSystem.js';
+import { physicsDataStore } from '../../core/physics/PhysicsDataStore';
 
 // --- Visualizer-specific helper components ---
 function TimeUpdater({ isPlaying, updateSimulationTime }) {
@@ -157,7 +158,7 @@ function Skybox({ texturePath, backgroundType = 'normal' }) {
   );
 }
 
-function Visualizer({ scene, showSceneDetails, onToggleSceneDetails, backgroundType = 'normal' }) {
+function Visualizer({ scene, showSceneDetails, onToggleSceneDetails }) {
     const { isPlaying, simulationTime, fps, showVelocityVectors, vectorScale, openGraphs, resetSimulation, loopReset, updateSimulationTime, updateFps, resetTrigger, removeGraph, setObjectHistory, loopMode, setIsPlaying, dataTimeStep, simulationSpeed } = useWorkspace();
 
     // Debug: Log scene changes
@@ -168,17 +169,19 @@ function Visualizer({ scene, showSceneDetails, onToggleSceneDetails, backgroundT
     const historyRef = useRef({});
     const lastLoopResetRef = useRef(0);
     const lastRecordTimeRef = useRef({}); // Track last recorded time for each object
+    const physicsDataRef = useRef({ velocities: {}, positions: {} }); // Changed to ref to avoid re-renders
     const [physicsData, setPhysicsData] = useState({ velocities: {}, positions: {} });
     const [canvasError, setCanvasError] = useState(false);
     const r3fCanvasRef = useRef(null);
     const [processedScene, setProcessedScene] = useState(null);
+    const physicsUpdateCountRef = useRef(0); // Batch updates
 
-    // Process scene function calls when scene changes
-    useEffect(() => {
+    // Process scene function calls when scene changes - MEMOIZED to prevent re-processing
+    // Use scene._version to force re-processing when scene is updated via patches
+    const processedSceneMemo = useMemo(() => {
         if (scene) {
-            console.log('🎬 Visualizer: Processing scene functions for:', scene.id);
+            console.log('🎬 Visualizer: Processing scene functions for:', scene.id, 'version:', scene._version || 0);
             const processed = functionCallSystem.processSceneFunctions(scene);
-            setProcessedScene(processed);
 
             // Log any errors that occurred during processing
             if (processed.errors && processed.errors.length > 0) {
@@ -186,10 +189,14 @@ function Visualizer({ scene, showSceneDetails, onToggleSceneDetails, backgroundT
             }
 
             console.log(`✅ Scene processed: ${scene.objects?.length || 0} → ${processed.objects?.length || 0} objects`);
-        } else {
-            setProcessedScene(null);
+            return processed;
         }
-    }, [scene]);
+        return null;
+    }, [scene, scene?._version]);
+
+    useEffect(() => {
+        setProcessedScene(processedSceneMemo);
+    }, [processedSceneMemo]);
 
     const activeScene = processedScene || scene;
     const { gravity = [0, -9.81, 0], contactMaterial = {}, hasGround = true } = activeScene || {};
@@ -203,69 +210,39 @@ function Visualizer({ scene, showSceneDetails, onToggleSceneDetails, backgroundT
     const MAX_HISTORY_POINTS = 2000;
 
   const handlePhysicsDataCalculated = useCallback((data) => {
-    // data format: { objectId: { velocity: [vx,vy,vz], position: [x,y,z], time: t } }
-    // Merge incoming per-object updates into the existing physicsData state
-    // because PhysicsObject reports one object at a time from useFrame.
-    const incomingVelocities = {};
-    const incomingPositions = {};
-
+    // NEW: Use PhysicsDataStore - bypasses React entirely!
+    // This is now the fastest possible path - direct memory write
     Object.entries(data).forEach(([id, info]) => {
       if (info && info.velocity && info.position && info.time !== undefined) {
-        incomingVelocities[id] = info.velocity;
-        incomingPositions[id] = info.position;
-
-        // Check if enough time has passed since last recording based on dataTimeStep
-        const lastRecordTime = lastRecordTimeRef.current[id] || 0;
-        const timeSinceLastRecord = info.time - lastRecordTime;
-
-        // Only record if time step has elapsed
-        if (timeSinceLastRecord >= dataTimeStep) {
-          // Update history
-          if (!historyRef.current[id]) {
-            historyRef.current[id] = [];
-          }
-          const history = historyRef.current[id];
-
-          history.push({
-            t: info.time,
-            x: info.position[0],
-            y: info.position[1],
-            z: info.position[2],
-            vx: info.velocity[0],
-            vy: info.velocity[1],
-            vz: info.velocity[2]
-          });
-
-          // Update last record time
-          lastRecordTimeRef.current[id] = info.time;
-
-          // Keep history size manageable
-          if (history.length > MAX_HISTORY_POINTS) {
-            history.shift();
-          }
-        }
+        // Store handles all throttling, history management, and notifications
+        physicsDataStore.updatePhysicsData(
+          id,
+          info.velocity,
+          info.position,
+          info.time
+        );
       }
     });
-
-    // Merge with previous state so we preserve data for objects that haven't been
-    // reported in this particular frame call.
-    setPhysicsData(prev => ({
-      velocities: { ...(prev?.velocities || {}), ...incomingVelocities },
-      positions: { ...(prev?.positions || {}), ...incomingPositions }
-    }));
-  }, [dataTimeStep]);
+    
+    // No more React state updates here! 
+    // Subscribers (graphs, UI) get updates via event system at their own rate
+  }, []);
 
     useEffect(() => {
+        // Clear PhysicsDataStore on scene change
+        physicsDataStore.clear();
+        physicsDataStore.setUpdateRates(100, 500, dataTimeStep);
         historyRef.current = {};
         lastRecordTimeRef.current = {};
         setObjectHistory({});
         setPhysicsData({ velocities: {}, positions: {} });
         setIsPlaying(false);
-    }, [scene, setIsPlaying]);
+    }, [scene, setIsPlaying, dataTimeStep]);
 
     // Reset data when reset button is pressed (resetTrigger changes)
     useEffect(() => {
         if (resetTrigger) {
+            physicsDataStore.clear();
             historyRef.current = {};
             lastRecordTimeRef.current = {};
             setObjectHistory({});
@@ -345,7 +322,16 @@ function Visualizer({ scene, showSceneDetails, onToggleSceneDetails, backgroundT
                     <Canvas
                         style={{ position: 'absolute', top: 0, left: 0, width: '100%', height: '100%', zIndex: 0 }}
                         shadows
-                        gl={{ logLevel: 'errors', preserveDrawingBuffer: true }}
+                        frameloop="always"
+                        dpr={[1, 2]}
+                        performance={{ min: 0.5 }}
+                        gl={{ 
+                            logLevel: 'errors', 
+                            preserveDrawingBuffer: false,
+                            antialias: true,
+                            powerPreference: 'high-performance',
+                            alpha: false
+                        }}
                         camera={{ position: [10, 5, 25], fov: 50, near: 0.1, far: 200000 }}
                         onError={() => setCanvasError(true)}
                         onCreated={({ gl }) => {
@@ -394,7 +380,7 @@ function Visualizer({ scene, showSceneDetails, onToggleSceneDetails, backgroundT
                         <LabeledAxesHelper size={5} />
                         <SimpleGrid show={hasGround} />
                         <FpsCounter updateFps={updateFps} />
-                        <Skybox texturePath={backgroundTexture} backgroundType={backgroundType} />
+                        <Skybox texturePath={backgroundTexture} backgroundType="normal" />
                     </Canvas>
                 )}
 

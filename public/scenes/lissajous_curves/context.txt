@@ -1,0 +1,53 @@
+# Lissajous Curves
+
+5 spheres tracing beautiful 3D Lissajous curves with different frequency ratios.
+
+## What are Lissajous Curves?
+
+Complex harmonic motion patterns created by combining sine waves with different frequencies in X, Y, and Z axes.
+
+Named after Jules Antoine Lissajous (1822-1880), French physicist.
+
+## Curves in This Demo
+
+1. **Red (1:2:3)** - Simple harmonic
+2. **Green (2:3:5)** - Complex path
+3. **Blue (3:4:2)** - Figure-8 variants
+4. **Yellow (5:3:4)** - Dense pattern
+5. **Magenta (4:5:3)** - Intricate weave
+
+## Mathematical Form
+
+```
+x(t) = A * sin(a * t)
+y(t) = B * sin(b * t)
+z(t) = C * sin(c * t)
+```
+
+Where `a:b:c` is the frequency ratio.
+
+## Animation Code
+
+```javascript
+mesh.position.x = 8 * Math.sin(a * time);
+mesh.position.y = 5 + 8 * Math.sin(b * time);
+mesh.position.z = 8 * Math.sin(c * time);
+mesh.rotation.y = time; // Spin for visual interest
+```
+
+## Physics Connection
+
+Lissajous curves represent systems with multiple periodic forces:
+- Coupled oscillators
+- Wave interference patterns
+- Orbital mechanics
+- Signal processing (oscilloscope patterns)
+
+## Try This
+
+Create your own curve with new frequency ratio:
+```javascript
+{a: 7, b: 5, c: 3, color: '#00ffff'}
+```
+
+The more coprime the numbers, the more complex the pattern!

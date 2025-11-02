@@ -4,7 +4,7 @@ import { faPlay, faPause, faRedo, faCamera, faSave, faChartLine, faChevronDown, 
 import { useWorkspace } from '../contexts/WorkspaceContext';
 
 
-const StatusBar = ({ activeView, chatOpen, onChatToggle, graphOpen, onGraphToggle, controllerOpen, onControllerToggle, panelOpen, onPanelToggle }) => {
+const StatusBar = ({ activeView, chatOpen, onChatToggle, graphOpen, onGraphToggle, controllerOpen, onControllerToggle, sceneSelectorOpen, onSceneSelectorToggle }) => {
   const { workspaceScenes, workspaceChats, isPlaying, simulationTime, fps, openGraphs, togglePlayPause, resetSimulation, addGraph, getCurrentScene, saveCurrentScene, loopMode, toggleLoop, simulationSpeed, setSimulationSpeed } = useWorkspace();
 
 
@@ -144,11 +144,11 @@ const StatusBar = ({ activeView, chatOpen, onChatToggle, graphOpen, onGraphToggl
   return (
     <div className="status-bar">
       <div className="status-bar-left">
-        {activeView === 'visualizer' && onPanelToggle && (
+        {activeView === 'visualizer' && onSceneSelectorToggle && (
           <button
-            className={`status-control-button ${panelOpen ? 'active' : ''}`}
-            onClick={onPanelToggle}
-            title={panelOpen ? 'Hide Scene Selector' : 'Show Scene Selector'}
+            className={`status-control-button ${sceneSelectorOpen ? 'active' : ''}`}
+            onClick={onSceneSelectorToggle}
+            title={sceneSelectorOpen ? 'Hide Scene Selector' : 'Show Scene Selector'}
             style={{ marginRight: '10px' }}
           >
             <FontAwesomeIcon icon={faList} style={{ fontSize: '18px' }} />

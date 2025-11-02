@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback, useRef, Suspense } from 'react';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
-import { faSpinner, faExclamationTriangle, faSquare, faSquareFull, faImage, faRocket } from '@fortawesome/free-solid-svg-icons';
+import { faSpinner, faExclamationTriangle } from '@fortawesome/free-solid-svg-icons';
 import Visualizer from '../ui-logic/visualizer/Visualizer';
 import { useDatabase, SceneData } from '../contexts/DatabaseContext';
 import { useWorkspace, useWorkspaceScene, useWorkspaceChat, useWorkspaceSettings } from '../contexts/WorkspaceContext';
@@ -51,7 +51,6 @@ function VisualizerView() {
   const { createWorkspace: _createWorkspace, loadWorkspace: _loadWorkspace, saveWorkspace: _saveWorkspace, updateWorkspace: _updateWorkspace } = useWorkspace();
   const { scene: workspaceScene, updateScene: updateWorkspaceScene, scenes: _workspaceScenes } = useWorkspaceScene();
   const { messages: workspaceMessages, addMessage: addWorkspaceMessage } = useWorkspaceChat();
-  const { uiMode: workspaceUIMode, setUIMode: setWorkspaceUIMode } = useWorkspaceSettings();
 
   const [loading, setLoading] = useState<boolean>(true);
   const [sceneSwitching, setSceneSwitching] = useState<boolean>(false);
@@ -62,32 +61,10 @@ function VisualizerView() {
   const [pendingChanges, setPendingChanges] = useState<any>(null);
   const [isPreviewMode, setIsPreviewMode] = useState<boolean>(false);
   const [capturedThumbnail, setCapturedThumbnail] = useState<string | null>(null);
-  const [rightPanelView, setRightPanelView] = useState<string>(workspaceUIMode === 'simple' ? 'integrated' : 'chat');
+  const [rightPanelView, setRightPanelView] = useState<string>('chat');
   const [showSceneDetails, setShowSceneDetails] = useState<boolean>(false);
   // Use workspace scene directly
   const scene = workspaceScene;
-  // Determine initial background type from the scene JSON if provided.
-  // Accept multiple possible keys for backward compatibility: scene.background or scene.backgroundType
-  const inferBackgroundFromScene = (s: SceneData | null): string => {
-    if (!s) return 'normal';
-    // scene may store a simple string or an object like { type: 'space' }
-    const sceneAny = s as any;
-    const value = sceneAny.background || sceneAny.backgroundType || (sceneAny.bg && (typeof sceneAny.bg === 'string' ? sceneAny.bg : sceneAny.bg.type));
-    if (!value) return 'normal';
-    // Normalize known values
-    const v = String(value).toLowerCase();
-    if (v === 'black' || v === '#000' || v === '#000000') return 'black';
-    if (v === 'white' || v === '#fff' || v === '#ffffff') return 'white';
-    if (v === 'space' || v === 'space.svg') return 'space';
-    return 'normal';
-  };
-
-  const [backgroundType, setBackgroundType] = useState(() => inferBackgroundFromScene(scene)); // 'black', 'white', 'normal', 'space'
-
-  // Keep backgroundType in sync when the workspace scene changes
-  useEffect(() => {
-    setBackgroundType(inferBackgroundFromScene(scene));
-  }, [scene]);
 
 
   // --- Scene Manipulation Handlers ---
@@ -251,69 +228,11 @@ function VisualizerView() {
 
   return (
     <div className="visualizer-container" style={{ position: 'relative' }}>
-      {/* Background Controls Panel */}
-      <div style={{
-        position: 'absolute',
-        top: '10px',
-        right: '10px',
-        zIndex: 1000,
-        backgroundColor: 'rgba(0, 0, 0, 0.7)',
-        borderRadius: '6px',
-        padding: '6px',
-        display: 'flex',
-        flexDirection: 'row',
-        alignItems: 'center',
-        justifyContent: 'center',
-        gap: '4px',
-        backdropFilter: 'blur(8px)',
-        border: '1px solid rgba(255, 255, 255, 0.1)'
-      }}>
-        {/* Left-to-right order: hollow square (black), filled square (white), image (normal), rocket (space) */}
-        {[
-          { type: 'black', icon: faSquare, tooltip: 'Solid Black (#000000)' },
-          { type: 'white', icon: faSquareFull, tooltip: 'Solid White (#ffffff)' },
-          { type: 'normal', icon: faImage, tooltip: 'Normal SVG (background.svg)' },
-          { type: 'space', icon: faRocket, tooltip: 'Space SVG (space.svg)' }
-        ].map(({ type, icon, tooltip }) => (
-          <button
-            key={type}
-            onClick={() => setBackgroundType(type)}
-            title={tooltip}
-            aria-pressed={backgroundType === type}
-            style={{
-              backgroundColor: backgroundType === type ? 'rgba(0, 123, 255, 0.8)' : 'transparent',
-              border: 'none',
-              borderRadius: '4px',
-              width: '28px',
-              height: '28px',
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              cursor: 'pointer',
-              color: '#ffffff',
-              fontSize: '12px',
-              transition: 'all 0.2s ease'
-            }}
-          >
-            <FontAwesomeIcon icon={icon} style={{ fontSize: '12px' }} />
-          </button>
-        ))}
-      </div>
-
       <Visualizer
         key={`visualizer-${scene?.id || 'new'}`}
         scene={scene}
-        pendingChanges={pendingChanges}
-        isPreviewMode={isPreviewMode}
-        onAcceptChanges={handleAcceptChanges}
-        onRejectChanges={handleRejectChanges}
-        onThumbnailCapture={handleThumbnailCapture}
-        uiMode={workspaceUIMode}
-        onModeChange={setWorkspaceUIMode}
-        showControls={false} // Controls are now in status bar
         showSceneDetails={showSceneDetails}
         onToggleSceneDetails={handleToggleSceneDetails}
-        backgroundType={backgroundType}
       />
       {sceneSwitching && (
         <div className="scene-loading-overlay">

@@ -1,0 +1,22 @@
+{
+  "id": "lissajous_curves",
+  "name": "Lissajous Curves",
+  "description": "Beautiful 3D Lissajous curves using different frequency ratios",
+  "objects": [],
+  "functionCalls": [
+    {
+      "code": "const objects = []; const curves = [{a:1,b:2,c:3,color:'#ff0000'},{a:2,b:3,c:5,color:'#00ff00'},{a:3,b:4,c:2,color:'#0000ff'},{a:5,b:3,c:4,color:'#ffff00'},{a:4,b:5,c:3,color:'#ff00ff'}]; curves.forEach((curve, idx) => { const id = `lissajous_${idx}`; objects.push({ id, type: 'Sphere', position: [0, 5, 0], radius: 0.3, color: curve.color, nonPhysics: true, opacity: 0.8 }); globalNonPhysicsEngine.animateObject(id, { code: `mesh.position.x = 8 * Math.sin(${curve.a} * time); mesh.position.y = 5 + 8 * Math.sin(${curve.b} * time); mesh.position.z = 8 * Math.sin(${curve.c} * time); mesh.rotation.y = time;` }); }); return objects;"
+    }
+  ],
+  "gravity": [0, -9.81, 0],
+  "hasGround": false,
+  "contactMaterial": {
+    "friction": 0.5,
+    "restitution": 0.7
+  },
+  "gravitationalPhysics": {
+    "enabled": false
+  },
+  "simulationScale": "terrestrial",
+  "controllers": []
+}

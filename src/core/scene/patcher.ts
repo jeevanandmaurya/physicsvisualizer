@@ -206,6 +206,46 @@ class ScenePatcher {
   }
 
   // Apply a single patch operation
+  // Fix invalid color formats (e.g., 5-digit hex colors)
+  fixColor(color: any): string {
+    if (typeof color !== 'string') return color;
+    
+    // Check if it's a hex color
+    if (color.startsWith('#')) {
+      // Remove # and check length
+      const hex = color.substring(1);
+      
+      // If it's 5 digits (invalid), pad with 0 to make it 6
+      if (hex.length === 5) {
+        const fixed = '#' + hex + '0';
+        console.warn(`⚠️ Fixed invalid color ${color} → ${fixed}`);
+        return fixed;
+      }
+      
+      // If it's not 3 or 6 digits, try to fix it
+      if (hex.length !== 3 && hex.length !== 6) {
+        // Pad or truncate to 6 digits
+        const fixed = '#' + hex.padEnd(6, '0').substring(0, 6);
+        console.warn(`⚠️ Fixed invalid color ${color} → ${fixed}`);
+        return fixed;
+      }
+    }
+    
+    return color;
+  }
+
+  // Sanitize object data before adding to scene
+  sanitizeObject(obj: any): any {
+    const sanitized = { ...obj };
+    
+    // Fix color if present
+    if (sanitized.color) {
+      sanitized.color = this.fixColor(sanitized.color);
+    }
+    
+    return sanitized;
+  }
+
   applySinglePatch(scene: Scene, patch: Patch): PatchResult {
     const { op, path, value } = patch;
 
@@ -214,7 +254,9 @@ class ScenePatcher {
         if (path === '/objects/-') {
           // Add new object to objects array
           if (!scene.objects) scene.objects = [];
-          scene.objects.push(value);
+          // Sanitize the object before adding
+          const sanitizedValue = this.sanitizeObject(value);
+          scene.objects.push(sanitizedValue);
           return { success: true, scene };
         } else {
           // General add: create path and set value

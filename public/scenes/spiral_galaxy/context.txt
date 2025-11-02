@@ -1,0 +1,49 @@
+# Spiral Galaxy Animation
+
+A stunning spiral galaxy with 100 animated stars demonstrating advanced NonPhysics capabilities.
+
+## Features
+
+- **100 NonPhysics Objects**: Zero physics overhead
+- **3-Arm Spiral**: Realistic galaxy structure
+- **Rotation**: Differential rotation (inner faster than outer)
+- **Vertical Oscillation**: Stars bob up and down
+- **Scale Pulsing**: Stars twinkle/pulse
+- **Color Gradient**: White core, blue mid, orange outer
+
+## Advanced Techniques
+
+### 1. Differential Rotation
+```javascript
+const rotSpeed = 0.3;
+const angle = initialAngle + time * rotSpeed / (radius * 0.2);
+```
+Inner stars rotate faster than outer stars (like real galaxies!)
+
+### 2. Multi-Property Animation
+```javascript
+// Position
+mesh.position.x = Math.cos(angle) * r;
+mesh.position.z = Math.sin(angle) * r;
+mesh.position.y = Math.sin(time * 2 + i) * 0.5;
+
+// Scale (twinkling)
+const pulse = 0.8 + Math.sin(time * 3 + i) * 0.2;
+mesh.scale.set(pulse, pulse, pulse);
+```
+
+### 3. Phase Offsets
+Each star has unique `i` value for randomized motion patterns.
+
+## Performance
+
+- 100 objects animated at 60 FPS
+- Each object updates: position (x,y,z) + scale
+- Total: ~400 property updates per frame
+- Runs smoothly with no physics engine overhead
+
+## Try Modifying
+
+Change rotation speed: `const rotSpeed = 1.0;` (faster)
+Change wave height: `* 2.0` (more vertical motion)
+Change pulse amount: `* 0.5` (subtle twinkling)

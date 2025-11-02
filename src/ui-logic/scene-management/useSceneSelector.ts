@@ -42,7 +42,9 @@ export function useSceneSelector({
             setError(null);
             try {
                 if (activeTab === 'examples') {
+                    console.log('🔍 Fetching example scenes...');
                     const scenes = await dataManager.getScenes('examples');
+                    console.log('✅ Fetched example scenes:', scenes.length, scenes);
                     if (isMounted) {
                         setExampleScenes(scenes);
                     }

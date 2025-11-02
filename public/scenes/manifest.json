@@ -1,6 +1,30 @@
 {
   "scenes": [
     {
+      "id": "physics-showcase",
+      "folderName": "physics_showcase",
+      "enabled": true,
+      "category": "showcase"
+    },
+    {
+      "id": "nonphysics-showcase",
+      "folderName": "nonphysics_showcase",
+      "enabled": true,
+      "category": "showcase"
+    },
+    {
+      "id": "hybrid-showcase",
+      "folderName": "hybrid_showcase",
+      "enabled": true,
+      "category": "showcase"
+    },
+    {
+      "id": "tool-generated-showcase",
+      "folderName": "tool_generated_showcase",
+      "enabled": true,
+      "category": "showcase"
+    },
+    {
       "id": "annotation-demo",
       "folderName": "annotation_demo",
       "enabled": true,
@@ -35,6 +59,60 @@
       "folderName": "binary_star",
       "enabled": true,
       "category": "gravitation"
+    },
+    {
+      "id": "tool-demo-spiral",
+      "folderName": "tool_demo_spiral",
+      "enabled": true,
+      "category": "demos"
+    },
+    {
+      "id": "inline-code-demo",
+      "folderName": "inline_code_demo",
+      "enabled": true,
+      "category": "demos"
+    },
+    {
+      "id": "figure-8-motion",
+      "folderName": "figure_8_motion",
+      "enabled": true,
+      "category": "demos"
+    },
+    {
+      "id": "wave-pattern",
+      "folderName": "wave_pattern",
+      "enabled": true,
+      "category": "demos"
+    },
+    {
+      "id": "spiral-galaxy",
+      "folderName": "spiral_galaxy",
+      "enabled": true,
+      "category": "demos"
+    },
+    {
+      "id": "lissajous-curves",
+      "folderName": "lissajous_curves",
+      "enabled": true,
+      "category": "demos"
+    },
+    {
+      "id": "color-morph",
+      "folderName": "color_morph",
+      "enabled": true,
+      "category": "demos"
+    },
+    {
+      "id": "dna-helix",
+      "folderName": "dna_helix",
+      "enabled": true,
+      "category": "demos"
+    },
+    {
+      "id": "particle-fountain",
+      "folderName": "particle_fountain",
+      "enabled": true,
+      "category": "demos"
     }
   ]
 }

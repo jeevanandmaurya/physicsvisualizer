@@ -1,0 +1,22 @@
+{
+  "id": "particle_fountain",
+  "name": "Particle Fountain",
+  "description": "Fountain effect with particles following ballistic trajectories",
+  "objects": [],
+  "functionCalls": [
+    {
+      "code": "const objects = []; const numParticles = 50; for(let i=0; i<numParticles; i++) { const id = `particle_${i}`; const angle = (i / numParticles) * Math.PI * 2; const speed = 8 + Math.random() * 4; const vx = Math.cos(angle) * speed * 0.3; const vz = Math.sin(angle) * speed * 0.3; const vy = speed; const phase = i * 0.1; objects.push({ id, type: 'Sphere', position: [0, 0, 0], radius: 0.15, color: `hsl(${i * 7}, 70%, 50%)`, nonPhysics: true, opacity: 0.8 }); globalNonPhysicsEngine.animateObject(id, { code: `const cycleTime = 3; const localTime = (time + ${phase}) % cycleTime; const g = 9.81; mesh.position.x = ${vx} * localTime; mesh.position.y = ${vy} * localTime - 0.5 * g * localTime * localTime; mesh.position.z = ${vz} * localTime; if(mesh.position.y < 0) { mesh.visible = false; } else { mesh.visible = true; } const life = 1 - (localTime / cycleTime); mesh.material.opacity = life * 0.8; const size = 0.15 + (1 - life) * 0.2; mesh.scale.set(size, size, size);` }); } return objects;"
+    }
+  ],
+  "gravity": [0, -9.81, 0],
+  "hasGround": true,
+  "contactMaterial": {
+    "friction": 0.5,
+    "restitution": 0.7
+  },
+  "gravitationalPhysics": {
+    "enabled": false
+  },
+  "simulationScale": "terrestrial",
+  "controllers": []
+}

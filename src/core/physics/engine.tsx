@@ -7,6 +7,7 @@ import { GravitationalPhysics } from './gravitation/calculations.js';
 import { ConstraintPhysics } from './constraints/calculations.js';
 import { FluidPhysics } from './fluid/calculations.js';
 import { ParticleSystem } from './ParticleSystem.jsx';
+import { NonPhysicsEngine } from './NonPhysicsEngine.js';
 
 
 // Dummy class to maintain API compatibility - Rapier handles physics automatically
@@ -207,10 +208,14 @@ const Joints = React.memo(function Joints({ scene, bodyRefs, physicsResetKey }) 
     return null; // Invisible component - joints not implemented yet
 });
 
+// Global NonPhysicsEngine instance for AI/external access
+export const globalNonPhysicsEngine = new NonPhysicsEngine();
+
 // React PhysicsWorld component that uses Physics paused prop for proper state preservation
 export function PhysicsWorld({ scene, isPlaying, onPhysicsDataCalculated, resetTrigger, defaultContactMaterial, simulationTime, simulationSpeed = 1 }) {
     const [physicsResetKey, setPhysicsResetKey] = React.useState(0);
     const bodyRefs = useRef({}); // Store body refs for joints
+    const nonPhysicsEngineRef = useRef(globalNonPhysicsEngine);
 
     // Patch scene: ensure bodies referenced by joints/constraints exist
     // Only patch once per scene objects array to avoid re-patching every render
@@ -256,6 +261,15 @@ export function PhysicsWorld({ scene, isPlaying, onPhysicsDataCalculated, resetT
         return scene.objects.map((obj, index) => {
             const key = obj.id || `obj-${index}`;
 
+            // Check if object should be non-physics (visual only, no physics simulation)
+            if (obj.visualOnly || obj.isVisualOnly || obj.nonPhysics) {
+                return <NonPhysicsObject
+                    key={key}
+                    config={obj}
+                    nonPhysicsEngineRef={nonPhysicsEngineRef}
+                />;
+            }
+
             return <PhysicsObject
                 key={key}
                 config={obj}
@@ -290,6 +304,7 @@ export function PhysicsWorld({ scene, isPlaying, onPhysicsDataCalculated, resetT
             paused={!isPlaying}
             timeStep={1/60 * simulationSpeed}
         >
+            <NonPhysicsAnimator nonPhysicsEngineRef={nonPhysicsEngineRef} isPlaying={isPlaying} />
             <GravitationalForces scene={scene} isPlaying={isPlaying} />
             <Constraints scene={scene} isPlaying={isPlaying} />
             <FluidForces scene={scene} isPlaying={isPlaying} />
@@ -305,6 +320,109 @@ export function PhysicsWorld({ scene, isPlaying, onPhysicsDataCalculated, resetT
             {renderObjects()}
 
         </Physics>
+    );
+}
+
+// NonPhysicsAnimator - Updates all non-physics animations every frame
+function NonPhysicsAnimator({ nonPhysicsEngineRef, isPlaying }) {
+    const frameCount = React.useRef(0);
+    const loggedOnce = React.useRef(false);
+    
+    useFrame((state, delta) => {
+        if (!nonPhysicsEngineRef?.current) return;
+        
+        if (isPlaying) {
+            nonPhysicsEngineRef.current.updateAnimations(delta);
+            
+            // Log first frame to confirm animator is running
+            if (!loggedOnce.current) {
+                console.log('🎞️ NonPhysicsAnimator: Started running');
+                loggedOnce.current = true;
+            }
+            
+            // Log every 60 frames (once per second at 60fps) for debugging
+            frameCount.current++;
+            if (frameCount.current % 60 === 0) {
+                const animCount = nonPhysicsEngineRef.current.objects.size;
+                console.log(`🎬 NonPhysics: ${animCount} total objects, checking animations...`);
+                
+                // Log which objects have animations
+                for (const [id, obj] of nonPhysicsEngineRef.current.objects.entries()) {
+                    if (obj.animation) {
+                        console.log(`  ✨ "${id}" has animation:`, obj.animation.type || 'custom code');
+                    }
+                }
+            }
+        }
+    });
+    
+    return null; // This component doesn't render anything
+}
+
+// Non-physics object component (no physics, just rendering)
+function NonPhysicsObject({ config, nonPhysicsEngineRef }) {
+    const meshRef = useRef();
+
+    // Add object to engine and register mesh
+    React.useEffect(() => {
+        if (nonPhysicsEngineRef?.current && config.id) {
+            // Add object to engine (stores config)
+            nonPhysicsEngineRef.current.addObject(config);
+            console.log(`🎨 NonPhysicsObject: Added object "${config.id}" to engine`);
+        }
+    }, [nonPhysicsEngineRef, config.id]);
+
+    // Register mesh with NonPhysicsEngine when mesh is ready
+    React.useEffect(() => {
+        if (nonPhysicsEngineRef?.current && meshRef.current && config.id) {
+            nonPhysicsEngineRef.current.registerMesh(config.id, meshRef);
+            console.log(`🔗 NonPhysicsObject: Registered mesh for "${config.id}"`);
+            
+            // Log if animation exists for this object
+            const obj = nonPhysicsEngineRef.current.getObject(config.id);
+            if (obj?.animation) {
+                console.log(`✨ Animation found for "${config.id}":`, obj.animation);
+            }
+        }
+    }, [nonPhysicsEngineRef, config.id]);
+
+    // Get geometry based on shape type
+    const createGeometry = () => {
+        switch (config.type) {
+            case 'Sphere':
+                return <sphereGeometry args={[config.radius || 0.5, 32, 32]} />;
+            case 'Box':
+                return <boxGeometry args={config.dimensions || [1, 1, 1]} />;
+            case 'Cylinder':
+                return <cylinderGeometry args={[config.radius || 0.5, config.radius || 0.5, config.height || 1, 16]} />;
+            case 'Cone':
+                return <coneGeometry args={[config.radius || 0.5, config.height || 1, 8]} />;
+            case 'Capsule':
+                return <capsuleGeometry args={[config.radius || 0.5, config.height || 1, 4, 8]} />;
+            case 'Plane':
+                return <planeGeometry args={config.dimensions || [10, 10, 1, 1]} />;
+            default:
+                return <boxGeometry args={[1, 1, 1]} />;
+        }
+    };
+
+    return (
+        <mesh
+            ref={meshRef}
+            position={config.position || [0, 0, 0]}
+            rotation={config.rotation || [0, 0, 0]}
+            castShadow={config.castShadow !== false}
+            receiveShadow={config.receiveShadow !== false}
+        >
+            {createGeometry()}
+            <meshStandardMaterial
+                color={config.color || "#ffffff"}
+                opacity={config.opacity !== undefined ? config.opacity : 1.0}
+                transparent={config.opacity !== undefined && config.opacity < 1.0}
+                metalness={config.metalness || 0}
+                roughness={config.roughness !== undefined ? config.roughness : 0.5}
+            />
+        </mesh>
     );
 }
 

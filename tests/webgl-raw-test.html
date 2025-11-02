@@ -1,0 +1,237 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>RAW WebGL Test - Hardware Check</title>
+    <style>
+        body { 
+            margin: 0; 
+            overflow: hidden; 
+            background: #000;
+            color: #fff;
+            font-family: monospace;
+        }
+        canvas { 
+            display: block; 
+            width: 100vw;
+            height: 100vh;
+        }
+        #info {
+            position: absolute;
+            top: 10px;
+            left: 10px;
+            background: rgba(0,0,0,0.8);
+            padding: 20px;
+            border: 2px solid #0f0;
+            max-width: 500px;
+        }
+        .ok { color: #0f0; }
+        .error { color: #f00; }
+        .warning { color: #ff0; }
+    </style>
+</head>
+<body>
+    <canvas id="canvas"></canvas>
+    <div id="info">
+        <h2>🔍 WebGL Hardware Diagnostic</h2>
+        <div id="status">Testing...</div>
+    </div>
+
+    <script>
+        const canvas = document.getElementById('canvas');
+        const info = document.getElementById('status');
+        
+        let report = '';
+        
+        // Test 1: Get WebGL context
+        const gl = canvas.getContext('webgl2') || canvas.getContext('webgl');
+        
+        if (!gl) {
+            report += '<p class="error">❌ CRITICAL: WebGL NOT available!</p>';
+            report += '<p>Your browser/system does not support WebGL.</p>';
+            info.innerHTML = report;
+            throw new Error('WebGL not supported');
+        }
+        
+        report += '<p class="ok">✅ WebGL Context: Available</p>';
+        
+        // Test 2: Get GPU info
+        const debugInfo = gl.getExtension('WEBGL_debug_renderer_info');
+        if (debugInfo) {
+            const vendor = gl.getParameter(debugInfo.UNMASKED_VENDOR_WEBGL);
+            const renderer = gl.getParameter(debugInfo.UNMASKED_RENDERER_WEBGL);
+            
+            report += `<p class="ok">✅ GPU Vendor: ${vendor}</p>`;
+            report += `<p class="ok">✅ GPU Renderer: ${renderer}</p>`;
+            
+            // Check if software rendering
+            if (renderer.includes('SwiftShader') || renderer.includes('Software') || 
+                renderer.includes('llvmpipe') || renderer.includes('Microsoft Basic')) {
+                report += '<p class="error">⚠️ WARNING: Software rendering detected!</p>';
+                report += '<p class="warning">Hardware acceleration is DISABLED or unavailable.</p>';
+                report += '<p class="warning">Go to chrome://settings and enable "Use hardware acceleration"</p>';
+            } else {
+                report += '<p class="ok">✅ Hardware acceleration: ENABLED</p>';
+            }
+        } else {
+            report += '<p class="warning">⚠️ Cannot detect GPU (extension unavailable)</p>';
+        }
+        
+        // Test 3: Check capabilities
+        const maxTextureSize = gl.getParameter(gl.MAX_TEXTURE_SIZE);
+        const maxVertexAttribs = gl.getParameter(gl.MAX_VERTEX_ATTRIBS);
+        const maxViewport = gl.getParameter(gl.MAX_VIEWPORT_DIMS);
+        
+        report += `<p>Max Texture Size: ${maxTextureSize}</p>`;
+        report += `<p>Max Vertex Attributes: ${maxVertexAttribs}</p>`;
+        report += `<p>Max Viewport: ${maxViewport[0]} x ${maxViewport[1]}</p>`;
+        
+        // Test 4: Performance test
+        report += '<hr>';
+        report += '<p><strong>Running performance test...</strong></p>';
+        info.innerHTML = report;
+        
+        // Setup simple rendering
+        canvas.width = window.innerWidth;
+        canvas.height = window.innerHeight;
+        gl.viewport(0, 0, canvas.width, canvas.height);
+        
+        // Create shader program
+        const vertexShaderSource = `
+            attribute vec2 position;
+            void main() {
+                gl_Position = vec4(position, 0.0, 1.0);
+            }
+        `;
+        
+        const fragmentShaderSource = `
+            precision mediump float;
+            uniform float time;
+            uniform vec2 resolution;
+            
+            void main() {
+                vec2 uv = gl_FragCoord.xy / resolution;
+                
+                // Expensive calculations to stress GPU
+                float color = 0.0;
+                for(int i = 0; i < 100; i++) {
+                    float fi = float(i);
+                    color += sin(uv.x * 10.0 + time + fi * 0.1) * 
+                             cos(uv.y * 10.0 + time + fi * 0.1);
+                }
+                color = color / 100.0;
+                
+                gl_FragColor = vec4(vec3(color * 0.5 + 0.5), 1.0);
+            }
+        `;
+        
+        function createShader(type, source) {
+            const shader = gl.createShader(type);
+            gl.shaderSource(shader, source);
+            gl.compileShader(shader);
+            if (!gl.getShaderParameter(shader, gl.COMPILE_STATUS)) {
+                console.error('Shader compile error:', gl.getShaderInfoLog(shader));
+                gl.deleteShader(shader);
+                return null;
+            }
+            return shader;
+        }
+        
+        const vertexShader = createShader(gl.VERTEX_SHADER, vertexShaderSource);
+        const fragmentShader = createShader(gl.FRAGMENT_SHADER, fragmentShaderSource);
+        
+        const program = gl.createProgram();
+        gl.attachShader(program, vertexShader);
+        gl.attachShader(program, fragmentShader);
+        gl.linkProgram(program);
+        
+        if (!gl.getProgramParameter(program, gl.LINK_STATUS)) {
+            console.error('Program link error:', gl.getProgramInfoLog(program));
+        }
+        
+        gl.useProgram(program);
+        
+        // Create geometry (fullscreen quad)
+        const positions = new Float32Array([
+            -1, -1,
+             1, -1,
+            -1,  1,
+            -1,  1,
+             1, -1,
+             1,  1
+        ]);
+        
+        const buffer = gl.createBuffer();
+        gl.bindBuffer(gl.ARRAY_BUFFER, buffer);
+        gl.bufferData(gl.ARRAY_BUFFER, positions, gl.STATIC_DRAW);
+        
+        const positionLocation = gl.getAttribLocation(program, 'position');
+        gl.enableVertexAttribArray(positionLocation);
+        gl.vertexAttribPointer(positionLocation, 2, gl.FLOAT, false, 0, 0);
+        
+        const timeLocation = gl.getUniformLocation(program, 'time');
+        const resolutionLocation = gl.getUniformLocation(program, 'resolution');
+        
+        // Performance tracking
+        let frameCount = 0;
+        let lastTime = performance.now();
+        let fps = 0;
+        
+        function render(time) {
+            // Update uniforms
+            gl.uniform1f(timeLocation, time * 0.001);
+            gl.uniform2f(resolutionLocation, canvas.width, canvas.height);
+            
+            // Clear and draw
+            gl.clearColor(0, 0, 0, 1);
+            gl.clear(gl.COLOR_BUFFER_BIT);
+            gl.drawArrays(gl.TRIANGLES, 0, 6);
+            
+            // Calculate FPS
+            frameCount++;
+            const currentTime = performance.now();
+            if (currentTime - lastTime >= 1000) {
+                fps = Math.round((frameCount * 1000) / (currentTime - lastTime));
+                frameCount = 0;
+                lastTime = currentTime;
+                
+                // Update display
+                let perfReport = report;
+                perfReport += `<p><strong>FPS: ${fps}</strong></p>`;
+                
+                if (fps < 30) {
+                    perfReport += '<p class="error">❌ POOR PERFORMANCE (&lt;30 FPS)</p>';
+                    perfReport += '<p>Possible causes:</p>';
+                    perfReport += '<ul>';
+                    perfReport += '<li>Hardware acceleration disabled</li>';
+                    perfReport += '<li>Using integrated GPU instead of dedicated GPU</li>';
+                    perfReport += '<li>Power saving mode active</li>';
+                    perfReport += '<li>Tab is throttled (check Task Manager)</li>';
+                    perfReport += '</ul>';
+                } else if (fps < 50) {
+                    perfReport += '<p class="warning">⚠️ MODERATE PERFORMANCE (30-50 FPS)</p>';
+                } else {
+                    perfReport += '<p class="ok">✅ GOOD PERFORMANCE (&gt;50 FPS)</p>';
+                }
+                
+                info.innerHTML = perfReport;
+            }
+            
+            requestAnimationFrame(render);
+        }
+        
+        requestAnimationFrame(render);
+        
+        // Also log to console
+        setTimeout(() => {
+            console.log('%c=== WebGL Diagnostic Report ===', 'color: cyan; font-size: 16px;');
+            console.log('Vendor:', gl.getParameter(gl.VENDOR));
+            console.log('Renderer:', gl.getParameter(gl.RENDERER));
+            console.log('Version:', gl.getParameter(gl.VERSION));
+            console.log('Shading Language:', gl.getParameter(gl.SHADING_LANGUAGE_VERSION));
+            console.log('Max Texture Size:', gl.getParameter(gl.MAX_TEXTURE_SIZE));
+            console.log('Max Renderbuffer Size:', gl.getParameter(gl.MAX_RENDERBUFFER_SIZE));
+            console.log('Extensions:', gl.getSupportedExtensions().join(', '));
+        }, 1000);
+    </script>
+</body>
+</html>

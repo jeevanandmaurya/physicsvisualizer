@@ -1,0 +1,22 @@
+{
+  "id": "spiral_galaxy",
+  "name": "Spiral Galaxy",
+  "description": "100 particles creating a rotating spiral galaxy using NonPhysics animation",
+  "objects": [],
+  "functionCalls": [
+    {
+      "code": "const objects = []; const numParticles = 100; for(let i=0; i<numParticles; i++) { const id = `star_${i}`; const arm = Math.floor(i / (numParticles/3)); const t = (i % (numParticles/3)) / (numParticles/3); const baseAngle = arm * (2 * Math.PI / 3); const radius = 2 + t * 15; const angle = baseAngle + t * Math.PI * 4; objects.push({ id, type: 'Sphere', position: [Math.cos(angle) * radius, 0, Math.sin(angle) * radius], radius: 0.1 + Math.random() * 0.15, color: t < 0.3 ? '#ffffff' : t < 0.7 ? '#aaccff' : '#ffaa66', nonPhysics: true, opacity: 0.7 + Math.random() * 0.3 }); const initialAngle = angle; const initialRadius = radius; globalNonPhysicsEngine.animateObject(id, { code: `const rotSpeed = 0.3; const angle = ${initialAngle} + time * rotSpeed / (${initialRadius} * 0.2); const r = ${initialRadius}; mesh.position.x = Math.cos(angle) * r; mesh.position.z = Math.sin(angle) * r; mesh.position.y = Math.sin(time * 2 + ${i}) * 0.5; const pulse = 0.8 + Math.sin(time * 3 + ${i}) * 0.2; mesh.scale.set(pulse, pulse, pulse);` }); } return objects;"
+    }
+  ],
+  "gravity": [0, 0, 0],
+  "hasGround": false,
+  "contactMaterial": {
+    "friction": 0.5,
+    "restitution": 0.7
+  },
+  "gravitationalPhysics": {
+    "enabled": false
+  },
+  "simulationScale": "solar_system",
+  "controllers": []
+}

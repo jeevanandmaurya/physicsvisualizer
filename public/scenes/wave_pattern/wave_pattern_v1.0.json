@@ -1,0 +1,22 @@
+{
+  "id": "wave_pattern",
+  "name": "Wave Pattern Animation",
+  "description": "20 spheres creating a beautiful sine wave pattern using NonPhysics animation",
+  "objects": [],
+  "functionCalls": [
+    {
+      "code": "const objects = []; for(let i=0; i<20; i++) { const id = `wave_${i}`; objects.push({ id, type: 'Sphere', position: [i*2 - 20, 5, 0], radius: 0.4, color: `hsl(${i*18}, 70%, 50%)`, nonPhysics: true }); globalNonPhysicsEngine.animateObject(id, { code: `mesh.position.y = 5 + Math.sin(time * 2 + ${i * 0.5}) * 3;` }); } return objects;"
+    }
+  ],
+  "gravity": [0, -9.81, 0],
+  "hasGround": true,
+  "contactMaterial": {
+    "friction": 0.5,
+    "restitution": 0.7
+  },
+  "gravitationalPhysics": {
+    "enabled": false
+  },
+  "simulationScale": "terrestrial",
+  "controllers": []
+}

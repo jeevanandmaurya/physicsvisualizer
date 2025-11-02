@@ -1,0 +1,44 @@
+Non-Physics Showcase - Advanced Animations & Visual Effects
+
+This scene demonstrates all non-physics features and animation capabilities:
+
+ANIMATION TYPES:
+- Rotation animations (axis-based rotation)
+- Scale animations (pulsing effects)
+- Position animations (path-based movement)
+- Custom code animations (JavaScript-based)
+
+MOTION PATTERNS:
+- Circular orbits
+- Spiral paths
+- Figure-8 trajectories
+- Lissajous curves
+- Wave patterns
+- Helix motion (DNA-like double helix)
+- Complex 3D motion
+
+VISUAL EFFECTS:
+- Color morphing (HSL color transitions)
+- Transparency animations
+- Metallic materials (high metalness, low roughness)
+- Rough materials (low metalness, high roughness)
+- Material property animations
+
+VISUAL ANNOTATIONS:
+- Custom text labels on all objects
+- Motion trails with various colors
+- Trail length variations (60-200 points)
+- Multiple line widths
+
+ADVANCED FEATURES:
+✓ visualOnly flag for non-physics objects
+✓ Custom animation code execution
+✓ Real-time property updates
+✓ Easing functions for smooth transitions
+✓ Loop animations
+✓ Material property controls
+✓ Opacity/transparency
+✓ Complex mathematical motion patterns
+
+All objects are purely visual with no physics simulation, demonstrating the 
+full power of the non-physics engine and animation system.

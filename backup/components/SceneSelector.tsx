@@ -12,6 +12,9 @@ function SceneSelector({
     userScenes,
     loadingUserScenes,
     extractedScenes = [],
+    workspaceScenes = [],
+    currentSceneIndex = 0,
+    onSetCurrentScene,
     onExtractedScene,
     onDeleteScene,
     onSaveScene,
@@ -153,6 +156,16 @@ function SceneSelector({
 
     // This function now correctly calls the prop passed from the parent.
     const handleSceneItemClick = (scene) => {
+        // Check if this is a workspace scene
+        if (activeTab === 'workspace' && workspaceScenes && onSetCurrentScene) {
+            const sceneIndex = workspaceScenes.findIndex(s => s.id === scene.id);
+            if (sceneIndex !== -1) {
+                // For workspace scenes, switch by index
+                onSetCurrentScene(sceneIndex);
+                return;
+            }
+        }
+        // For other scenes (examples, user scenes), load them into the workspace
         handleSceneChange(scene);
     };
 
@@ -428,14 +441,18 @@ function SceneSelector({
                 </div>
 
                 <div className="scene-tabs">
+                    <button className={activeTab === 'workspace' ? 'active' : ''} onClick={() => setActiveTab('workspace')}><FontAwesomeIcon icon={faCube} /> Workspace
+                        {workspaceScenes.length > 0 && <span className="unsaved-count">({workspaceScenes.length})</span>}
+                    </button>
                     <button className={activeTab === 'examples' ? 'active' : ''} onClick={() => setActiveTab('examples')}><FontAwesomeIcon icon={faBookOpen} /> Examples</button>
-                    <button className={activeTab === 'chats' ? 'active' : ''} onClick={() => setActiveTab('chats')}><FontAwesomeIcon icon={faComments} /> Chat History</button>
+                    <button className={activeTab === 'chats' ? 'active' : ''} onClick={() => setActiveTab('chats')}><FontAwesomeIcon icon={faComments} /> Chats</button>
                     <button className={activeTab === 'user' ? 'active' : ''} onClick={() => setActiveTab('user')}><FontAwesomeIcon icon={faUser} /> My Scenes
                         {extractedScenes.length > 0 && <span className="unsaved-count">({extractedScenes.length})</span>}
                     </button>
                 </div>
                 
                 <div className="scene-list-panel">
+                    {activeTab === 'workspace' && renderSceneList(workspaceScenes, false, "No scenes in workspace yet. Chat with AI to create one!")}
                     {activeTab === 'examples' && renderSceneList(exampleScenes, loading, "No examples found.", false)}
                     {activeTab === 'chats' && renderChatList(chatHistory, loading, "No chat history yet. Start a new chat!")}
                     {activeTab === 'user' && renderSceneList(getCombinedUserScenes(), loading, "No saved scenes yet.", true)}

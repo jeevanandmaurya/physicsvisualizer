@@ -1,0 +1,56 @@
+# Color Morphing Grid
+
+8x8 grid (64 spheres) demonstrating material property animation with position and scale changes.
+
+## Features
+
+- **Material Color Animation**: Using HSL color space for smooth transitions
+- **Wave Propagation**: Ripple effect from center
+- **Scale Pulsing**: Synchronized with wave
+- **Position Oscillation**: Vertical wave motion
+
+## Advanced Techniques
+
+### 1. Material Color Manipulation
+```javascript
+const hue = (time * 50 + x * 45 + z * 45) % 360;
+mesh.material.color.setHSL(hue / 360, 0.7, 0.5);
+```
+- Direct Three.js material access
+- HSL color space for smooth gradients
+- Time + position for spatial patterns
+
+### 2. Distance-Based Wave
+```javascript
+const dist = Math.sqrt(px*px + pz*pz);
+const wave = Math.sin(time * 2 - dist * 0.3);
+```
+- Ripple propagates from center
+- Distance affects phase offset
+
+### 3. Multi-Property Sync
+All properties animated from same wave function:
+- **Y Position**: Wave height
+- **Color**: Hue shifts
+- **Scale**: Pulse intensity
+
+## NonPhysics Capabilities Demonstrated
+
+✅ **Position**: `mesh.position.y`
+✅ **Color**: `mesh.material.color.setHSL()`
+✅ **Scale**: `mesh.scale.set()`
+✅ **Mathematical Functions**: Wave equations
+✅ **Spatial Patterns**: Distance-based effects
+
+## Performance
+
+- 64 objects × 3 properties = 192 updates/frame
+- 60 FPS = 11,520 property updates/second
+- Smooth performance with zero physics overhead
+
+## Customization Ideas
+
+**Faster waves**: `time * 4`
+**Sharper ripples**: `dist * 0.5`
+**Different colors**: Adjust saturation/lightness
+**Spiral pattern**: Use angle instead of distance

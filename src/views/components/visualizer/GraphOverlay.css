@@ -1,9 +1,9 @@
 .overlay-graph {
   position: absolute;
-  background: rgba(255, 255, 255, var(--graph-bg-opacity, 0.95));
-  border: 1px solid rgba(200, 200, 200, 0.5);
-  border-radius: 16px;
-  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.15);
+  background: rgba(255, 255, 255, var(--graph-bg-opacity, 0.9));
+  border: 1px solid var(--border-color);
+  border-radius: 8px;
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.15);
   display: flex;
   flex-direction: column;
   overflow: hidden;
@@ -11,20 +11,23 @@
   min-height: 300px;
   user-select: none;
   pointer-events: auto;
-  color: #1a1a1a;
+  color: var(--text-color);
   transition: border-color 0.2s ease, box-shadow 0.2s ease;
 }
 
 .overlay-graph.focused {
   border-color: var(--primary-color, #007bff);
-  box-shadow: 0 8px 32px rgba(0, 123, 255, 0.4);
+  box-shadow: 0 4px 16px rgba(0, 123, 255, 0.4);
 }
 
 .dark .overlay-graph {
-  background: rgba(26, 26, 26, var(--graph-bg-opacity, 0.92));
-  border: 1px solid rgba(255, 255, 255, 0.15);
-  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.5);
-  color: #e6e6e6;
+  background: rgba(18, 18, 18, var(--graph-bg-opacity, 0.9));
+  border-color: rgba(255, 255, 255, 0.1);
+}
+
+.dark .overlay-graph.focused {
+  border-color: var(--primary-color, #007bff);
+  box-shadow: 0 4px 16px rgba(0, 123, 255, 0.4);
 }
 
 .overlay-graph:active {
@@ -82,18 +85,18 @@
 .minimize-btn,
 .close-btn {
   background: transparent;
-  border: 1px solid transparent;
-  color: #666666;
-  width: 22px;
-  height: 22px;
-  padding: 1px;
-  border-radius: 3px;
+  border: none;
+  color: var(--text-color);
+  width: 24px;
+  height: 24px;
+  padding: 4px;
+  border-radius: 4px;
   display: inline-flex;
   align-items: center;
   justify-content: center;
   cursor: pointer;
-  font-size: 11px;
-  transition: all 0.15s ease;
+  font-size: 12px;
+  transition: color 0.2s ease;
 }
 
 .dark .minimize-btn,

@@ -1,0 +1,71 @@
+# DNA Double Helix
+
+Animated DNA double helix with 90 NonPhysics objects (30 base pairs + connectors).
+
+## Structure
+
+- **Blue Strand**: First helix
+- **Red Strand**: Second helix (opposite phase)
+- **Gray Links**: Base pair connections
+
+## Advanced Features
+
+### 1. Multiple Object Types
+- Spheres for nucleotides
+- Cylinders for base pair links
+- Different animations per type
+
+### 2. Coordinated Animation
+```javascript
+// Helix 1
+const angle = baseAngle + time * turnSpeed;
+mesh.position.x = radius * Math.cos(angle);
+mesh.position.z = radius * Math.sin(angle);
+
+// Helix 2 (opposite side)
+const angle2 = baseAngle + PI + time * turnSpeed;
+```
+
+### 3. Dynamic Link Positioning
+```javascript
+// Calculate midpoint between two helix points
+mesh.position.x = (x1 + x2) / 2;
+mesh.position.z = (z1 + z2) / 2;
+mesh.rotation.y = angle; // Align with helix rotation
+```
+
+## Parametric Helix Equation
+
+```
+x(t) = r * cos(θ + ωt)
+y(t) = h * t
+z(t) = r * sin(θ + ωt)
+```
+
+Where:
+- `r` = radius (3 units)
+- `θ` = base angle (4π per strand)
+- `ω` = angular velocity (0.5 rad/s)
+- `h` = height (20 units)
+
+## Educational Value
+
+- **Biology**: DNA structure visualization
+- **Mathematics**: Parametric curves, helical motion
+- **Chemistry**: Molecular visualization
+- **Physics**: Rotational motion, coordinate systems
+
+## NonPhysics Advantages
+
+- 90 objects animated smoothly
+- Complex coordinated motion
+- Real-time rotation
+- No collision detection needed
+- Perfect for visualization (not simulation)
+
+## Try Modifying
+
+**Faster rotation**: `turnSpeed = 1.0`
+**Tighter coil**: Increase `Math.PI * 4` to `Math.PI * 6`
+**Wider helix**: `radius = 5`
+**Taller structure**: `height = 30`

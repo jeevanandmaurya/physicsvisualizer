@@ -1,0 +1,38 @@
+Physics Showcase - Comprehensive Demonstration
+
+This scene demonstrates all physics engine features:
+
+PHYSICS OBJECTS:
+- Bouncing sphere with high restitution
+- Rotating cube with initial velocity
+- Heavy cylinder with high mass
+- Light capsule with low mass
+- Cone with medium properties
+- Ramp for rolling demonstrations
+
+CONSTRAINTS:
+- Spring pendulum system
+- Chain system with multiple connected spheres
+- Spring constraints with custom stiffness and damping
+
+FLUID DYNAMICS:
+- Fluid balls with drag and lift coefficients
+- Simulated air resistance
+
+VISUAL ANNOTATIONS:
+- Velocity vectors on all moving objects
+- Speed labels (dynamic text)
+- Momentum displays
+- Kinetic energy indicators
+- Position coordinates
+- Motion trails
+- Multiple colors for different object types
+
+FEATURES DEMONSTRATED:
+✓ Multiple collision shapes
+✓ Variable mass and density
+✓ Friction and restitution control
+✓ Spring constraints
+✓ Fluid forces
+✓ Comprehensive visual annotations
+✓ Real-time physics data visualization

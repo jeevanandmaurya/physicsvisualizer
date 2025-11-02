@@ -128,18 +128,18 @@
         }
 
         function add1000Boxes() {
-            // Generate 1000 boxes in a grid pattern
-            const boxesPerRow = 10;
-            const rows = 10;
-            const layers = 10;
-            const spacing = 1.0;
+            // Generate 9000 boxes in a grid pattern
+            const boxesPerRow = 30;
+            const rows = 30;
+            const layers = 30;
+            const spacing = 5;
             const startY = 5;
 
             let boxCount = 0;
             for (let layer = 0; layer < layers; layer++) {
                 for (let row = 0; row < rows; row++) {
                     for (let col = 0; col < boxesPerRow; col++) {
-                        if (boxCount >= 1000) break;
+                        if (boxCount >= 9000) break;
 
                         addSingleBox(
                             (col - boxesPerRow/2) * spacing,

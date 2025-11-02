@@ -1,0 +1,54 @@
+Hybrid Showcase - Physics + Non-Physics Combined
+
+This scene demonstrates the perfect integration of physics and non-physics systems:
+
+PHYSICS OBJECTS:
+- Multiple bouncing spheres with different velocities
+- Spring-constrained pendulums (2 different configurations)
+- Ball interacting with animated platform
+- All with real-time collision detection
+
+NON-PHYSICS OBJECTS:
+- Orbital system (central body + 3 orbiters)
+- Pulsing backdrop rings with opacity animation
+- Animated floating platform
+- Wave pattern spheres (6 objects in phase)
+- All with custom JavaScript animations
+
+VISUAL ANNOTATIONS:
+Physics objects:
+  - Velocity vectors (green)
+  - Motion trails (colored by object)
+  - Speed labels (real-time)
+  - Kinetic energy displays
+
+Non-physics objects:
+  - Custom text labels
+  - Motion trails
+  - Visual identifiers
+
+INTERACTION DEMONSTRATIONS:
+1. Physics balls collide and bounce naturally
+2. Pendulums swing with spring constraints
+3. Platform ball falls onto moving platform
+4. Orbiters move in perfect circles
+5. Wave pattern creates visual harmony
+6. Backdrop rings create depth
+
+ADVANCED FEATURES:
+✓ Mixed physics/non-physics objects in same scene
+✓ Real-time physics calculations on physics objects
+✓ Smooth animations on non-physics objects
+✓ Comprehensive visual annotation system
+✓ Spring constraints with physics
+✓ Custom animation code
+✓ Material properties (opacity, metalness)
+✓ Motion trails on both object types
+✓ Velocity vectors only on physics objects
+
+This scene pushes the limits by combining:
+- 6 physics-simulated objects
+- 15+ non-physics animated objects
+- 20+ visual annotations
+- Multiple constraint systems
+- Real-time visual feedback
