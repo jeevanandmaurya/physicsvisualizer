@@ -1,6 +1,31 @@
-<svg width="100" height="100" viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg">
-  <rect width="100" height="100" fill="#f0f0f0" stroke="#ccc" stroke-width="1"/>
-  <circle cx="50" cy="30" r="8" fill="#007acc"/>
-  <rect x="45" y="40" width="10" height="30" fill="#007acc"/>
-  <text x="50" y="85" text-anchor="middle" font-family="Arial" font-size="10" fill="#333">Physics</text>
+<svg width="200" height="150" xmlns="http://www.w3.org/2000/svg">
+  <!-- Background -->
+  <rect width="200" height="150" fill="#1a1a2e"/>
+  
+  <!-- Spiral of spheres with gradient colors -->
+  <circle cx="100" cy="75" r="3" fill="#FF6B6B"/>
+  <circle cx="110" cy="70" r="3" fill="#FFD93D"/>
+  <circle cx="115" cy="60" r="3" fill="#6BCF7F"/>
+  <circle cx="125" cy="55" r="3" fill="#4ECDC4"/>
+  <circle cx="135" cy="50" r="3" fill="#45B7D1"/>
+  <circle cx="145" cy="45" r="3" fill="#96CEB4"/>
+  <circle cx="150" cy="35" r="3" fill="#FFEAA7"/>
+  <circle cx="160" cy="30" r="3" fill="#DDA0DD"/>
+  <circle cx="165" cy="20" r="3" fill="#98D8C8"/>
+  <circle cx="175" cy="15" r="3" fill="#F7DC6F"/>
+  <circle cx="180" cy="5" r="3" fill="#BB8FCE"/>
+  <circle cx="190" cy="0" r="3" fill="#85C1E9"/>
+  
+  <!-- More spiral points -->
+  <circle cx="95" cy="80" r="3" fill="#FF6B6B"/>
+  <circle cx="90" cy="85" r="3" fill="#FFD93D"/>
+  <circle cx="85" cy="95" r="3" fill="#6BCF7F"/>
+  <circle cx="80" cy="105" r="3" fill="#4ECDC4"/>
+  <circle cx="75" cy="115" r="3" fill="#45B7D1"/>
+  <circle cx="70" cy="125" r="3" fill="#96CEB4"/>
+  <circle cx="65" cy="135" r="3" fill="#FFEAA7"/>
+  <circle cx="60" cy="145" r="3" fill="#DDA0DD"/>
+  
+  <!-- Label -->
+  <text x="100" y="140" text-anchor="middle" font-family="Arial" font-size="12" fill="#FFF">Tool Generated Spiral</text>
 </svg>

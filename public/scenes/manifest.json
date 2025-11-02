@@ -61,6 +61,12 @@
       "category": "gravitation"
     },
     {
+      "id": "solar-system",
+      "folderName": "solar_system",
+      "enabled": true,
+      "category": "gravitation"
+    },
+    {
       "id": "tool-demo-spiral",
       "folderName": "tool_demo_spiral",
       "enabled": true,

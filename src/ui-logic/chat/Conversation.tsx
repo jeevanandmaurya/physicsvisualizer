@@ -92,6 +92,16 @@ export function useConversation({
     // Don't reload on every workspaceMessages change (that causes duplicates)
     if (isInitialMount.current || sceneChanged || chatChanged) {
       isInitialMount.current = false;
+      
+      // If chatId is empty/null and scene changed, clear messages (new scene without chat)
+      if (!chatId && sceneChanged) {
+        console.log('🆕 New scene without chat, clearing messages');
+        setMessages([]);
+        prevSceneIdRef.current = currentScene?.id;
+        prevChatIdRef.current = chatId;
+        return;
+      }
+      
       // Function to load conversation - try chatId first, then sceneId
       const loadConversation = async () => {
         // First try to load by chatId if available

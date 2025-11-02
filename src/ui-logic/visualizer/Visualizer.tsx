@@ -129,7 +129,7 @@ function Arrow({ vec, color }) {
 function Skybox({ texturePath, backgroundType = 'normal' }) {
   if (backgroundType === 'black') {
     return (
-      <mesh>
+      <mesh key="skybox-black">
         <sphereGeometry args={[100000, 60, 40]} />
         <meshBasicMaterial color="#000000" side={THREE.BackSide} />
       </mesh>
@@ -138,7 +138,7 @@ function Skybox({ texturePath, backgroundType = 'normal' }) {
 
   if (backgroundType === 'white') {
     return (
-      <mesh>
+      <mesh key="skybox-white">
         <sphereGeometry args={[100000, 60, 40]} />
         <meshBasicMaterial color="#ffffff" side={THREE.BackSide} />
       </mesh>
@@ -151,7 +151,7 @@ function Skybox({ texturePath, backgroundType = 'normal' }) {
 
   const texture = useTexture(texturePathToUse);
   return (
-    <mesh>
+    <mesh key={`skybox-${backgroundType}`}>
       <sphereGeometry args={[100000, 60, 40]} />
       <meshBasicMaterial map={texture} side={THREE.BackSide} />
     </mesh>
@@ -160,6 +160,9 @@ function Skybox({ texturePath, backgroundType = 'normal' }) {
 
 function Visualizer({ scene, showSceneDetails, onToggleSceneDetails }) {
     const { isPlaying, simulationTime, fps, showVelocityVectors, vectorScale, openGraphs, resetSimulation, loopReset, updateSimulationTime, updateFps, resetTrigger, removeGraph, setObjectHistory, loopMode, setIsPlaying, dataTimeStep, simulationSpeed } = useWorkspace();
+
+    // Skybox state - cycles through: normal, space, black, white
+    const [skyboxType, setSkyboxType] = useState('normal');
 
     // Debug: Log scene changes
     useEffect(() => {
@@ -380,9 +383,33 @@ function Visualizer({ scene, showSceneDetails, onToggleSceneDetails }) {
                         <LabeledAxesHelper size={5} />
                         <SimpleGrid show={hasGround} />
                         <FpsCounter updateFps={updateFps} />
-                        <Skybox texturePath={backgroundTexture} backgroundType="normal" />
+                        <Skybox texturePath={backgroundTexture} backgroundType={skyboxType} />
                     </Canvas>
                 )}
+                
+                {/* Skybox Switch Button */}
+                <button 
+                    className="skybox-switch-btn"
+                    onClick={() => {
+                        const types = ['normal', 'space', 'black', 'white'];
+                        const currentIndex = types.indexOf(skyboxType);
+                        const nextIndex = (currentIndex + 1) % types.length;
+                        setSkyboxType(types[nextIndex]);
+                    }}
+                    title={`Current: ${skyboxType} - Click to switch`}
+                >
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                        <circle cx="12" cy="12" r="5" />
+                        <line x1="12" y1="1" x2="12" y2="3" />
+                        <line x1="12" y1="21" x2="12" y2="23" />
+                        <line x1="4.22" y1="4.22" x2="5.64" y2="5.64" />
+                        <line x1="18.36" y1="18.36" x2="19.78" y2="19.78" />
+                        <line x1="1" y1="12" x2="3" y2="12" />
+                        <line x1="21" y1="12" x2="23" y2="12" />
+                        <line x1="4.22" y1="19.78" x2="5.64" y2="18.36" />
+                        <line x1="18.36" y1="5.64" x2="19.78" y2="4.22" />
+                    </svg>
+                </button>
 
 
             </div>

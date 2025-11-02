@@ -1,6 +1,38 @@
-<svg width="100" height="100" viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg">
-  <rect width="100" height="100" fill="#f0f0f0" stroke="#ccc" stroke-width="1"/>
-  <circle cx="50" cy="30" r="8" fill="#007acc"/>
-  <rect x="45" y="40" width="10" height="30" fill="#007acc"/>
-  <text x="50" y="85" text-anchor="middle" font-family="Arial" font-size="10" fill="#333">Physics</text>
+<svg width="200" height="150" xmlns="http://www.w3.org/2000/svg">
+  <!-- Background -->
+  <rect width="200" height="150" fill="#2C3E50"/>
+  
+  <!-- Spiral tower (spheres in spiral) -->
+  <circle cx="50" cy="120" r="3" fill="#E74C3C"/>
+  <circle cx="55" cy="110" r="3" fill="#E67E22"/>
+  <circle cx="65" cy="105" r="3" fill="#F39C12"/>
+  <circle cx="75" cy="100" r="3" fill="#F1C40F"/>
+  <circle cx="80" cy="90" r="3" fill="#27AE60"/>
+  <circle cx="85" cy="80" r="3" fill="#3498DB"/>
+  <circle cx="90" cy="70" r="3" fill="#9B59B6"/>
+  <circle cx="95" cy="60" r="3" fill="#E74C3C"/>
+  <circle cx="100" cy="50" r="3" fill="#E67E22"/>
+  <circle cx="105" cy="40" r="3" fill="#F39C12"/>
+  <circle cx="110" cy="30" r="3" fill="#F1C40F"/>
+  <circle cx="115" cy="20" r="3" fill="#27AE60"/>
+  
+  <!-- Orbital rings -->
+  <circle cx="160" cy="50" r="20" fill="none" stroke="#3498DB" stroke-width="1" stroke-dasharray="2,2"/>
+  <circle cx="160" cy="50" r="15" fill="none" stroke="#9B59B6" stroke-width="1" stroke-dasharray="2,2"/>
+  <circle cx="160" cy="50" r="10" fill="none" stroke="#E74C3C" stroke-width="1" stroke-dasharray="2,2"/>
+  
+  <!-- Orbiting objects -->
+  <circle cx="175" cy="45" r="2" fill="#1ABC9C"/>
+  <circle cx="155" cy="35" r="2" fill="#F39C12"/>
+  <circle cx="170" cy="60" r="2" fill="#E67E22"/>
+  
+  <!-- Wave field grid -->
+  <rect x="10" y="80" width="2" height="10" fill="#F1C40F" opacity="0.8"/>
+  <rect x="15" y="75" width="2" height="15" fill="#27AE60" opacity="0.8"/>
+  <rect x="20" y="85" width="2" height="8" fill="#3498DB" opacity="0.8"/>
+  <rect x="25" y="80" width="2" height="12" fill="#9B59B6" opacity="0.8"/>
+  <rect x="30" y="75" width="2" height="15" fill="#E74C3C" opacity="0.8"/>
+  
+  <!-- Label -->
+  <text x="100" y="140" text-anchor="middle" font-family="Arial" font-size="12" fill="#ECF0F1">Tool Generated Content</text>
 </svg>

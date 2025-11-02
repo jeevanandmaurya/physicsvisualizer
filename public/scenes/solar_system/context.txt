@@ -1,0 +1,77 @@
+Theory:
+Newton's Law of Universal Gravitation states that every particle in the universe attracts every other particle with a force proportional to the product of their masses and inversely proportional to the square of the distance between them.
+
+F = G(m₁m₂)/r²
+
+where G is the gravitational constant.
+
+This simulation demonstrates:
+- Planetary orbits around the Sun
+- Kepler's Laws of Planetary Motion
+- Conservation of angular momentum
+- Orbital velocity calculations
+- Moon's orbit around Earth
+
+Orbital Mechanics:
+The orbital velocity for a circular orbit is calculated using:
+v = √(GM/r)
+
+where:
+- G = gravitational constant (1 in simulation units)
+- M = mass of central body (Sun: 20000)
+- r = orbital radius
+
+Planet Details:
+1. Mercury - Innermost planet, fastest orbit (88 Earth days)
+   - Orbital radius: 20 units
+   - Orbital velocity: 31.62 units/s
+
+2. Venus - Second planet, retrograde rotation
+   - Orbital radius: 30 units
+   - Orbital velocity: 25.82 units/s
+
+3. Earth - Our home planet with Moon
+   - Orbital radius: 40 units
+   - Orbital velocity: 22.36 units/s
+   - Moon orbital velocity: 28.5 units/s (relative to Sun)
+
+4. Mars - Red planet, potential for life
+   - Orbital radius: 55 units
+   - Orbital velocity: 19.07 units/s
+
+Kepler's Laws:
+1. Law of Orbits: All planets move in elliptical orbits with the Sun at one focus
+2. Law of Areas: A line joining a planet and the Sun sweeps out equal areas in equal times
+3. Law of Periods: The square of the orbital period is proportional to the cube of the semi-major axis (T² ∝ r³)
+
+Conservation Laws:
+- Angular momentum (L = mvr) is conserved
+- Total energy (kinetic + potential) is conserved
+- Gravitational potential energy: PE = -GMm/r
+
+IMPORTANT NOTES:
+- This simulation uses a reduced timestep (0.001s) for numerical stability
+- Gravitational physics is enabled with G = 1 (scaled for visualization)
+- All planets start in circular orbits with calculated velocities
+- Zero friction and restitution to maintain orbital energy
+- The Sun is static (infinite mass approximation)
+
+Physics Settings:
+- Timestep: 0.001s (critical for orbital stability)
+- Solver Iterations: 10
+- Gravitational Constant: 1 (scaled)
+- Softening: 0.1 (prevents singularities at very close distances)
+
+Educational Value:
+Students can observe:
+- How orbital velocity decreases with distance from Sun
+- Conservation of angular momentum during orbits
+- The relationship between mass, distance, and orbital period
+- How the Moon maintains orbit around Earth while both orbit the Sun
+- Real-time demonstration of Kepler's laws
+
+Tips:
+- Pause simulation to measure distances and velocities
+- Use graphs to track position and velocity over time
+- Compare orbital periods of different planets
+- Observe how the Moon's path is perturbed by the Sun's gravity

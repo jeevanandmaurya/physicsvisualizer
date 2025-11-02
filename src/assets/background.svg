@@ -2,41 +2,10 @@
   <defs>
     <linearGradient id="sky" x1="0%" y1="0%" x2="0%" y2="100%">
       <stop offset="0%" stop-color="#87CEEB"/>
-      <stop offset="60%" stop-color="#B8E6FF"/>
-      <stop offset="85%" stop-color="#FFE4B5"/>
-      <stop offset="100%" stop-color="#FFF8DC"/>
-    </linearGradient>
-    
-    <linearGradient id="ground" x1="0%" y1="0%" x2="0%" y2="100%">
-      <stop offset="0%" stop-color="#E6D3A3"/>
-      <stop offset="100%" stop-color="#D2B48C"/>
-    </linearGradient>
-    
-    <linearGradient id="mountain" x1="0%" y1="0%" x2="0%" y2="100%">
-      <stop offset="0%" stop-color="#778899"/>
-      <stop offset="100%" stop-color="#556B7D"/>
+      <stop offset="100%" stop-color="#E0F6FF"/>
     </linearGradient>
   </defs>
   
   <!-- Sky -->
   <rect width="2048" height="1024" fill="url(#sky)"/>
-  
-  <!-- Ground -->
-  <rect y="900" width="2048" height="124" fill="url(#ground)"/>
-  
-  <!-- Mountains -->
-  <polygon points="0,850 200,780 400,820 600,760 800,800 1000,750 1200,790 1400,740 1600,780 1800,760 2000,800 2048,790 2048,900 0,900" fill="url(#mountain)" opacity="0.8"/>
-  
-  <polygon points="0,880 150,820 350,860 550,810 750,840 950,800 1150,830 1350,810 1550,850 1750,820 1950,840 2048,830 2048,900 0,900" fill="url(#mountain)" opacity="0.6"/>
-  
-  <!-- Clouds -->
-  <ellipse cx="100" cy="80" rx="40" ry="15" fill="white" opacity="0.7"/>
-  <ellipse cx="120" cy="75" rx="25" ry="10" fill="white" opacity="0.6"/>
-  <ellipse cx="300" cy="120" rx="35" ry="18" fill="white" opacity="0.6"/>
-  <ellipse cx="320" cy="115" rx="20" ry="12" fill="white" opacity="0.5"/>
-  <ellipse cx="450" cy="90" rx="30" ry="12" fill="white" opacity="0.5"/>
-  <ellipse cx="650" cy="100" rx="25" ry="10" fill="white" opacity="0.4"/>
-  
-  <!-- Sun -->
-  <circle cx="1700" cy="650" r="40" fill="#FFF8DC" opacity="0.8"/>
 </svg>

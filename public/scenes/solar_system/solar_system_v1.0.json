@@ -1,0 +1,106 @@
+{
+  "id": "solar-system",
+  "name": "Solar System Simulation",
+  "description": "Realistic solar system with Sun and inner planets (Mercury, Venus, Earth with Moon, and Mars) using gravitational physics. Demonstrates orbital mechanics and Kepler's laws.",
+  "objects": [
+    {
+      "id": "sun",
+      "type": "Sphere",
+      "mass": 2000,
+      "gravitationalMass": 20000,
+      "position": [0, 0, 0],
+      "radius": 10,
+      "isStatic": true,
+      "color": "#FDB813",
+      "opacity": 1,
+      "friction": 0,
+      "restitution": 0
+    },
+    {
+      "id": "mercury",
+      "type": "Sphere",
+      "mass": 0.055,
+      "gravitationalMass": 0.055,
+      "position": [20, 0, 0],
+      "radius": 0.4,
+      "velocity": [0, 0, 31.62],
+      "color": "#8C7853",
+      "opacity": 1,
+      "friction": 0,
+      "restitution": 0
+    },
+    {
+      "id": "venus",
+      "type": "Sphere",
+      "mass": 0.815,
+      "gravitationalMass": 0.815,
+      "position": [-30, 0, 0],
+      "radius": 0.95,
+      "velocity": [0, 0, -25.82],
+      "color": "#FFC649",
+      "opacity": 1,
+      "friction": 0,
+      "restitution": 0
+    },
+    {
+      "id": "earth",
+      "type": "Sphere",
+      "mass": 1,
+      "gravitationalMass": 1,
+      "position": [0, 0, 40],
+      "radius": 1,
+      "velocity": [-22.36, 0, 0],
+      "color": "#4169E1",
+      "opacity": 1,
+      "friction": 0,
+      "restitution": 0
+    },
+    {
+      "id": "moon",
+      "type": "Sphere",
+      "mass": 0.012,
+      "gravitationalMass": 0.012,
+      "position": [0, 0, 42.5],
+      "radius": 0.27,
+      "velocity": [-28.5, 0, 0],
+      "color": "#C0C0C0",
+      "opacity": 1,
+      "friction": 0,
+      "restitution": 0
+    },
+    {
+      "id": "mars",
+      "type": "Sphere",
+      "mass": 0.107,
+      "gravitationalMass": 0.107,
+      "position": [55, 0, 0],
+      "radius": 0.53,
+      "velocity": [0, 0, 19.07],
+      "color": "#CD5C5C",
+      "opacity": 1,
+      "friction": 0,
+      "restitution": 0
+    }
+  ],
+  "gravity": [0, 0, 0],
+  "hasGround": false,
+  "contactMaterial": {
+    "friction": 0,
+    "restitution": 0
+  },
+  "gravitationalPhysics": {
+    "enabled": true,
+    "gravitationalConstant": 1,
+    "minDistance": 0.5,
+    "softening": 0.1
+  },
+  "physicsSettings": {
+    "timeStep": 0.001,
+    "solverIterations": 10
+  },
+  "simulationScale": "solar_system",
+  "camera": {
+    "position": [60, 50, 60],
+    "lookAt": [0, 0, 0]
+  }
+}

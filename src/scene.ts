@@ -102,19 +102,20 @@ export const mechanicsExamples = [
   {
     "id": "solar-system-basics",
     "name": "Solar System Basics",
-    "description": "Simplified solar system showing orbital mechanics with a central sun and orbiting planets.",
+    "description": "Simplified solar system showing orbital mechanics with a central sun and orbiting planets. Use lower timestep (0.001s) in Physics Settings for stable orbits.",
     "objects": [
       { "id": "sun", "type": "Sphere", "mass": 1000, "gravitationalMass": 10000, "position": [0, 0, 0], "radius": 8, "isStatic": true, "color": "#FDB813", "friction": 0, "restitution": 0 },
-      { "id": "mercury", "type": "Sphere", "mass": 0.055, "position": [15, 0, 0], "radius": 0.4, "velocity": [0, 0, 25], "color": "#8C7853", "friction": 0, "restitution": 0 },
-      { "id": "venus", "type": "Sphere", "mass": 0.815, "position": [-22, 0, 5], "radius": 0.95, "velocity": [-4, 0, -18], "color": "#FFC649", "friction": 0, "restitution": 0 },
-      { "id": "earth", "type": "Sphere", "mass": 1, "position": [0, 0, 30], "radius": 1, "velocity": [-15, 0, 0], "color": "#4169E1", "friction": 0, "restitution": 0 },
-      { "id": "mars", "type": "Sphere", "mass": 0.107, "position": [40, 0, -8], "radius": 0.53, "velocity": [2.5, 0, 12.5], "color": "#CD5C5C", "friction": 0, "restitution": 0 }
+      { "id": "mercury", "type": "Sphere", "mass": 0.055, "gravitationalMass": 0.055, "position": [15, 0, 0], "radius": 0.4, "velocity": [0, 0, 25.82], "color": "#8C7853", "friction": 0, "restitution": 0 },
+      { "id": "venus", "type": "Sphere", "mass": 0.815, "gravitationalMass": 0.815, "position": [-22, 0, 0], "radius": 0.95, "velocity": [0, 0, -21.32], "color": "#FFC649", "friction": 0, "restitution": 0 },
+      { "id": "earth", "type": "Sphere", "mass": 1, "gravitationalMass": 1, "position": [0, 0, 30], "radius": 1, "velocity": [-18.26, 0, 0], "color": "#4169E1", "friction": 0, "restitution": 0 },
+      { "id": "mars", "type": "Sphere", "mass": 0.107, "gravitationalMass": 0.107, "position": [40, 0, 0], "radius": 0.53, "velocity": [0, 0, 15.81], "color": "#CD5C5C", "friction": 0, "restitution": 0 }
     ],
     "gravity": [0, 0, 0],
     "hasGround": false,
     "contactMaterial": { "friction": 0, "restitution": 0 },
-    "gravitationalPhysics": { "enabled": true, "gravitationalConstant": 1, "minDistance": 1, "softening": 0.1 },
-    "simulationScale": "solar_system"
+    "gravitationalPhysics": { "enabled": true, "gravitationalConstant": 1, "minDistance": 0.5, "softening": 0.1 },
+    "simulationScale": "solar_system",
+    "physicsSettings": { "timeStep": 0.001, "solverIterations": 10 }
   },
   {
     "id": "rube-goldberg-simple",
