@@ -16,7 +16,7 @@ function DashboardView() {
     const [recentScenes, setRecentScenes] = useState<SceneData[]>([]);
     const [yourScenes, setYourScenes] = useState<SceneData[]>([]);
     const [exampleScenes, setExampleScenes] = useState<SceneData[]>([]);
-    const [loading, setLoading] = useState(true);
+    const [loading, setLoading] = useState(true); // Show loading while fetching scene data (now much faster!)
 
     // Helper to generate a default new scene
     const createNewScene = useCallback(() => ({

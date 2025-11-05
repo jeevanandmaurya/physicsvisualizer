@@ -25,6 +25,9 @@ function SceneSkeleton() {
 }
 
 function SceneCard({ scene, isPublic = false, onSceneClick }) {
+  const [imageLoaded, setImageLoaded] = useState(false);
+  const [imageError, setImageError] = useState(false);
+  
   // Use scene.name as it's more consistent across the app
   const sceneName = scene.name || scene.title || 'Untitled Scene';
 
@@ -32,13 +35,40 @@ function SceneCard({ scene, isPublic = false, onSceneClick }) {
     onSceneClick(scene.id, isPublic);
   };
 
+  const handleImageLoad = () => {
+    setImageLoaded(true);
+  };
+
+  const handleImageError = () => {
+    setImageError(true);
+    setImageLoaded(true); // Show placeholder if image fails
+  };
+
   return (
     <div className="scene-card" onClick={handleSceneClick} style={{ cursor: 'pointer' }}>
-      <img
-        src={scene.thumbnailUrl || 'https://placehold.co/200/2c2c2c/ffffff?text=Scene'}
-        alt={sceneName}
-        className="scene-thumbnail"
-      />
+      <div className="scene-thumbnail-container" style={{ position: 'relative' }}>
+        {!imageLoaded && (
+          <div className="scene-thumbnail skeleton-shimmer" style={{
+            position: 'absolute',
+            top: 0,
+            left: 0,
+            width: '100%',
+            height: '100%',
+            zIndex: 1
+          }} />
+        )}
+        <img
+          src={imageError ? 'https://placehold.co/200/2c2c2c/ffffff?text=Scene' : (scene.thumbnailUrl || 'https://placehold.co/200/2c2c2c/ffffff?text=Scene')}
+          alt={sceneName}
+          className="scene-thumbnail"
+          onLoad={handleImageLoad}
+          onError={handleImageError}
+          style={{ 
+            opacity: imageLoaded ? 1 : 0,
+            transition: 'opacity 0.3s ease-in-out'
+          }}
+        />
+      </div>
       <div className="scene-card-content">
         <h3 className="scene-title" title={sceneName}>{sceneName}</h3>
         <p className="scene-description">{scene.description || 'No description available.'}</p>
@@ -76,15 +106,19 @@ function CollectionView() {
   const [searchTerm, setSearchTerm] = useState('');
   const [sortBy, setSortBy] = useState('name'); // 'name', 'date', 'name-desc', 'date-desc'
 
-  // --- Effect to fetch example scenes (representing example chats) ---
+  // --- Effect to fetch example scenes and load thumbnails when collection view opens ---
   useEffect(() => {
     let isMounted = true;
     if (!dataManager) return;
 
     setLoadingPublic(true);
     setError(null);
-    dataManager.getScenes('examples')
-      .then(scenes => {
+    
+    const loadScenesAndThumbnails = async () => {
+      try {
+        // Get scenes (JSON only, no thumbnails yet)
+        const scenes = await dataManager.getScenes('examples');
+        
         if (isMounted) {
           // Transform scenes into chat-like objects for display
           const exampleChats = scenes.map(scene => ({
@@ -97,14 +131,34 @@ function CollectionView() {
           }));
           setPublicScenes(exampleChats);
         }
-      })
-      .catch(err => {
+
+        // Now load thumbnails in the background (they'll update when ready)
+        // Import SceneLoader to load thumbnails
+        const { SceneLoader } = await import('../core/scene/SceneLoader');
+        await SceneLoader.loadAllThumbnails();
+        
+        // Refresh scenes with thumbnails
+        if (isMounted) {
+          const scenesWithThumbnails = await dataManager.getScenes('examples');
+          const updatedChats = scenesWithThumbnails.map(scene => ({
+            id: `chat-${scene.id}`,
+            name: scene.name,
+            description: scene.description,
+            thumbnailUrl: scene.thumbnailUrl,
+            sceneId: scene.id,
+            isExample: true
+          }));
+          setPublicScenes(updatedChats);
+        }
+      } catch (err) {
         console.error("Error fetching example scenes:", err);
         if (isMounted) setError("Failed to load example scenes.");
-      })
-      .finally(() => {
+      } finally {
         if (isMounted) setLoadingPublic(false);
-      });
+      }
+    };
+
+    loadScenesAndThumbnails();
 
     return () => { isMounted = false; };
   }, [dataManager]);

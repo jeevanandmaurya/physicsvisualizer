@@ -64,19 +64,21 @@ class SceneLoaderClass {
       // List of scene folders to load
       const sceneFolders = await this.getSceneFolders();
       
-      const scenes: LoadedScene[] = [];
-      
-      for (const folderName of sceneFolders) {
-        try {
-          const scene = await this.loadScene(folderName);
-          if (scene) {
-            scenes.push(scene);
-            this.sceneMap.set(scene.id, scene);
-          }
-        } catch (error) {
+      // Load all scenes in parallel for better performance
+      const scenePromises = sceneFolders.map(folderName => 
+        this.loadScene(folderName).catch(error => {
           console.error(`Error loading scene from ${folderName}:`, error);
-        }
-      }
+          return null;
+        })
+      );
+
+      const loadedScenes = await Promise.all(scenePromises);
+      const scenes = loadedScenes.filter((scene): scene is LoadedScene => scene !== null);
+
+      // Update cache and map
+      scenes.forEach(scene => {
+        this.sceneMap.set(scene.id, scene);
+      });
 
       this.cachedScenes = scenes;
       return scenes;
@@ -99,6 +101,38 @@ class SceneLoaderClass {
     await this.getAllScenes();
     
     return this.sceneMap.get(sceneId) || null;
+  }
+
+  /**
+   * Load thumbnails for all scenes (call this separately when needed)
+   */
+  async loadAllThumbnails(): Promise<void> {
+    if (!this.cachedScenes) {
+      await this.getAllScenes();
+    }
+
+    if (!this.cachedScenes) return;
+
+    // Load thumbnails in parallel for all scenes that don't have one
+    const thumbnailPromises = this.cachedScenes
+      .filter(scene => !scene.thumbnail)
+      .map(async (scene) => {
+        if (scene.folderName) {
+          scene.thumbnail = await this.loadThumbnail(scene.folderName);
+        }
+      });
+
+    await Promise.all(thumbnailPromises);
+  }
+
+  /**
+   * Load thumbnail for a specific scene
+   */
+  async loadSceneThumbnail(sceneId: string): Promise<void> {
+    const scene = this.sceneMap.get(sceneId);
+    if (scene && scene.folderName && !scene.thumbnail) {
+      scene.thumbnail = await this.loadThumbnail(scene.folderName);
+    }
   }
 
   /**
@@ -128,7 +162,7 @@ class SceneLoaderClass {
   /**
    * Load a scene from its folder
    */
-  private async loadScene(folderName: string): Promise<LoadedScene | null> {
+  private async loadScene(folderName: string, loadThumbnails: boolean = false): Promise<LoadedScene | null> {
     try {
       // Find the JSON file (should match pattern: folderName_v*.json)
       const sceneData = await this.loadSceneJSON(folderName);
@@ -140,8 +174,8 @@ class SceneLoaderClass {
       // Load context if available
       const context = await this.loadContext(folderName);
 
-      // Load thumbnail if available
-      const thumbnail = await this.loadThumbnail(folderName);
+      // Load thumbnail only if requested
+      const thumbnail = loadThumbnails ? await this.loadThumbnail(folderName) : undefined;
 
       // Merge all data
       const loadedScene: LoadedScene = {
