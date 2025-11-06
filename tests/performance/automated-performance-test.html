@@ -1,0 +1,598 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>PhysicsVisualizer - Automated Performance Test Suite</title>
+    <style>
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            margin: 0;
+            padding: 20px;
+            background: #1a1a1a;
+            color: #fff;
+        }
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+        }
+        h1 {
+            color: #4CAF50;
+            margin-bottom: 10px;
+        }
+        .controls {
+            background: #2a2a2a;
+            padding: 20px;
+            border-radius: 8px;
+            margin-bottom: 20px;
+        }
+        .control-group {
+            margin-bottom: 15px;
+        }
+        label {
+            display: inline-block;
+            width: 200px;
+            font-weight: bold;
+        }
+        select, input {
+            padding: 8px;
+            background: #333;
+            border: 1px solid #555;
+            color: #fff;
+            border-radius: 4px;
+            min-width: 150px;
+        }
+        button {
+            background: #4CAF50;
+            color: white;
+            border: none;
+            padding: 12px 24px;
+            font-size: 16px;
+            border-radius: 4px;
+            cursor: pointer;
+            margin-right: 10px;
+            margin-top: 10px;
+        }
+        button:hover {
+            background: #45a049;
+        }
+        button:disabled {
+            background: #666;
+            cursor: not-allowed;
+        }
+        .status {
+            background: #2a2a2a;
+            padding: 15px;
+            border-radius: 8px;
+            margin-bottom: 20px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        .status-item {
+            text-align: center;
+        }
+        .status-label {
+            font-size: 12px;
+            color: #888;
+            margin-bottom: 5px;
+        }
+        .status-value {
+            font-size: 24px;
+            font-weight: bold;
+        }
+        .fps-good { color: #4CAF50; }
+        .fps-medium { color: #FFC107; }
+        .fps-bad { color: #f44336; }
+        .results {
+            background: #2a2a2a;
+            padding: 20px;
+            border-radius: 8px;
+            margin-bottom: 20px;
+        }
+        .progress {
+            background: #333;
+            height: 30px;
+            border-radius: 4px;
+            overflow: hidden;
+            margin-bottom: 20px;
+        }
+        .progress-bar {
+            background: linear-gradient(90deg, #4CAF50, #45a049);
+            height: 100%;
+            transition: width 0.3s;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: bold;
+        }
+        #viewport {
+            width: 100%;
+            height: 500px;
+            background: #000;
+            border-radius: 8px;
+            margin-bottom: 20px;
+        }
+        table {
+            width: 100%;
+            border-collapse: collapse;
+        }
+        th, td {
+            padding: 12px;
+            text-align: left;
+            border-bottom: 1px solid #333;
+        }
+        th {
+            background: #333;
+            font-weight: bold;
+        }
+        tr:hover {
+            background: #333;
+        }
+        .export-section {
+            margin-top: 20px;
+            padding-top: 20px;
+            border-top: 1px solid #333;
+        }
+        .info-box {
+            background: #1e3a5f;
+            border-left: 4px solid #2196F3;
+            padding: 15px;
+            margin-bottom: 20px;
+            border-radius: 4px;
+        }
+        .warning-box {
+            background: #3a2e1e;
+            border-left: 4px solid #FFC107;
+            padding: 15px;
+            margin-bottom: 20px;
+            border-radius: 4px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🧪 PhysicsVisualizer - Automated Performance Test Suite</h1>
+        <p style="color: #888; margin-top: 0;">Comprehensive performance testing for physics simulations</p>
+
+        <div class="info-box">
+            <strong>📋 Test Plan:</strong> This automated test suite will run multiple scenarios with increasing object counts,
+            measuring FPS, physics computation time, rendering time, and memory usage. Results will be collected for documentation.
+        </div>
+
+        <div class="controls">
+            <h2>Test Configuration</h2>
+            
+            <div class="control-group">
+                <label>Physics Engine:</label>
+                <select id="engineSelect">
+                    <option value="rapier">Rapier3D (Rigid Body)</option>
+                    <option value="gravity">Gravitational N-Body</option>
+                    <option value="nonphysics">Non-Physics (Visual Only)</option>
+                    <option value="hybrid">Hybrid (Mixed)</option>
+                </select>
+            </div>
+
+            <div class="control-group">
+                <label>Object Counts to Test:</label>
+                <input type="text" id="objectCounts" value="10,50,100,500,1000" placeholder="e.g., 10,50,100,500">
+            </div>
+
+            <div class="control-group">
+                <label>Test Duration (seconds):</label>
+                <input type="number" id="testDuration" value="30" min="10" max="120">
+            </div>
+
+            <div class="control-group">
+                <label>Hardware Config Name:</label>
+                <input type="text" id="hardwareName" placeholder="e.g., Mid-Range Desktop">
+            </div>
+
+            <div class="control-group">
+                <label>CPU Model:</label>
+                <input type="text" id="cpuModel" placeholder="e.g., AMD Ryzen 5 5600">
+            </div>
+
+            <div class="control-group">
+                <label>GPU Model:</label>
+                <input type="text" id="gpuModel" placeholder="e.g., NVIDIA GTX 1660">
+            </div>
+
+            <div class="control-group">
+                <label>RAM (GB):</label>
+                <input type="number" id="ramAmount" value="16" min="4" max="128">
+            </div>
+
+            <button id="startBtn" onclick="startTests()">▶ Start Test Suite</button>
+            <button id="stopBtn" onclick="stopTests()" disabled>⏹ Stop Tests</button>
+            <button id="clearBtn" onclick="clearResults()">🗑 Clear Results</button>
+        </div>
+
+        <div class="warning-box" id="warningBox" style="display: none;">
+            <strong>⚠ Running Test:</strong> Please do not interact with the page during testing. 
+            The test will run for <span id="warningDuration"></span> seconds per configuration.
+        </div>
+
+        <div class="progress" id="progressContainer" style="display: none;">
+            <div class="progress-bar" id="progressBar">0%</div>
+        </div>
+
+        <div class="status">
+            <div class="status-item">
+                <div class="status-label">Current Test</div>
+                <div class="status-value" id="currentTest">-</div>
+            </div>
+            <div class="status-item">
+                <div class="status-label">FPS</div>
+                <div class="status-value fps-good" id="currentFPS">-</div>
+            </div>
+            <div class="status-item">
+                <div class="status-label">Physics Time</div>
+                <div class="status-value" id="physicsTime">-</div>
+            </div>
+            <div class="status-item">
+                <div class="status-label">Render Time</div>
+                <div class="status-value" id="renderTime">-</div>
+            </div>
+            <div class="status-item">
+                <div class="status-label">Memory</div>
+                <div class="status-value" id="memoryUsage">-</div>
+            </div>
+            <div class="status-item">
+                <div class="status-label">Objects</div>
+                <div class="status-value" id="objectCount">-</div>
+            </div>
+        </div>
+
+        <canvas id="viewport"></canvas>
+
+        <div class="results">
+            <h2>Test Results</h2>
+            <div id="resultsTable">
+                <p style="color: #888;">No tests run yet. Click "Start Test Suite" to begin.</p>
+            </div>
+
+            <div class="export-section">
+                <button onclick="exportJSON()">📥 Export Results (JSON)</button>
+                <button onclick="exportCSV()">📊 Export Results (CSV)</button>
+                <button onclick="copyToClipboard()">📋 Copy to Clipboard</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Test state
+        let testResults = [];
+        let currentTestIndex = 0;
+        let testConfigs = [];
+        let isRunning = false;
+        let testStartTime = 0;
+        let frameCount = 0;
+        let physicsTimeSum = 0;
+        let renderTimeSum = 0;
+        let fpsReadings = [];
+
+        // Initialize
+        document.getElementById('hardwareName').value = detectHardwareName();
+        detectSystemInfo();
+
+        function detectHardwareName() {
+            const ua = navigator.userAgent;
+            if (ua.includes('Windows')) return 'Windows Desktop';
+            if (ua.includes('Mac')) return 'macOS Device';
+            if (ua.includes('Linux')) return 'Linux Desktop';
+            if (ua.includes('Android')) return 'Android Device';
+            if (ua.includes('iPhone') || ua.includes('iPad')) return 'iOS Device';
+            return 'Unknown Device';
+        }
+
+        function detectSystemInfo() {
+            // Try to detect GPU
+            const canvas = document.getElementById('viewport');
+            const gl = canvas.getContext('webgl') || canvas.getContext('experimental-webgl');
+            if (gl) {
+                const debugInfo = gl.getExtension('WEBGL_debug_renderer_info');
+                if (debugInfo) {
+                    const gpu = gl.getParameter(debugInfo.UNMASKED_RENDERER_WEBGL);
+                    document.getElementById('gpuModel').value = gpu;
+                }
+            }
+
+            // Detect CPU cores (approximate)
+            if (navigator.hardwareConcurrency) {
+                const cores = navigator.hardwareConcurrency;
+                const cpuGuess = cores <= 2 ? 'Dual-Core' : cores <= 4 ? 'Quad-Core' : cores + '-Core';
+                if (!document.getElementById('cpuModel').value) {
+                    document.getElementById('cpuModel').value = cpuGuess + ' CPU';
+                }
+            }
+
+            // Estimate RAM (very rough based on device memory if available)
+            if (navigator.deviceMemory) {
+                document.getElementById('ramAmount').value = navigator.deviceMemory;
+            }
+        }
+
+        function startTests() {
+            // Validate inputs
+            const objectCountsStr = document.getElementById('objectCounts').value;
+            const objectCounts = objectCountsStr.split(',').map(s => parseInt(s.trim())).filter(n => !isNaN(n));
+            
+            if (objectCounts.length === 0) {
+                alert('Please enter valid object counts (e.g., 10,50,100,500)');
+                return;
+            }
+
+            // Build test configurations
+            const engine = document.getElementById('engineSelect').value;
+            testConfigs = objectCounts.map(count => ({
+                engine: engine,
+                objectCount: count,
+                duration: parseInt(document.getElementById('testDuration').value)
+            }));
+
+            // Reset state
+            testResults = [];
+            currentTestIndex = 0;
+            isRunning = true;
+
+            // Update UI
+            document.getElementById('startBtn').disabled = true;
+            document.getElementById('stopBtn').disabled = false;
+            document.getElementById('warningBox').style.display = 'block';
+            document.getElementById('warningDuration').textContent = document.getElementById('testDuration').value;
+            document.getElementById('progressContainer').style.display = 'block';
+
+            // Start first test
+            runNextTest();
+        }
+
+        function stopTests() {
+            isRunning = false;
+            document.getElementById('startBtn').disabled = false;
+            document.getElementById('stopBtn').disabled = true;
+            document.getElementById('warningBox').style.display = 'none';
+            document.getElementById('progressContainer').style.display = 'none';
+            updateResultsTable();
+        }
+
+        function runNextTest() {
+            if (!isRunning || currentTestIndex >= testConfigs.length) {
+                stopTests();
+                return;
+            }
+
+            const config = testConfigs[currentTestIndex];
+            
+            // Update progress
+            const progress = ((currentTestIndex + 1) / testConfigs.length) * 100;
+            document.getElementById('progressBar').style.width = progress + '%';
+            document.getElementById('progressBar').textContent = Math.round(progress) + '%';
+
+            // Update current test display
+            document.getElementById('currentTest').textContent = `${config.objectCount} objects`;
+            document.getElementById('objectCount').textContent = config.objectCount;
+
+            // Reset metrics
+            frameCount = 0;
+            physicsTimeSum = 0;
+            renderTimeSum = 0;
+            fpsReadings = [];
+            testStartTime = performance.now();
+
+            // Initialize scene
+            console.log(`Starting test: ${config.objectCount} objects (${config.engine})`);
+            initializeTestScene(config);
+
+            // Run test for specified duration
+            runTestLoop(config);
+        }
+
+        function initializeTestScene(config) {
+            // TODO: Initialize physics scene based on config
+            // This is a placeholder - actual implementation depends on your physics engine setup
+            console.log('Initializing scene:', config);
+        }
+
+        function runTestLoop(config) {
+            const testEndTime = testStartTime + (config.duration * 1000);
+            
+            function frame() {
+                if (!isRunning || performance.now() >= testEndTime) {
+                    // Test complete, record results
+                    recordTestResult(config);
+                    currentTestIndex++;
+                    setTimeout(() => runNextTest(), 1000); // 1 second pause between tests
+                    return;
+                }
+
+                // Measure frame time
+                const frameStart = performance.now();
+                
+                // Simulate physics step
+                const physicsStart = performance.now();
+                simulatePhysics(config);
+                const physicsEnd = performance.now();
+                const physicsTime = physicsEnd - physicsStart;
+                
+                // Simulate rendering
+                const renderStart = performance.now();
+                render();
+                const renderEnd = performance.now();
+                const renderTime = renderEnd - renderStart;
+                
+                const frameTime = performance.now() - frameStart;
+                const fps = 1000 / frameTime;
+                
+                // Record metrics
+                frameCount++;
+                physicsTimeSum += physicsTime;
+                renderTimeSum += renderTime;
+                fpsReadings.push(fps);
+                
+                // Update UI (throttled)
+                if (frameCount % 10 === 0) {
+                    updateLiveMetrics(fps, physicsTime, renderTime);
+                }
+                
+                requestAnimationFrame(frame);
+            }
+            
+            requestAnimationFrame(frame);
+        }
+
+        function simulatePhysics(config) {
+            // TODO: Actual physics simulation
+            // Placeholder: simulate some work
+            const startTime = performance.now();
+            const workAmount = config.objectCount * 0.001; // Rough approximation
+            while (performance.now() - startTime < workAmount) {
+                // Busy wait to simulate work
+                Math.sqrt(Math.random());
+            }
+        }
+
+        function render() {
+            // TODO: Actual rendering
+            // Placeholder
+            const canvas = document.getElementById('viewport');
+            const ctx = canvas.getContext('2d');
+            ctx.fillStyle = '#000';
+            ctx.fillRect(0, 0, canvas.width, canvas.height);
+            ctx.fillStyle = '#4CAF50';
+            ctx.font = '20px Arial';
+            ctx.fillText('Test Running...', 50, 50);
+        }
+
+        function updateLiveMetrics(fps, physicsTime, renderTime) {
+            // Update FPS with color coding
+            const fpsElement = document.getElementById('currentFPS');
+            fpsElement.textContent = fps.toFixed(1);
+            fpsElement.className = 'status-value ' + (fps >= 55 ? 'fps-good' : fps >= 30 ? 'fps-medium' : 'fps-bad');
+            
+            document.getElementById('physicsTime').textContent = physicsTime.toFixed(2) + 'ms';
+            document.getElementById('renderTime').textContent = renderTime.toFixed(2) + 'ms';
+            
+            // Estimate memory (if available)
+            if (performance.memory) {
+                const memMB = (performance.memory.usedJSHeapSize / 1024 / 1024).toFixed(0);
+                document.getElementById('memoryUsage').textContent = memMB + 'MB';
+            }
+        }
+
+        function recordTestResult(config) {
+            // Calculate statistics
+            const avgFPS = fpsReadings.reduce((a, b) => a + b, 0) / fpsReadings.length;
+            const minFPS = Math.min(...fpsReadings);
+            const maxFPS = Math.max(...fpsReadings);
+            const avgPhysicsTime = physicsTimeSum / frameCount;
+            const avgRenderTime = renderTimeSum / frameCount;
+            
+            // Get hardware info
+            const result = {
+                timestamp: new Date().toISOString(),
+                hardware: {
+                    name: document.getElementById('hardwareName').value,
+                    cpu: document.getElementById('cpuModel').value,
+                    gpu: document.getElementById('gpuModel').value,
+                    ram: document.getElementById('ramAmount').value + 'GB',
+                    browser: navigator.userAgent
+                },
+                scenario: {
+                    engine: config.engine,
+                    objectCount: config.objectCount,
+                    duration: config.duration
+                },
+                metrics: {
+                    avgFPS: avgFPS.toFixed(2),
+                    minFPS: minFPS.toFixed(2),
+                    maxFPS: maxFPS.toFixed(2),
+                    avgPhysicsTimeMs: avgPhysicsTime.toFixed(2),
+                    avgRenderTimeMs: avgRenderTime.toFixed(2),
+                    totalFrames: frameCount,
+                    memoryMB: performance.memory ? (performance.memory.usedJSHeapSize / 1024 / 1024).toFixed(0) : 'N/A'
+                }
+            };
+            
+            testResults.push(result);
+            updateResultsTable();
+        }
+
+        function updateResultsTable() {
+            if (testResults.length === 0) {
+                document.getElementById('resultsTable').innerHTML = '<p style="color: #888;">No tests completed yet.</p>';
+                return;
+            }
+
+            let html = '<table><thead><tr>';
+            html += '<th>Objects</th><th>Engine</th><th>Avg FPS</th><th>Min FPS</th>';
+            html += '<th>Physics (ms)</th><th>Render (ms)</th><th>Memory</th><th>Rating</th>';
+            html += '</tr></thead><tbody>';
+
+            testResults.forEach(result => {
+                const fps = parseFloat(result.metrics.avgFPS);
+                const rating = fps >= 55 ? '✅ Excellent' : fps >= 45 ? '✔ Good' : fps >= 30 ? '⚠ Fair' : '❌ Poor';
+                const rowClass = fps >= 55 ? 'fps-good' : fps >= 30 ? 'fps-medium' : 'fps-bad';
+
+                html += `<tr>
+                    <td>${result.scenario.objectCount}</td>
+                    <td>${result.scenario.engine}</td>
+                    <td class="${rowClass}">${result.metrics.avgFPS}</td>
+                    <td>${result.metrics.minFPS}</td>
+                    <td>${result.metrics.avgPhysicsTimeMs}</td>
+                    <td>${result.metrics.avgRenderTimeMs}</td>
+                    <td>${result.metrics.memoryMB}</td>
+                    <td>${rating}</td>
+                </tr>`;
+            });
+
+            html += '</tbody></table>';
+            document.getElementById('resultsTable').innerHTML = html;
+        }
+
+        function clearResults() {
+            if (confirm('Clear all test results?')) {
+                testResults = [];
+                updateResultsTable();
+            }
+        }
+
+        function exportJSON() {
+            const dataStr = JSON.stringify(testResults, null, 2);
+            const blob = new Blob([dataStr], { type: 'application/json' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = `performance-test-results-${Date.now()}.json`;
+            a.click();
+        }
+
+        function exportCSV() {
+            let csv = 'Timestamp,Hardware,CPU,GPU,RAM,Browser,Engine,Objects,AvgFPS,MinFPS,MaxFPS,PhysicsMs,RenderMs,Memory\\n';
+            
+            testResults.forEach(result => {
+                csv += `${result.timestamp},`;
+                csv += `"${result.hardware.name}","${result.hardware.cpu}","${result.hardware.gpu}",${result.hardware.ram},`;
+                csv += `"${result.hardware.browser}",`;
+                csv += `${result.scenario.engine},${result.scenario.objectCount},`;
+                csv += `${result.metrics.avgFPS},${result.metrics.minFPS},${result.metrics.maxFPS},`;
+                csv += `${result.metrics.avgPhysicsTimeMs},${result.metrics.avgRenderTimeMs},${result.metrics.memoryMB}\\n`;
+            });
+            
+            const blob = new Blob([csv], { type: 'text/csv' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = `performance-test-results-${Date.now()}.csv`;
+            a.click();
+        }
+
+        function copyToClipboard() {
+            const text = JSON.stringify(testResults, null, 2);
+            navigator.clipboard.writeText(text).then(() => {
+                alert('Results copied to clipboard!');
+            });
+        }
+    </script>
+</body>
+</html>

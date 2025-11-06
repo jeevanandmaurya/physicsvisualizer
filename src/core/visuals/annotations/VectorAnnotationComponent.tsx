@@ -25,8 +25,6 @@ export function VectorAnnotationComponent({
   const groupRef = useRef<THREE.Group>(null);
   const shaftRef = useRef<THREE.Mesh>(null);
   const coneRef = useRef<THREE.Mesh>(null);
-  const targetPosition = useRef<THREE.Vector3>(new THREE.Vector3());
-  const smoothPosition = useRef<THREE.Vector3>(new THREE.Vector3());
   
   // Create geometries once
   const geometries = useMemo(() => ({
@@ -111,7 +109,7 @@ export function VectorAnnotationComponent({
     }
     group.visible = true;
 
-    // Position arrow at object location with smooth interpolation
+    // Position arrow at object location - NO SMOOTHING for accurate physics display
     const objectSize = getObjectSize(objectConfig);
     const worldPos = calculateWorldPosition(
       physicsData.position,
@@ -120,11 +118,8 @@ export function VectorAnnotationComponent({
       objectSize
     );
     
-    // Smooth position interpolation to reduce flickering
-    targetPosition.current.copy(worldPos);
-    const smoothness = annotation.smoothness || 0.15;
-    smoothPosition.current.lerp(targetPosition.current, smoothness);
-    group.position.copy(smoothPosition.current);
+    // Vectors need precise positioning - update instantly without smoothing
+    group.position.copy(worldPos);
 
     // Orient arrow
     dir.copy(vector).normalize();

@@ -1,0 +1,83 @@
+{
+  "id": "gravitational-field-vectors",
+  "name": "Gravitational Field Visualization",
+  "description": "Two masses with vector field arrows showing gravitational field lines and magnitude",
+  "objects": [
+    {
+      "id": "mass_1",
+      "type": "Sphere",
+      "mass": 100,
+      "position": [-5, 5, 0],
+      "radius": 1.5,
+      "color": "#e74c3c",
+      "isStatic": true,
+      "gravitationalMass": 100
+    },
+    {
+      "id": "mass_2",
+      "type": "Sphere",
+      "mass": 150,
+      "position": [5, 5, 0],
+      "radius": 1.8,
+      "color": "#3498db",
+      "isStatic": true,
+      "gravitationalMass": 150
+    }
+  ],
+  "visualAnnotations": [
+    {
+      "id": "dynamic_field_vectors",
+      "type": "custom",
+      "attachedToObjectId": null,
+      "renderCode": "(context) => { if(!context.arrowHelpers) { context.arrowHelpers = []; const gridSize = 8; const spacing = 1.8; const z = 0; for(let i = -gridSize; i <= gridSize; i++) { for(let j = -gridSize; j <= gridSize; j++) { const x = i * spacing; const y = 5 + j * spacing; const arrow = new THREE.ArrowHelper(new THREE.Vector3(0, 1, 0), new THREE.Vector3(x, y, z), 1, 0xffff00, 0.15, 0.12); arrow.userData = {gridX: x, gridY: y, gridZ: z}; context.scene.add(arrow); context.arrowHelpers.push(arrow); }}} const G = context.scene.userData?.gravitationalPhysics?.gravitationalConstant || 0.5; const minDistance = context.scene.userData?.gravitationalPhysics?.minDistance || 0.5; const softening = context.scene.userData?.gravitationalPhysics?.softening || 0.1; const masses = []; context.scene.traverse(obj => { if(obj.userData?.sceneObjectId && obj.userData?.gravitationalMass) { masses.push({pos: obj.position, mass: obj.userData.gravitationalMass}); }}); context.arrowHelpers.forEach(arrow => { const x = arrow.userData.gridX; const y = arrow.userData.gridY; const z = arrow.userData.gridZ; let fx = 0, fy = 0, fz = 0; let tooClose = false; masses.forEach(m => { const dx = x - m.pos.x; const dy = y - m.pos.y; const dz = z - m.pos.z; const dist = Math.sqrt(dx*dx + dy*dy + dz*dz); if(dist < 2.2) { tooClose = true; return; } const distSq = dx*dx + dy*dy + dz*dz + softening*softening; const effectiveDistSq = Math.max(distSq, minDistance*minDistance); const forceMag = (G * m.mass) / effectiveDistSq; if(dist > 0) { fx -= forceMag * dx / dist; fy -= forceMag * dy / dist; fz -= forceMag * dz / dist; }}); const mag = Math.sqrt(fx*fx + fy*fy + fz*fz); if(tooClose || mag < 0.05) { arrow.visible = false; } else { arrow.visible = true; const length = Math.min(mag * 2, 2); const dir = new THREE.Vector3(fx, fy, fz).normalize(); arrow.setDirection(dir); arrow.setLength(length, length * 0.25, length * 0.2); }});}"
+    }
+  ],
+  "gravity": [0, 0, 0],
+  "hasGround": false,
+    "contactMaterial": {
+      "friction": 0.5,
+      "restitution": 0.7
+    },
+    "gravitationalPhysics": {
+      "enabled": true,
+      "gravitationalConstant": 0.5,
+      "minDistance": 0.5,
+      "softening": 0.1
+    },
+    "simulationScale": "terrestrial",
+    "controllers": [
+      {
+        "id": "grav_const",
+        "label": "Gravitational Constant",
+        "type": "slider",
+        "min": 0.1,
+        "max": 2,
+        "step": 0.1,
+        "value": 0.5,
+        "propertyPath": "gravitationalPhysics.gravitationalConstant"
+      },
+      {
+        "id": "mass1_grav",
+        "label": "Mass 1 (Red)",
+        "type": "slider",
+        "min": 10,
+        "max": 300,
+        "step": 10,
+        "value": 100,
+        "objectId": "mass_1",
+        "property": "gravitationalMass"
+      },
+      {
+        "id": "mass2_grav",
+        "label": "Mass 2 (Blue)",
+        "type": "slider",
+        "min": 10,
+        "max": 300,
+        "step": 10,
+        "value": 150,
+        "objectId": "mass_2",
+        "property": "gravitationalMass"
+      }
+    ],
+    "version": "1.0"
+  }

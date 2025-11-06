@@ -3,7 +3,7 @@
  * Non-physical visual elements that enhance physics simulations
  */
 
-export type AnnotationType = 'text' | 'vector' | 'trail' | 'symbol' | 'effect';
+export type AnnotationType = 'text' | 'vector' | 'trail' | 'symbol' | 'effect' | 'custom';
 
 export type AnchorPosition = 'top' | 'bottom' | 'left' | 'right' | 'center' | 'top-left' | 'top-right' | 'bottom-left' | 'bottom-right';
 
@@ -130,6 +130,31 @@ export interface SymbolAnnotation extends BaseAnnotation {
 }
 
 /**
+ * Custom annotation - Execute arbitrary JavaScript code for rendering
+ * Allows full flexibility and composability with other tools
+ */
+export interface CustomAnnotation extends BaseAnnotation {
+  type: 'custom';
+  
+  // JavaScript code to execute for rendering
+  // Has access to: mesh, obj, physicsData, time, Math, scene
+  renderCode?: string | ((context: {
+    physicsData: PhysicsData;
+    objectConfig: any;
+    time: number;
+    mesh?: any;
+    scene?: any;
+    camera?: any;
+  }) => void);
+  
+  // Initial Three.js object to create (optional)
+  createObject?: string | ((context: {
+    physicsData: PhysicsData;
+    objectConfig: any;
+  }) => any);
+}
+
+/**
  * Effect annotation - visual effects
  */
 export interface EffectAnnotation extends BaseAnnotation {
@@ -152,15 +177,7 @@ export interface EffectAnnotation extends BaseAnnotation {
   triggerOnSpeed?: number;      // Trigger when speed exceeds this
 }
 
-/**
- * Union type for all annotation types
- */
-export type VisualAnnotation = 
-  | TextAnnotation 
-  | VectorAnnotation 
-  | TrailAnnotation 
-  | SymbolAnnotation 
-  | EffectAnnotation;
+// Union type will be defined after CustomAnnotation
 
 /**
  * Physics data provided to annotation update functions
@@ -179,6 +196,18 @@ export interface PhysicsData {
   kineticEnergy?: number;
   momentum?: [number, number, number];
 }
+
+/**
+ * Union type for all annotation types
+ * Allows generalized tool composability - any annotation can use custom code
+ */
+export type VisualAnnotation = 
+  | TextAnnotation 
+  | VectorAnnotation 
+  | TrailAnnotation 
+  | SymbolAnnotation 
+  | EffectAnnotation
+  | CustomAnnotation;
 
 /**
  * Scene configuration with annotations

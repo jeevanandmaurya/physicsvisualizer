@@ -226,6 +226,20 @@ function ModernChatInterface({ onViewChange }: ModernChatInterfaceProps) {
   // Use all messages for the current chat (no message filtering)
   const filteredMessages = messages;
 
+  // Find the latest message with scene generation (create or modify action)
+  const latestSceneMessageId = React.useMemo(() => {
+    // Iterate from end to start to find the most recent scene generation
+    for (let i = filteredMessages.length - 1; i >= 0; i--) {
+      const msg = filteredMessages[i];
+      if (!msg.isUser && 
+          (msg as any).sceneMetadata?.hasSceneGeneration && 
+          (msg as any).sceneMetadata?.sceneAction !== 'none') {
+        return msg.id;
+      }
+    }
+    return null;
+  }, [filteredMessages]);
+
   return (
     <div
       style={{
@@ -577,8 +591,10 @@ function ModernChatInterface({ onViewChange }: ModernChatInterfaceProps) {
                   }}
                 />
 
-                {/* Scene Preview Card */}
-                {!message.isUser && (message as any).sceneMetadata?.hasSceneGeneration && (
+                {/* Scene Preview Card - Only show for the latest message with scene generation */}
+                {!message.isUser && 
+                 message.id === latestSceneMessageId && 
+                 (message as any).sceneMetadata?.hasSceneGeneration && (
                   <ScenePreviewCard 
                     message={message as any}
                     chatId={currentChatId || ''}

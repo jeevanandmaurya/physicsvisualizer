@@ -61,6 +61,31 @@ class ScenePatcher {
       anchorB: (value) => Array.isArray(value) && value.length === 3 && value.every(v => typeof v === 'number'),
       axis: (value) => Array.isArray(value) && value.length === 3 && value.every(v => typeof v === 'number'),
       distance: (value) => typeof value === 'number' && value > 0,
+
+      // Visual annotation property validations
+      fontSize: (value) => typeof value === 'number' && value > 0 && value < 200,
+      fontFamily: (value) => typeof value === 'string',
+      backgroundColor: (value) => typeof value === 'string', // Accept rgba() strings
+      padding: (value) => typeof value === 'number' && value >= 0,
+      borderRadius: (value) => typeof value === 'number' && value >= 0,
+      attachedToObjectId: (value) => typeof value === 'string' && value.length > 0,
+      contentType: (value) => ['speed', 'velocity', 'position', 'mass', 'kineticEnergy', 'momentum', 'custom'].includes(value),
+      vectorType: (value) => ['velocity', 'momentum', 'acceleration', 'force', 'custom'].includes(value),
+      anchor: (value) => ['top', 'bottom', 'left', 'right', 'center', 'top-left', 'top-right', 'bottom-left', 'bottom-right'].includes(value),
+      offset: (value) => Array.isArray(value) && value.length === 3 && value.every(v => typeof v === 'number'),
+      scale: (value) => typeof value === 'number' && value > 0,
+      showMagnitude: (value) => typeof value === 'boolean',
+      visible: (value) => typeof value === 'boolean',
+      minSpeed: (value) => typeof value === 'number' && value >= 0,
+      updateFrequency: (value) => typeof value === 'number' && value > 0 && value <= 240,
+      precision: (value) => typeof value === 'number' && value >= 0 && value <= 10,
+      prefix: (value) => typeof value === 'string',
+      suffix: (value) => typeof value === 'string',
+      customText: (value) => typeof value === 'string',
+      shaftRadius: (value) => typeof value === 'number' && value > 0,
+      headLength: (value) => typeof value === 'number' && value > 0,
+      headRadius: (value) => typeof value === 'number' && value > 0,
+      smoothness: (value) => typeof value === 'number' && value >= 0 && value <= 1,
     };
   }
 
