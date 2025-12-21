@@ -70,7 +70,8 @@ function ModernChatInterface({ onViewChange }: ModernChatInterfaceProps) {
     updateConversation: null, // Not used
     dataManager: dataManager,
     workspaceMessages: workspaceMessages as any, // Use workspace messages directly
-    addMessageToWorkspace: addMessage // Pass addMessage function for persistence
+    addMessageToWorkspace: addMessage, // Pass addMessage function for persistence
+    shouldSwitchScene: false // Don't switch global scene when in full chat view
   });
 
   // Removed greeting - no automatic welcome message
@@ -367,18 +368,6 @@ function ModernChatInterface({ onViewChange }: ModernChatInterfaceProps) {
             <div key={message.id} className={`message-item ${message.isUser ? 'user' : 'ai'}`}>
               {/* Message Content */}
               <div className="message-content">
-                <div className="message-header">
-                  <span className="message-author">
-                    {message.isUser ? "You" : "Physics AI"}
-                  </span>
-                  <span className="message-time">
-                    {new Date(message.timestamp).toLocaleTimeString([], {
-                      hour: "2-digit",
-                      minute: "2-digit",
-                    })}
-                  </span>
-                </div>
-
                 <div
                   className="message-body"
                   dangerouslySetInnerHTML={{

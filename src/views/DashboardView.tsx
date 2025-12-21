@@ -120,95 +120,93 @@ function DashboardView() {
                         <img
                             src={logo}
                             alt="Physics Visualizer Logo"
-                            style={{
-                                width: '100%',
-                                height: '100px',
-                                objectFit: 'contain'
-                            }}
+                            className="dashboard-logo"
                         />
                     </div>
                     <p className="welcome-subtitle">Create, explore, and learn with interactive physics simulations</p>
                 </div>
 
                 <div className="welcome-actions">
-                    <div className="action-group">
+                    <div className="action-group full-width">
                         <div className="action-cards">
                             <div className="action-card" onClick={handleCreateNewScene}>
-                                <div className="action-card-icon">
-                                    <FontAwesomeIcon icon={faPlus} />
-                                </div>
                                 <div className="action-card-content">
-                                    <h3>New Scene</h3>
+                                    <h3>
+                                        <FontAwesomeIcon icon={faPlus} className="card-title-icon" />
+                                        New Scene
+                                    </h3>
                                     <p>Create a blank physics simulation</p>
                                 </div>
                             </div>
                             
                             <div className="action-card" onClick={() => setCurrentView('chat')}>
-                                <div className="action-card-icon">
-                                    <FontAwesomeIcon icon={faComments} />
-                                </div>
                                 <div className="action-card-content">
-                                    <h3>New Chat</h3>
+                                    <h3>
+                                        <FontAwesomeIcon icon={faComments} className="card-title-icon" />
+                                        New Chat
+                                    </h3>
                                     <p>Interact with Physics AI Agent</p>
                                 </div>
                             </div>
 
                             <div className="action-card" onClick={handleViewCollection}>
-                                <div className="action-card-icon">
-                                    <FontAwesomeIcon icon={faCompass} />
-                                </div>
                                 <div className="action-card-content">
-                                    <h3>Explore Examples</h3>
+                                    <h3>
+                                        <FontAwesomeIcon icon={faCompass} className="card-title-icon" />
+                                        Explore Examples
+                                    </h3>
                                     <p>Browse pre-built simulations</p>
                                 </div>
                             </div>
-
                         </div>
                     </div>
 
-                    {recentScenes.length > 0 && (
-                        <div className="action-group">
-                            <h2 className="action-group-title">Recent</h2>
-                            <div className="recent-list">
-                                {recentScenes.slice(0, 5).map(scene => (
-                                    <div
-                                        key={scene.id}
-                                        className="recent-item"
-                                        onClick={() => scene.id && handleOpenScene(scene.id)}
-                                    >
-                                        <FontAwesomeIcon icon={faClockRotateLeft} className="recent-icon" />
-                                        <span className="recent-name">{scene.name || 'Untitled Scene'}</span>
-                                    </div>
-                                ))}
+                    <div className="welcome-secondary-actions">
+                        {recentScenes.length > 0 && (
+                            <div className="action-group">
+                                <h2 className="action-group-title">Recent</h2>
+                                <div className="recent-list">
+                                    {recentScenes.slice(0, 5).map(scene => (
+                                        <div
+                                            key={scene.id}
+                                            className="recent-item"
+                                            onClick={() => scene.id && handleOpenScene(scene.id)}
+                                        >
+                                            <FontAwesomeIcon icon={faClockRotateLeft} className="recent-icon" />
+                                            <span className="recent-name">{scene.name || 'Untitled Scene'}</span>
+                                        </div>
+                                    ))}
+                                </div>
                             </div>
-                        </div>
-                    )}
+                        )}
 
-                    {yourScenes.length > 0 && (
-                        <div className="action-group">
-                            <h2 className="action-group-title">Your Scenes</h2>
-                            <div className="recent-list">
-                                {yourScenes.map(scene => (
-                                    <div
-                                        key={scene.id}
-                                        className="recent-item"
-                                        onClick={() => scene.id && handleOpenScene(scene.id)}
-                                    >
-                                        <FontAwesomeIcon icon={faFolderOpen} className="recent-icon" />
-                                        <span className="recent-name">{scene.name || 'Untitled Scene'}</span>
-                                        <span className="recent-date">
-                                            {new Date(scene.updatedAt || 0).toLocaleDateString()}
-                                        </span>
-                                    </div>
-                                ))}
-                                {yourScenes.length >= 3 && (
-                                    <div className="recent-item more" onClick={handleViewCollection}>
-                                        <span className="recent-name">View all scenes...</span>
-                                    </div>
-                                )}
+                        {yourScenes.length > 0 && (
+                            <div className="action-group">
+                                <h2 className="action-group-title">Your Scenes</h2>
+                                <div className="recent-list">
+                                    {yourScenes.map(scene => (
+                                        <div
+                                            key={scene.id}
+                                            className="recent-item"
+                                            onClick={() => scene.id && handleOpenScene(scene.id)}
+                                        >
+                                            <FontAwesomeIcon icon={faFolderOpen} className="recent-icon" />
+                                            <span className="recent-name">{scene.name || 'Untitled Scene'}</span>
+                                            <span className="recent-date">
+                                                {new Date(scene.updatedAt || 0).toLocaleDateString()}
+                                            </span>
+                                        </div>
+                                    ))}
+                                    {yourScenes.length >= 3 && (
+                                        <div className="recent-item more" onClick={handleViewCollection}>
+                                            <FontAwesomeIcon icon={faCompass} className="recent-icon" />
+                                            <span className="recent-name">View all scenes...</span>
+                                        </div>
+                                    )}
+                                </div>
                             </div>
-                        </div>
-                    )}
+                        )}
+                    </div>
                 </div>
             </div>
         </div>

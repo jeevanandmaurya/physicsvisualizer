@@ -106,10 +106,44 @@ function OverlayGraph({ id, initialType, data, onClose, initialPosition }) {
   const [viewMode, setViewMode] = useState('graph'); // 'graph' or 'table'
   const [maxTableRows, setMaxTableRows] = useState(20);
 
-  const [position, setPosition] = useState(initialPosition || { x: 60, y: 80 });
-  const [size, setSize] = useState({ width: 500, height: 600 });
-  const [previousPosition, setPreviousPosition] = useState(initialPosition || { x: 60, y: 80 });
-  const [previousSize, setPreviousSize] = useState({ width: 500, height: 600 });
+  const [position, setPosition] = useState(() => {
+    const isMobile = window.innerWidth <= 768;
+    if (isMobile) {
+      return { x: 10, y: 60 };
+    }
+    return initialPosition || { x: 60, y: 80 };
+  });
+
+  const [size, setSize] = useState(() => {
+    const isMobile = window.innerWidth <= 768;
+    if (isMobile) {
+      return { width: window.innerWidth - 20, height: 400 };
+    }
+    return { width: 500, height: 600 };
+  });
+
+  const [previousPosition, setPreviousPosition] = useState(position);
+  const [previousSize, setPreviousSize] = useState(size);
+
+  // Handle window resize to keep overlay in bounds
+  useEffect(() => {
+    const handleResize = () => {
+      const isMobile = window.innerWidth <= 768;
+      if (isMobile) {
+        setSize(prev => ({
+          width: Math.min(prev.width, window.innerWidth - 20),
+          height: Math.min(prev.height, window.innerHeight - 120)
+        }));
+        setPosition(prev => ({
+          x: Math.max(0, Math.min(prev.x, window.innerWidth - 50)),
+          y: Math.max(0, Math.min(prev.y, window.innerHeight - 50))
+        }));
+      }
+    };
+
+    window.addEventListener('resize', handleResize);
+    return () => window.removeEventListener('resize', handleResize);
+  }, []);
 
   // Register overlay
   useEffect(() => {
@@ -431,9 +465,9 @@ function OverlayGraph({ id, initialType, data, onClose, initialPosition }) {
       onDragStart={handleDragStart}
       onDragStop={handleDragStop}
       onResizeStop={handleResizeStop}
-      minWidth={isMinimized ? 200 : 380}
+      minWidth={isMinimized ? 200 : (window.innerWidth <= 768 ? Math.min(300, window.innerWidth - 20) : 380)}
       minHeight={isMinimized ? 28 : 300}
-      bounds=".workbench-body"
+      bounds="window"
       disableDragging={isMinimized}
       enableResizing={!isMinimized}
       className={`engine-overlay ${isMinimized ? 'minimized' : ''} ${isFocused ? 'focused' : ''}`}

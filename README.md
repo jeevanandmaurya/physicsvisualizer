@@ -1,209 +1,99 @@
 # PhysicsVisualizer
 
-PhysicsVisualizer is an interactive web-based physics simulation and visualization platform designed for educational purposes. It enables users to explore complex physics concepts through immersive 3D animations, real-time simulations, and AI-assisted scene creation and modification.
+PhysicsVisualizer is a high-performance, interactive web platform for physics simulation and education. It combines real-time 3D rendering, advanced physics engines, and AI-driven scene generation to make complex physical concepts intuitive and accessible.
 
-## What It Is
+**Live Demo**: [physicsvisualizer.vercel.app](https://physicsvisualizer.vercel.app)
 
-PhysicsVisualizer is a comprehensive tool that bridges the gap between theoretical physics and visual understanding. It provides:
-
-- **Interactive 3D Simulations**: Real-time physics engines power accurate representations of physical phenomena
-- **Educational Content**: Each scene includes theoretical explanations, key facts, and mathematical equations
-- **AI-Powered Assistance**: Natural language processing allows users to describe physics scenarios and generate corresponding simulations
-- **Modular Scene System**: Extensible framework for creating and sharing physics demonstrations
-
-## How It Works
-
-### Architecture Overview
-
-The application follows a layered architecture:
-
-```
-User Interface (React Components)
-    ↓
-Application Layer (State Management, Routing)
-    ↓
-Feature Layer (Visualizer, Chat, Collection)
-    ↓
-Core Layer (AI Engine, Physics Engine, Scene Management)
-    ↓
-Infrastructure (Three.js, Web Workers, IndexedDB)
-```
-
-### Core Components
-
-1. **Text Parser & Analyzer**: Converts natural language descriptions into structured physics data using AI
-2. **Scene Director & Assembler**: Transforms parsed data into 3D scene configurations
-3. **Physics Engine Coordinator**: Manages real-time physics simulations using Rapier3D
-4. **Control System Manager**: Handles interactive parameter manipulation
-5. **Rendering Engine**: Provides WebGL-based 3D visualization using Three.js
-6. **AI Integration**: Gemini AI enables conversational physics assistance and scene generation
-
-### Scene Structure
-
-Each physics scene is defined by a JSON configuration containing:
-- Object definitions (spheres, boxes, cylinders) with physical properties
-- Initial conditions (position, velocity, mass)
-- Environmental parameters (gravity, friction)
-- Educational context and metadata
-
-## Features
-
-### 🎯 Core Features
-
-- **Real-time 3D Physics Simulations**: Powered by Rapier3D physics engine
-- **Interactive Controls**: Play/pause, parameter adjustment, camera controls
-- **Data Visualization**: Real-time graphs and overlays for position, velocity, energy
-- **Scene Management**: Collection browser, scene switching, persistence
-- **AI Chat Interface**: Conversational physics assistance and scene modification
-
-### 📚 Educational Content
-
-- **Theory Explanations**: Detailed descriptions of physical principles
-- **Mathematical Equations**: Key formulas with LaTeX rendering
-- **Interactive Demonstrations**: Hands-on exploration of concepts
-- **Progress Tracking**: Learning path through categorized scenes
-
-### 🔧 Technical Features
-
-- **Modular Architecture**: Extensible component system
-- **Web Worker Physics**: Non-blocking simulations for smooth performance
-- **Responsive Design**: Works across desktop and mobile devices
-- **Offline Capability**: Local storage for scenes and conversations
-
-### 📊 Available Scenes
-
-The platform includes scenes covering:
-
-- **Mechanics**: Projectile motion, collisions, pendulum dynamics, momentum conservation
-- **Gravitation**: Orbital mechanics, binary star systems
-- **Waves**: Wave patterns, interference demonstrations
-- **Electromagnetism**: (Planned for future releases)
-- **Thermodynamics**: (Planned for future releases)
-
-## How to Use
+## 🚀 How to Use It
 
 ### Prerequisites
 
-- Node.js 18+
-- npm or yarn
+- **Node.js**: Version 18.x or higher.
+- **npm**: Version 9.x or higher.
 
 ### Installation
 
-1. Clone the repository:
-```bash
-git clone https://github.com/jeevanandmaurya/physicsvisualizer.git
-cd physicsvisualizer
-```
+1. **Clone the repository**:
+   ```bash
+   git clone https://github.com/jeevanandmaurya/physicsvisualizer.git
+   cd physicsvisualizer
+   ```
+2. **Install dependencies**:
+   ```bash
+   npm install
+   ```
+3. **Configure Environment**:
+   Create a `.env` file in the root directory:
+   ```env
+   VITE_GEMINI_API_KEY=your_gemini_api_key_here
+   ```
 
-2. Install dependencies:
-```bash
-npm install
-```
+### Running the App
 
-3. Start the development server:
-```bash
-npm run dev
-```
+1. **Start Development Server**:
+   ```bash
+   npm run dev
+   ```
+2. **Access the UI**: Open [http://localhost:5173](http://localhost:5173) in your browser.
 
-4. Open your browser to `http://localhost:5173`
+### Key Features
 
-### Basic Usage
+- **Interactive 3D Sandbox**: Rotate, zoom, and interact with physics objects in real-time.
+- **AI Physics Assistant**: Chat with an AI that understands physics and can modify the scene based on your requests.
+- **Scene Collection**: Browse pre-built simulations ranging from orbital mechanics to fluid dynamics.
+- **Real-time Analytics**: View live graphs of velocity, energy, and momentum.
 
-1. **Select a Scene**: Use the scene selector to choose from available physics demonstrations
-2. **Interact**: Use play/pause controls to start/stop simulations
-3. **Adjust Parameters**: Modify physical properties using the control panel
-4. **View Data**: Open graphs to visualize position, velocity, and energy over time
-5. **Chat with AI**: Ask physics questions or request scene modifications
+---
 
-### Advanced Usage
+## 🛠️ How It Works
 
-- **Create Custom Scenes**: Use the AI chat to describe physics scenarios in natural language
-- **Modify Existing Scenes**: Request changes to current simulations through conversation
-- **Export Data**: Access simulation data for further analysis
-- **Share Scenes**: Save and share custom physics demonstrations
+### 🎨 Frontend Architecture
 
-## Development
+The frontend is a modern React application optimized for 3D performance and modularity.
 
-### Project Structure
+- **React 19 & Vite**: Utilizes the latest React features and Vite's lightning-fast build system.
+- **3D Rendering (Three.js & R3F)**:
+  - Uses `@react-three/fiber` for declarative 3D scene management.
+  - `@react-three/drei` for high-quality helpers and abstractions.
+- **UI & State**:
+  - **Tailwind-like CSS**: Custom modular CSS for a clean, responsive dashboard.
+  - **Context API**: Manages global state for scenes, AI conversations, and user settings.
+  - **Lucide & FontAwesome**: Comprehensive iconography for the workbench.
+- **Visual Annotations**: A custom system that renders real-time vectors (velocity, force) and text labels directly in the 3D space using `VisualAnnotationManager`.
 
-```
-src/
-├── components/          # React components
-├── core/               # Core business logic
-│   ├── ai/            # AI integration (Gemini)
-│   ├── physics/       # Physics calculations
-│   └── scene/         # Scene management
-├── contexts/          # React contexts
-├── pages/             # Page components
-├── utils/             # Utility functions
-└── workbench/         # Main application layout
+### 🧠 CORE PHYSICS and AI
 
-scenes/                 # Scene definitions
-├── scene_name/
-│   ├── scene_name_v1.0.json  # Scene configuration
-│   ├── context.txt           # Educational content
-│   └── thumbnail.svg         # Preview image
-```
+The core logic is decoupled from the UI, allowing for complex simulations and intelligent interactions.
 
-### Building
+#### Physics Engine
 
-```bash
-npm run build
-```
+- **Rapier3D Integration**: Uses `@react-three/rapier` for high-performance, WASM-powered rigid body dynamics.
+- **Specialized Solvers**:
+  - **Gravitational Physics**: Custom N-body simulation logic for orbital mechanics and celestial bodies.
+  - **Fluid Dynamics**: Implements buoyancy, viscous drag, and pressure drag for immersive liquid simulations.
+  - **Constraint System**: Advanced joint management (springs, revolute joints, fixed joints) via Rapier's impulse joints.
+  - **Particle Systems**: High-performance instanced rendering for gas and thermal motion simulations.
+- **Physics Data Store**: A centralized store (`PhysicsDataStore`) that captures high-frequency simulation data for UI graphs and annotations without triggering React re-renders.
 
-### Testing
+#### AI Intelligence
 
-```bash
-npm run test
-```
+- **Gemini 2.5 Flash**: Integrated via `@google/generative-ai` for natural language understanding.
+- **Scene Patcher**: A sophisticated system that translates AI intent into incremental JSON patches, allowing the AI to "edit" the world live.
+- **Tool System**: The AI can execute JavaScript code in a sandboxed environment to generate complex geometries (e.g., spirals, grids) or perform mathematical calculations.
 
-### Adding New Scenes
+---
 
-1. Create a new folder in `scenes/`
-2. Add `scene_name_v1.0.json` with scene configuration
-3. Include `context.txt` with educational content
-4. Update `public/scenes/manifest.json`
+## ⚠️ Limitations and Future
 
-## Differences from Existing Tools
+### Current Limitations
 
-### vs. Traditional Physics Software
+- **Physics Fidelity**: While Rapier3D is fast, it is a game physics engine. It may lack the precision required for high-stakes scientific research (e.g., extreme mass ratios or sub-millimeter collisions).
+- **Single-Threaded Bottlenecks**: Complex scenes with thousands of constraints can still impact the main thread's frame rate.
+- **Particle Limits**: Current particle systems are limited by CPU-side physics calculations.
 
-- **Web-Native**: No installation required, runs in any modern browser
-- **AI Integration**: Natural language scene creation and modification
-- **Educational Focus**: Built-in theory, explanations, and learning paths
-- **Real-time Collaboration**: Web-based sharing and discussion
+### Future Roadmap
 
-### vs. Other Physics Simulators
-
-- **Conversational Interface**: Chat with AI to create and modify simulations
-- **Modular Scene System**: Easy to extend and customize
-- **Performance Optimized**: Web Workers ensure smooth 60fps simulations
-- **Open Source**: Fully transparent and community-driven development
-
-### vs. Educational Platforms
-
-- **Hands-on 3D**: Immersive 3D visualizations vs. 2D diagrams
-- **Interactive Parameters**: Real-time adjustment of physical properties
-- **AI Tutoring**: Intelligent assistance and scene generation
-- **Comprehensive Coverage**: From basic mechanics to advanced physics
-
-## Contributing
-
-We welcome contributions! Please see our contributing guidelines for details on:
-
-- Adding new physics scenes
-- Improving AI integration
-- Enhancing visualization features
-- Documentation improvements
-
-## License
-
-This project is licensed under the MIT License - see the LICENSE file for details.
-
-## Acknowledgments
-
-- Built with React, Three.js, and Rapier3D
-- AI powered by Google Gemini
-- Physics calculations using established principles
-- Educational content based on standard physics curricula</content>
-<parameter name="filePath">d:\Programming\Web Development\physicsvisualizer\README.md
+- **Scientific Physics Engines**: Integration with **MuJoCo** or **PhysX** for research-grade accuracy and more stable constraint solving.
+- **Multithreaded Physics**: Moving the entire physics simulation to dedicated **Web Workers** to ensure a consistent 60 FPS UI regardless of simulation complexity.
+- **WebGPU Acceleration**: Implementing **WebGPU-based particle solvers** to handle millions of particles for realistic fluid and smoke simulations.
+- **Extended Domains**: Adding support for Electromagnetism (Maxwell's equations) and Thermodynamics (Heat transfer).

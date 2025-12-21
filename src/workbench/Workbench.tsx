@@ -2,6 +2,7 @@ import { useState, useEffect } from "react";
 import ActivityBar from "./ActivityBar";
 import EditorArea from "./EditorArea";
 import StatusBar from "./StatusBar";
+import { PhysicsOverlay } from "../views/components/PhysicsOverlay";
 import logo from '../assets/icon-transparent.svg';
 import ChatOverlay from "../views/components/chat/ChatOverlay";
 import GraphOverlay from "../views/components/visualizer/GraphOverlay";
@@ -18,7 +19,7 @@ import "./Workbench.css";
 
 const Workbench = () => {
   const dataManager = useDatabase();
-  const { currentView, setCurrentView, getChatForScene, resetSimulation, zenMode, setZenMode, togglePlayPause } = useWorkspace();
+  const { currentView, setCurrentView, getChatForScene, resetSimulation, zenMode, setZenMode, togglePlayPause, showStats, setShowStats, isPlaying, simulationSpeed, fps } = useWorkspace();
   const { scene, updateScene, replaceCurrentScene } = useWorkspaceScene();
   const { messages, addMessage } = useWorkspaceChat();
   const [chatOpen, setChatOpen] = useState(false);
@@ -277,6 +278,14 @@ const Workbench = () => {
       <GraphOverlay
         isOpen={graphOpen}
         onToggle={() => setGraphOpen(!graphOpen)}
+      />
+      <PhysicsOverlay
+        isOpen={showStats}
+        onToggle={() => setShowStats(!showStats)}
+        scene={scene}
+        isPlaying={isPlaying}
+        simulationSpeed={simulationSpeed}
+        fps={fps}
       />
       <ControllerOverlay
         key={`controller-${scene?.id}-${scene?.controllers?.length || 0}`}

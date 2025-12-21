@@ -54,14 +54,9 @@ function SceneCard({ scene, isPublic = false, onSceneClick }) {
         <p className="scene-description">{scene.description || 'No description available.'}</p>
         {!isPublic && scene.updatedAt && (
           <div className="scene-meta">
-            <span>Updated: {new Date(scene.updatedAt).toLocaleDateString()}</span>
+            <span>{new Date(scene.updatedAt).toLocaleDateString()}</span>
           </div>
         )}
-      </div>
-      <div className="scene-actions">
-        <button className="scene-action-button">
-          View Scene
-        </button>
       </div>
     </div>
   );

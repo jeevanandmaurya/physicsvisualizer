@@ -21,7 +21,8 @@ export function useConversation({
   updateConversation,
   dataManager,
   workspaceMessages = [], // Add workspace messages as fallback
-  addMessageToWorkspace // NEW: Direct function to add message to workspace
+  addMessageToWorkspace, // NEW: Direct function to add message to workspace
+  shouldSwitchScene = true // NEW: Whether to switch global scene on generation
 }: {
   initialMessage: string;
   currentScene: any;
@@ -31,12 +32,44 @@ export function useConversation({
   dataManager: any;
   workspaceMessages: Message[];
   addMessageToWorkspace?: (message: any) => void;
+  shouldSwitchScene?: boolean;
 }) {
-  const { linkSceneToChat, updateCurrentScene, updateWorkspace, addScene } = useWorkspace();
+  const { linkSceneToChat, updateCurrentScene, updateSceneById, updateWorkspace, addScene } = useWorkspace();
   const [messages, setMessages] = useState<Message[]>([]); // Don't initialize with messages here - handled by parent components
   const [isLoading, setIsLoading] = useState(false);
   const aiManager = useRef(new GeminiAIManager());
   const scenePatcher = useRef(new ScenePatcher());
+
+  // Sync with workspace messages whenever they change
+  useEffect(() => {
+    if (workspaceMessages && workspaceMessages.length > 0) {
+      // Check if we need to update internal messages
+      // We use a simple length and last message ID check to avoid infinite loops
+      const lastWorkspaceMsg = workspaceMessages[workspaceMessages.length - 1];
+      const lastInternalMsg = messages[messages.length - 1];
+      
+      const needsUpdate = workspaceMessages.length !== messages.length || 
+                         (lastWorkspaceMsg && lastInternalMsg && lastWorkspaceMsg.id !== lastInternalMsg.id.toString());
+      
+      if (needsUpdate) {
+        console.log(`🔄 Syncing useConversation messages with workspace (${workspaceMessages.length} msgs)`);
+        // Convert workspace messages to internal format if needed
+        const formattedMessages = workspaceMessages.map(msg => ({
+          id: typeof msg.id === 'string' ? parseInt(msg.id) || Date.now() : msg.id,
+          text: msg.content || (msg as any).text || '',
+          isUser: !!msg.isUser,
+          timestamp: msg.timestamp ? new Date(msg.timestamp) : new Date(),
+          sceneId: msg.sceneId,
+          aiMetadata: msg.aiMetadata,
+          sceneMetadata: (msg as any).sceneMetadata
+        }));
+        setMessages(formattedMessages as any);
+      }
+    } else if (workspaceMessages.length === 0 && messages.length > 0) {
+      // If workspace is cleared, clear internal state too
+      setMessages([]);
+    }
+  }, [workspaceMessages, messages.length]);
 
   // REMOVED: Don't sync messages back - causes infinite loops
   // Parent components handle persistence through addMessage
@@ -264,14 +297,14 @@ export function useConversation({
                                aiResponse.updatedScene.name !== currentScene.name;
             
             if (isNewScene) {
-              // ADD new scene to workspace (don't replace current)
+              // ADD new scene to workspace
               console.log('➕ Adding NEW scene to workspace:', aiResponse.updatedScene.name);
-              addScene(aiResponse.updatedScene);
+              addScene(aiResponse.updatedScene, shouldSwitchScene);
               generatedSceneId = aiResponse.updatedScene.id;
             } else {
-              // UPDATE existing scene
-              console.log('🔄 Updating existing scene:', aiResponse.updatedScene.name);
-              updateCurrentScene(aiResponse.updatedScene);
+              // UPDATE existing scene by ID (not necessarily current)
+              console.log('🔄 Updating scene by ID:', currentScene.id);
+              updateSceneById(currentScene.id, aiResponse.updatedScene);
               generatedSceneId = currentScene.id;
             }
             
@@ -304,7 +337,11 @@ export function useConversation({
 
             if (patchResult.success) {
               console.log(`✅ Successfully applied ${patchResult.appliedPatches}/${patchResult.totalPatches} patches`);
-              updateCurrentScene(patchResult.scene);
+              if (currentScene?.id) {
+                updateSceneById(currentScene.id, patchResult.scene);
+              } else {
+                updateCurrentScene(patchResult.scene);
+              }
             } else {
               console.error('❌ Failed to apply scene patches:', patchResult.error);
               sceneUpdateError = `⚠️ I tried to modify the scene, but encountered an error: ${patchResult.error}`;
@@ -494,7 +531,11 @@ export function useConversation({
           console.log('🔄 Replacing entire scene (regeneration)');
 
           try {
-            updateCurrentScene(aiResponse.updatedScene);
+            if (currentScene?.id) {
+              updateSceneById(currentScene.id, aiResponse.updatedScene);
+            } else {
+              updateCurrentScene(aiResponse.updatedScene);
+            }
             console.log('✅ Scene replaced successfully');
 
             if (chatId && currentScene?.id) {
@@ -515,7 +556,11 @@ export function useConversation({
           try {
             const patchResult = scenePatcher.current.applyPatches(currentScene, aiResponse.sceneModifications);
             if (patchResult.success) {
-              updateCurrentScene(patchResult.scene);
+              if (currentScene?.id) {
+                updateSceneById(currentScene.id, patchResult.scene);
+              } else {
+                updateCurrentScene(patchResult.scene);
+              }
             } else {
               sceneUpdateError = `⚠️ I tried to modify the scene, but encountered an error: ${patchResult.error}`;
             }

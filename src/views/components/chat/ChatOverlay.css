@@ -24,8 +24,8 @@
 }
 
 .chat-overlay-container.focused {
-  border-color: var(--primary-color, #007bff);
-  box-shadow: 0 4px 16px rgba(0, 123, 255, 0.4);
+  border-color: var(--text-color);
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.2);
 }
 
 .dark .chat-overlay-container {
@@ -34,8 +34,8 @@
 }
 
 .dark .chat-overlay-container.focused {
-  border-color: var(--primary-color, #007bff);
-  box-shadow: 0 4px 16px rgba(0, 123, 255, 0.4);
+  border-color: var(--text-color);
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.4);
 }
 
 .chat-overlay-container:active {
@@ -89,23 +89,23 @@
 
 /* Back to Chat button styling */
 .chat-overlay-control-btn.back-to-chat-btn {
-  color: var(--accent-color);
+  color: var(--text-color);
 }
 
 .chat-overlay-control-btn.back-to-chat-btn:hover {
-  background: linear-gradient(135deg, rgba(124, 58, 237, 0.15), rgba(109, 40, 217, 0.15));
-  border-color: rgba(124, 58, 237, 0.3);
-  color: var(--accent-hover);
+  background: var(--hover-bg);
+  border-color: var(--border-color);
+  color: var(--text-color);
 }
 
 [data-theme="dark"] .chat-overlay-control-btn.back-to-chat-btn {
-  color: #a78bfa;
+  color: var(--text-color);
 }
 
 [data-theme="dark"] .chat-overlay-control-btn.back-to-chat-btn:hover {
-  background: linear-gradient(135deg, rgba(124, 58, 237, 0.2), rgba(109, 40, 217, 0.2));
-  border-color: rgba(124, 58, 237, 0.4);
-  color: #c4b5fd;
+  background: var(--hover-bg);
+  border-color: var(--border-color);
+  color: var(--text-color);
 }
 
 /* Messages Area */

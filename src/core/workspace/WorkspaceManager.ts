@@ -84,12 +84,20 @@ class Workspace {
   }
 
   // Add new scene and switch to it
-  addScene(sceneData: any = null) {
+  addScene(sceneData: any = null, switchScene: boolean = true) {
     const newScene = sceneData || this.createDefaultScene();
-    newScene.id = `scene-${Date.now()}-${this.scenes.length}`;
+    // Ensure ID is unique if not provided
+    if (!newScene.id || newScene.id.startsWith('scene-')) {
+      newScene.id = `scene-${Date.now()}-${this.scenes.length}`;
+    }
+    
     this.scenes.push(newScene);
-    // IMPORTANT: Switch to the new scene immediately
-    this.currentSceneIndex = this.scenes.length - 1;
+    
+    if (switchScene) {
+      // IMPORTANT: Switch to the new scene immediately if requested
+      this.currentSceneIndex = this.scenes.length - 1;
+    }
+    
     this.metadata.updatedAt = new Date().toISOString();
     return newScene;
   }
@@ -97,23 +105,28 @@ class Workspace {
   // Update current scene
   updateCurrentScene(updates: any) {
     if (this.currentSceneIndex >= 0 && this.currentSceneIndex < this.scenes.length) {
-      console.log('🔧 WorkspaceManager: Updating scene at index', this.currentSceneIndex);
-      console.log('📥 Current scene objects:', this.scenes[this.currentSceneIndex].objects?.length || 0);
-      console.log('📝 Update objects:', updates.objects?.length || 0);
+      return this.updateSceneById(this.scenes[this.currentSceneIndex].id, updates);
+    }
+    return this;
+  }
+
+  // Update a specific scene by ID
+  updateSceneById(sceneId: string, updates: any) {
+    const index = this.scenes.findIndex(s => s.id === sceneId);
+    if (index !== -1) {
+      console.log('🔧 WorkspaceManager: Updating scene by ID:', sceneId);
       
       // Increment version to force React re-processing
-      const currentVersion = this.scenes[this.currentSceneIndex]._version || 0;
+      const currentVersion = this.scenes[index]._version || 0;
       
       // Replace the entire scene object to trigger React re-renders
-      this.scenes[this.currentSceneIndex] = { 
-        ...this.scenes[this.currentSceneIndex], 
+      this.scenes[index] = { 
+        ...this.scenes[index], 
         ...updates,
         _version: currentVersion + 1,
         _updatedAt: Date.now()
       };
       
-      console.log('📤 Updated scene objects:', this.scenes[this.currentSceneIndex].objects?.length || 0);
-      console.log('🔄 Scene version incremented to:', this.scenes[this.currentSceneIndex]._version);
       this.metadata.updatedAt = new Date().toISOString();
     }
     return this;

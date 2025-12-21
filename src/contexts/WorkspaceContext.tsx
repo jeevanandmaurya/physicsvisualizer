@@ -93,11 +93,13 @@ export interface WorkspaceContextType {
   dataTimeStep: number;
   showGrid: boolean;
   showAxes: boolean;
+  showStats: boolean;
   zenMode: boolean;
   // View management
   setCurrentView: (view: string) => void;
   setShowGrid: (show: boolean) => void;
   setShowAxes: (show: boolean) => void;
+  setShowStats: (show: boolean) => void;
   setZenMode: (zen: boolean) => void;
   // Workspace data
   workspaceScenes: SceneData[];
@@ -109,8 +111,9 @@ export interface WorkspaceContextType {
   // Scene management methods
   getCurrentScene: () => SceneData | null;
   setCurrentScene: (index: number) => void;
-  addScene: (sceneData: SceneData) => void;
-  updateCurrentScene: (updates: any) => Promise<void>;
+  addScene: (sceneData: SceneData, switchScene?: boolean) => void;
+  updateCurrentScene: (updates: any) => void;
+  updateSceneById: (sceneId: string, updates: any) => void;
   replaceCurrentScene: (newScene: SceneData) => Promise<void>;
   deleteScene: (index: number) => void;
   clearScenes: () => void;
@@ -186,6 +189,7 @@ export function WorkspaceProvider({ children }: { children: React.ReactNode }) {
   const [dataTimeStep, setDataTimeStep] = useState(0.01); // Time step for data sampling in seconds
   const [showGrid, setShowGrid] = useState(true);
   const [showAxes, setShowAxes] = useState(true);
+  const [showStats, setShowStats] = useState(false);
   const [zenMode, setZenMode] = useState(false);
 
   const togglePlayPause = useCallback(() => {
@@ -381,8 +385,8 @@ export function WorkspaceProvider({ children }: { children: React.ReactNode }) {
     updateWorkspace((workspace: any) => workspace.setCurrentScene(index));
   }, [updateWorkspace]);
 
-  const addScene = useCallback((sceneData: SceneData) => {
-    updateWorkspace((workspace: any) => workspace.addScene(sceneData));
+  const addScene = useCallback((sceneData: SceneData, switchScene: boolean = true) => {
+    updateWorkspace((workspace: any) => workspace.addScene(sceneData, switchScene));
   }, [updateWorkspace]);
 
   const updateCurrentScene = useCallback(async (updates: any) => {
@@ -401,6 +405,20 @@ export function WorkspaceProvider({ children }: { children: React.ReactNode }) {
       }
     }
   }, [updateWorkspace, getCurrentScene, saveCurrentScene]);
+
+  const updateSceneById = useCallback(async (sceneId: string, updates: any) => {
+    updateWorkspace((workspace: any) => workspace.updateSceneById(sceneId, updates));
+    
+    // Find the scene to save it
+    const scene = currentWorkspace?.scenes?.find(s => s.id === sceneId);
+    if (scene) {
+      try {
+        await saveCurrentScene(scene);
+      } catch (error) {
+        console.warn('Auto-save failed for scene:', sceneId, error);
+      }
+    }
+  }, [updateWorkspace, currentWorkspace, saveCurrentScene]);
 
   const replaceCurrentScene = useCallback(async (newScene: SceneData) => {
     updateWorkspace((workspace: any) => workspace.replaceCurrentScene(newScene));
@@ -669,12 +687,14 @@ export function WorkspaceProvider({ children }: { children: React.ReactNode }) {
     setSimulationSpeed,
     showGrid,
     showAxes,
+    showStats,
     zenMode,
 
     // View management
     setCurrentView,
     setShowGrid,
     setShowAxes,
+    setShowStats,
     setZenMode,
 
     // Workspace data
@@ -692,6 +712,7 @@ export function WorkspaceProvider({ children }: { children: React.ReactNode }) {
     setCurrentScene,
     addScene,
     updateCurrentScene,
+    updateSceneById,
     replaceCurrentScene,
     deleteScene,
     clearScenes,

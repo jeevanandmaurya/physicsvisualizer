@@ -5,9 +5,7 @@
   padding: 16px;
   border: 1px solid var(--border-color, #e0e0e0);
   border-radius: 12px;
-  background: linear-gradient(135deg, 
-    rgba(139, 92, 246, 0.05) 0%, 
-    rgba(59, 130, 246, 0.05) 100%);
+  background: var(--card-bg, #ffffff);
   transition: all 0.3s ease;
   cursor: pointer;
   /* Prevent layout shift */
@@ -16,26 +14,24 @@
 }
 
 .scene-preview-card:hover {
-  border-color: var(--primary-color, #8b5cf6);
-  box-shadow: 0 4px 16px rgba(139, 92, 246, 0.15);
-  transform: translateY(-2px);
+  border-color: var(--text-color);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
+  transform: translateY(-1px);
 }
 
 /* Dark theme support */
 [data-theme="dark"] .scene-preview-card,
 .dark .scene-preview-card,
 body[data-theme="dark"] .scene-preview-card {
-  border-color: #2a2a2a;
-  background: linear-gradient(135deg, 
-    rgba(139, 92, 246, 0.1) 0%, 
-    rgba(59, 130, 246, 0.1) 100%);
+  border-color: var(--border-color, #2a2a2a);
+  background: var(--card-bg, #1e1e1e);
 }
 
 [data-theme="dark"] .scene-preview-card:hover,
 .dark .scene-preview-card:hover,
 body[data-theme="dark"] .scene-preview-card:hover {
-  border-color: #8b5cf6;
-  box-shadow: 0 4px 16px rgba(139, 92, 246, 0.25);
+  border-color: var(--text-color);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
 }
 
 /* Header */
@@ -77,10 +73,11 @@ body[data-theme="dark"] .scene-preview-header {
   height: 90px;
   border-radius: 8px;
   overflow: hidden;
-  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  background: var(--hover-bg, #f5f5f5);
   display: flex;
   align-items: center;
   justify-content: center;
+  border: 1px solid var(--border-color);
 }
 
 .scene-preview-thumbnail img {
@@ -141,11 +138,11 @@ body[data-theme="dark"] .scene-stat {
 /* Button */
 .scene-preview-button {
   width: 100%;
-  padding: 12px 16px;
-  border: none;
+  padding: 10px 16px;
+  border: 1px solid var(--border-color);
   border-radius: 8px;
-  background: linear-gradient(135deg, #8b5cf6 0%, #6366f1 100%);
-  color: white;
+  background: var(--hover-bg);
+  color: var(--text-color);
   font-size: 14px;
   font-weight: 600;
   display: flex;
@@ -153,12 +150,11 @@ body[data-theme="dark"] .scene-stat {
   justify-content: center;
   gap: 8px;
   cursor: pointer;
-  transition: all 0.3s ease;
+  transition: all 0.2s ease;
 }
 
 .scene-preview-button:hover {
-  background: linear-gradient(135deg, #7c3aed 0%, #4f46e5 100%);
-  box-shadow: 0 4px 12px rgba(139, 92, 246, 0.4);
+  background: var(--border-color);
   transform: translateY(-1px);
 }
 

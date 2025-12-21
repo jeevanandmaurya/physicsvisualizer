@@ -41,12 +41,47 @@ const ChatOverlay = ({
 
   const overlayState = overlays.get('chat');
   const isMinimized = overlayState?.isMinimized || false;
+  const isFocused = focusedOverlay === 'chat';
 
-  const [position, setPosition] = useState({ x: Math.max(60, window.innerWidth - 540), y: 60 });
-  const [size, setSize] = useState({ width: 500, height: 600 });
-  const [previousPosition, setPreviousPosition] = useState({ x: Math.max(60, window.innerWidth - 540), y: 60 });
-  const [previousSize, setPreviousSize] = useState({ width: 500, height: 600 });
+  const [position, setPosition] = useState(() => {
+    const isMobile = window.innerWidth <= 768;
+    return { 
+      x: isMobile ? 10 : Math.max(60, window.innerWidth - 540), 
+      y: isMobile ? 50 : 60 
+    };
+  });
+
+  const [size, setSize] = useState(() => {
+    const isMobile = window.innerWidth <= 768;
+    return { 
+      width: isMobile ? window.innerWidth - 20 : 500, 
+      height: isMobile ? Math.min(window.innerHeight - 120, 600) : 600 
+    };
+  });
+
+  const [previousPosition, setPreviousPosition] = useState(position);
+  const [previousSize, setPreviousSize] = useState(size);
   const chatContainerRef = useRef<HTMLDivElement>(null);
+
+  // Handle window resize to keep overlay in bounds
+  useEffect(() => {
+    const handleResize = () => {
+      const isMobile = window.innerWidth <= 768;
+      if (isMobile) {
+        setPosition(prev => ({
+          x: Math.min(prev.x, window.innerWidth - 50),
+          y: Math.min(prev.y, window.innerHeight - 50)
+        }));
+        setSize(prev => ({
+          width: Math.min(prev.width, window.innerWidth - 20),
+          height: Math.min(prev.height, window.innerHeight - 100)
+        }));
+      }
+    };
+
+    window.addEventListener('resize', handleResize);
+    return () => window.removeEventListener('resize', handleResize);
+  }, []);
 
   // Register overlay
   useEffect(() => {
@@ -104,7 +139,8 @@ const ChatOverlay = ({
     dataManager: dataManager,
     workspaceMessages: workspaceMessages as any, // Pass workspace messages as fallback
     updateConversation: null, // Don't sync back - prevents loops
-    addMessageToWorkspace: addMessage // Direct persistence function
+    addMessageToWorkspace: addMessage, // Direct persistence function
+    shouldSwitchScene: true // Switch global scene when in overlay (visualizer view)
   });
 
   const [input, setInput] = useState('');
@@ -394,7 +430,6 @@ const ChatOverlay = ({
 
   // Check if we should show the back to chat button
   const showBackToChat = navigationContext?.fromView === 'chat' && navigationContext?.linkedChatId;
-  const isFocused = focusedOverlay === 'chat';
 
   // When overlay opens with a linked chat, select that chat in the workspace
   useEffect(() => {
@@ -432,9 +467,9 @@ const ChatOverlay = ({
           setPosition(newPosition);
         }
       }}
-      minWidth={isMinimized ? 200 : 400}
+      minWidth={isMinimized ? 200 : (window.innerWidth <= 768 ? Math.min(280, window.innerWidth - 20) : 400)}
       minHeight={isMinimized ? 28 : 300}
-      bounds=".workbench-body"
+      bounds="window"
       dragHandleClassName="engine-overlay-header"
       className={`engine-overlay ${isMinimized ? 'minimized' : ''} ${isFocused ? 'focused' : ''}`}
       onMouseDown={handleOverlayClick}

@@ -1,6 +1,6 @@
 import { useTheme, OverlayOpacitySettings } from '../contexts/ThemeContext';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
-import { faSun, faMoon, faComments, faChartLine, faSliders, faList, faBars } from '@fortawesome/free-solid-svg-icons';
+import { faSun, faMoon, faComments, faChartLine, faSliders, faList, faBars, faTachometerAlt } from '@fortawesome/free-solid-svg-icons';
 import './SettingsView.css';
 
 function SettingsView() {
@@ -118,6 +118,22 @@ function SettingsView() {
                   }}
                 />
                 <span className="opacity-value">{Math.round(overlayOpacity.activityBar * 100)}%</span>
+              </div>
+
+              <div className="opacity-control">
+                <label><FontAwesomeIcon icon={faTachometerAlt} /> Physics Stats</label>
+                <input
+                  type="range"
+                  min="0"
+                  max="1"
+                  step="0.05"
+                  value={overlayOpacity.physicsStats}
+                  onChange={(e) => handleOpacityChange('physicsStats', e.target.value)}
+                  style={{
+                    background: `linear-gradient(to right, var(--primary-color) 0%, var(--primary-color) ${overlayOpacity.physicsStats * 100}%, var(--border-color) ${overlayOpacity.physicsStats * 100}%, var(--border-color) 100%)`
+                  }}
+                />
+                <span className="opacity-value">{Math.round(overlayOpacity.physicsStats * 100)}%</span>
               </div>
             </div>
           </div>

@@ -92,7 +92,6 @@ const ScenePreviewCard: React.FC<ScenePreviewCardProps> = ({ message, chatId }) 
         className="scene-preview-button"
         onClick={handleViewInVisualizer}
       >
-        <span className="button-icon">🚀</span>
         <span className="button-text">View in Visualizer</span>
         <span className="button-arrow">→</span>
       </button>

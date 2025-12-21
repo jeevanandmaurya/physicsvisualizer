@@ -21,6 +21,7 @@ import { useWorkspace } from '../../contexts/WorkspaceContext';
 import SceneDetailsUI from '../../views/components/scene-management/SceneDetailsUI';
 import { functionCallSystem } from '../../core/tools/FunctionCallSystem.js';
 import { physicsDataStore } from '../../core/physics/PhysicsDataStore';
+import { PhysicsOverlay } from '../../views/components/PhysicsOverlay';
 
 // --- Visualizer-specific helper components ---
 function TimeUpdater({ isPlaying, updateSimulationTime }) {
@@ -191,7 +192,7 @@ function Skybox({ texturePath, backgroundType = 'normal' }) {
 }
 
 function Visualizer({ scene, showSceneDetails, onToggleSceneDetails }) {
-    const { isPlaying, simulationTime, fps, showVelocityVectors, vectorScale, openGraphs, resetSimulation, loopReset, updateSimulationTime, updateFps, resetTrigger, removeGraph, setObjectHistory, loopMode, setIsPlaying, dataTimeStep, simulationSpeed, showGrid, showAxes, setShowGrid, setShowAxes, zenMode, setZenMode } = useWorkspace();
+    const { isPlaying, simulationTime, fps, showVelocityVectors, vectorScale, openGraphs, resetSimulation, loopReset, updateSimulationTime, updateFps, resetTrigger, removeGraph, setObjectHistory, loopMode, setIsPlaying, dataTimeStep, simulationSpeed, showGrid, showAxes, setShowGrid, setShowAxes, showStats, zenMode, setZenMode } = useWorkspace();
 
     // Skybox state - cycles through: normal, space, black, white
     const [skyboxType, setSkyboxType] = useState('normal');

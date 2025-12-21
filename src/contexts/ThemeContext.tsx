@@ -7,6 +7,7 @@ export interface OverlayOpacitySettings {
   controller: number;
   sceneSelector: number;
   activityBar: number;
+  physicsStats: number;
 }
 
 export interface ThemeContextType {
@@ -46,7 +47,8 @@ export const ThemeProvider = ({ children }: ThemeProviderProps) => {
     graph: 0.8,
     controller: 0.85,
     sceneSelector: 0.9,
-    activityBar: 0.95
+    activityBar: 0.95,
+    physicsStats: 0.8
   });
 
   // Apply theme class immediately on mount and whenever theme changes

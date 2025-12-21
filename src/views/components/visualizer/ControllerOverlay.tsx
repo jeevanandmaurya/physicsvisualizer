@@ -66,10 +66,44 @@ const ControllerOverlay = ({
   const overlayState = overlays.get(overlayId);
   const isMinimized = overlayState?.isMinimized || false;
 
-  const [position, setPosition] = useState({ x: 100, y: 100 });
-  const [size, setSize] = useState({ width: 350, height: 500 });
-  const [previousPosition, setPreviousPosition] = useState({ x: 100, y: 100 });
-  const [previousSize, setPreviousSize] = useState({ width: 350, height: 500 });
+  const [position, setPosition] = useState(() => {
+    const isMobile = window.innerWidth <= 768;
+    return { 
+      x: isMobile ? 10 : 100, 
+      y: isMobile ? 60 : 100 
+    };
+  });
+
+  const [size, setSize] = useState(() => {
+    const isMobile = window.innerWidth <= 768;
+    return { 
+      width: isMobile ? window.innerWidth - 20 : 350, 
+      height: isMobile ? 400 : 500 
+    };
+  });
+
+  const [previousPosition, setPreviousPosition] = useState(position);
+  const [previousSize, setPreviousSize] = useState(size);
+
+  // Handle window resize to keep overlay in bounds
+  useEffect(() => {
+    const handleResize = () => {
+      const isMobile = window.innerWidth <= 768;
+      if (isMobile) {
+        setSize(prev => ({
+          width: Math.min(prev.width, window.innerWidth - 20),
+          height: Math.min(prev.height, window.innerHeight - 120)
+        }));
+        setPosition(prev => ({
+          x: Math.max(0, Math.min(prev.x, window.innerWidth - 50)),
+          y: Math.max(0, Math.min(prev.y, window.innerHeight - 50))
+        }));
+      }
+    };
+
+    window.addEventListener('resize', handleResize);
+    return () => window.removeEventListener('resize', handleResize);
+  }, []);
 
   // Register overlay
   useEffect(() => {
@@ -368,9 +402,9 @@ const ControllerOverlay = ({
           setPosition(newPosition);
         }
       }}
-      minWidth={isMinimized ? 200 : 350}
+      minWidth={isMinimized ? 200 : (window.innerWidth <= 768 ? Math.min(280, window.innerWidth - 20) : 300)}
       minHeight={isMinimized ? 28 : 150}
-      bounds=".workbench-body"
+      bounds="window"
       disableDragging={isMinimized}
       enableResizing={!isMinimized}
       dragHandleClassName="engine-overlay-header"
