@@ -49,11 +49,43 @@ function FpsCounter({ updateFps }) {
 }
 function SimpleGrid({ show }) { 
   if (!show) return null; 
-  return (<Grid position={[0, 0.01, 0]} args={[1000, 1000]} cellColor="#aaaaaa" sectionColor="#000000" sectionSize={10} cellSize={1} fadeDistance={200} fadeStrength={1} infiniteGrid={false} />); 
+  return (
+    <Grid 
+      position={[0, -0.001, 0]} 
+      args={[100, 100]} 
+      cellSize={1} 
+      cellThickness={1} 
+      cellColor="#6f6f6f" 
+      sectionSize={10} 
+      sectionThickness={1.5} 
+      sectionColor="#9d9d9d" 
+      fadeDistance={200} 
+      fadeStrength={5} 
+      infiniteGrid 
+    />
+  ); 
 }
-function LabeledAxesHelper({ size = 5 }) { 
+function LabeledAxesHelper({ size = 5, visible = true }) { 
+  if (!visible) return null;
   const textProps = { fontSize: 0.5, anchorX: 'center', anchorY: 'middle' }; 
-  return (<group><axesHelper args={[size]} /><Text color="red" position={[size * 1.1, 0, 0]} {...textProps}>X</Text><Text color="green" position={[0, size * 1.1, 0]} {...textProps}>Y</Text><Text color="blue" position={[0, 0, size * 1.1]} {...textProps}>Z</Text></group>); 
+  return (<group renderOrder={10}><axesHelper args={[size]} /><Text color="red" position={[size * 1.1, 0, 0]} {...textProps}>X</Text><Text color="green" position={[0, size * 1.1, 0]} {...textProps}>Y</Text><Text color="blue" position={[0, 0, size * 1.1]} {...textProps}>Z</Text></group>); 
+}
+
+function GroundPlane({ show }) { 
+  if (!show) return null; 
+  return (
+    <mesh rotation={[-Math.PI / 2, 0, 0]} position={[0, -0.002, 0]} receiveShadow>
+      <planeGeometry args={[2000, 2000]} />
+      <meshStandardMaterial 
+        color="#111111" 
+        opacity={0.4} 
+        transparent 
+        polygonOffset 
+        polygonOffsetFactor={1} 
+        polygonOffsetUnits={1}
+      />
+    </mesh>
+  ); 
 }
 function Arrow({ vec, color }) { 
   const groupRef = useRef(); 
@@ -159,7 +191,7 @@ function Skybox({ texturePath, backgroundType = 'normal' }) {
 }
 
 function Visualizer({ scene, showSceneDetails, onToggleSceneDetails }) {
-    const { isPlaying, simulationTime, fps, showVelocityVectors, vectorScale, openGraphs, resetSimulation, loopReset, updateSimulationTime, updateFps, resetTrigger, removeGraph, setObjectHistory, loopMode, setIsPlaying, dataTimeStep, simulationSpeed } = useWorkspace();
+    const { isPlaying, simulationTime, fps, showVelocityVectors, vectorScale, openGraphs, resetSimulation, loopReset, updateSimulationTime, updateFps, resetTrigger, removeGraph, setObjectHistory, loopMode, setIsPlaying, dataTimeStep, simulationSpeed, showGrid, showAxes, setShowGrid, setShowAxes, zenMode, setZenMode } = useWorkspace();
 
     // Skybox state - cycles through: normal, space, black, white
     const [skyboxType, setSkyboxType] = useState('normal');
@@ -370,36 +402,80 @@ function Visualizer({ scene, showSceneDetails, onToggleSceneDetails }) {
                             />
                         )}
                         <OrbitControls />
-                        <LabeledAxesHelper size={5} />
-                        <SimpleGrid show={hasGround} />
+                        <LabeledAxesHelper size={5} visible={showAxes} />
+                        <SimpleGrid show={showGrid} />
+                        <GroundPlane show={hasGround} />
                         <FpsCounter updateFps={updateFps} />
                         <Skybox texturePath={backgroundTexture} backgroundType={skyboxType} />
                     </Canvas>
                 )}
                 
-                {/* Skybox Switch Button */}
-                <button 
-                    className="skybox-switch-btn"
-                    onClick={() => {
-                        const types = ['normal', 'space', 'black', 'white'];
-                        const currentIndex = types.indexOf(skyboxType);
-                        const nextIndex = (currentIndex + 1) % types.length;
-                        setSkyboxType(types[nextIndex]);
-                    }}
-                    title={`Current: ${skyboxType} - Click to switch`}
-                >
-                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                        <circle cx="12" cy="12" r="5" />
-                        <line x1="12" y1="1" x2="12" y2="3" />
-                        <line x1="12" y1="21" x2="12" y2="23" />
-                        <line x1="4.22" y1="4.22" x2="5.64" y2="5.64" />
-                        <line x1="18.36" y1="18.36" x2="19.78" y2="19.78" />
-                        <line x1="1" y1="12" x2="3" y2="12" />
-                        <line x1="21" y1="12" x2="23" y2="12" />
-                        <line x1="4.22" y1="19.78" x2="5.64" y2="18.36" />
-                        <line x1="18.36" y1="5.64" x2="19.78" y2="4.22" />
-                    </svg>
-                </button>
+                {/* Visualizer Controls */}
+                <div className="visualizer-controls-top-right">
+                    {/* Skybox Switch Button */}
+                    <button 
+                        className="visualizer-control-btn skybox-switch-btn"
+                        onClick={() => {
+                            const types = ['normal', 'space', 'black', 'white'];
+                            const currentIndex = types.indexOf(skyboxType);
+                            const nextIndex = (currentIndex + 1) % types.length;
+                            setSkyboxType(types[nextIndex]);
+                        }}
+                        title={`Theme: ${skyboxType}`}
+                    >
+                        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                            <circle cx="12" cy="12" r="5" />
+                            <line x1="12" y1="1" x2="12" y2="3" />
+                            <line x1="12" y1="21" x2="12" y2="23" />
+                            <line x1="4.22" y1="4.22" x2="5.64" y2="5.64" />
+                            <line x1="18.36" y1="18.36" x2="19.78" y2="19.78" />
+                            <line x1="1" y1="12" x2="3" y2="12" />
+                            <line x1="21" y1="12" x2="23" y2="12" />
+                            <line x1="4.22" y1="19.78" x2="5.64" y2="18.36" />
+                            <line x1="18.36" y1="5.64" x2="19.78" y2="4.22" />
+                        </svg>
+                    </button>
+
+                    {/* Grid Toggle Button */}
+                    <button 
+                        className={`visualizer-control-btn grid-toggle-btn ${showGrid ? 'active' : ''}`}
+                        onClick={() => setShowGrid(!showGrid)}
+                        title="Toggle Grid"
+                    >
+                        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                            <path d="M3 3h18v18H3zM3 9h18M3 15h18M9 3v18M15 3v18" />
+                        </svg>
+                    </button>
+
+                    {/* Axes Toggle Button */}
+                    <button 
+                        className={`visualizer-control-btn axes-toggle-btn ${showAxes ? 'active' : ''}`}
+                        onClick={() => setShowAxes(!showAxes)}
+                        title="Toggle Axes"
+                    >
+                        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                            <line x1="12" y1="12" x2="20" y2="12" stroke="red" />
+                            <line x1="12" y1="12" x2="12" y2="4" stroke="green" />
+                            <line x1="12" y1="12" x2="8" y2="16" stroke="blue" />
+                            <circle cx="12" cy="12" r="1" fill="white" />
+                        </svg>
+                    </button>
+
+                    {/* Zen Mode Toggle Button */}
+                    <button 
+                        className={`visualizer-control-btn zen-toggle-btn ${zenMode ? 'active' : ''}`}
+                        onClick={() => setZenMode(!zenMode)}
+                        title={zenMode ? "Exit Full Window" : "Full Window (Zen Mode)"}
+                    >
+                        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                            {zenMode ? (
+                                <path d="M4 14h6v6M20 10h-6V4M14 10l7-7M10 14l-7 7" />
+                            ) : (
+                                <path d="M15 3h6v6M9 21H3v-6M21 3l-7 7M3 21l7-7" />
+                            )}
+                        </svg>
+                    </button>
+                </div>
 
 
             </div>

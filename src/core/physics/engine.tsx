@@ -320,7 +320,7 @@ export function PhysicsWorld({ scene, isPlaying, onPhysicsDataCalculated, resetT
             
             {/* Ground plane for physics collision when hasGround is true */}
             {scene?.hasGround && (
-                <RigidBody type="fixed" position={[0, 0, 0]}>
+                <RigidBody type="fixed" position={[0, -0.1, 0]}>
                     <CuboidCollider args={[500, 0.1, 500]} />
                 </RigidBody>
             )}

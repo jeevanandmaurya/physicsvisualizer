@@ -1,15 +1,5 @@
 /* ===== VISUALIZER STYLES - DASHBOARD THEME ===== */
 
-/* Make the root fill the viewport */
-html, body, #root {
-  width: 100%;
-  height: 100%;
-  margin: 0;
-  padding: 0;
-  overflow-x: hidden; /* Prevent horizontal scroll only */
-  overflow-y: auto; /* Allow vertical scroll on mobile */
-}
-
 /* The new main flex container */
 .visualizer-container {
   display: flex;
@@ -531,12 +521,18 @@ html, body, #root {
   }
 }
 
-/* Skybox Switch Button */
-.skybox-switch-btn {
+/* Visualizer Controls */
+.visualizer-controls-top-right {
   position: absolute;
   top: 10px;
   right: 10px;
   z-index: 1000;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.visualizer-control-btn {
   background-color: rgba(255, 255, 255, 0.15);
   backdrop-filter: blur(10px);
   border: 1px solid rgba(255, 255, 255, 0.3);
@@ -553,18 +549,23 @@ html, body, #root {
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
 }
 
-.skybox-switch-btn:hover {
+.visualizer-control-btn:hover {
   background-color: rgba(255, 255, 255, 0.25);
   border-color: rgba(255, 255, 255, 0.5);
   transform: scale(1.05);
   box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
 }
 
-.skybox-switch-btn:active {
+.visualizer-control-btn:active {
   transform: scale(0.95);
 }
 
-.skybox-switch-btn svg {
+.visualizer-control-btn.active {
+  background-color: rgba(0, 122, 204, 0.4);
+  border-color: rgba(0, 122, 204, 0.6);
+}
+
+.visualizer-control-btn svg {
   width: 20px;
   height: 20px;
 }

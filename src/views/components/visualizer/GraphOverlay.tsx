@@ -68,19 +68,32 @@ function GraphOverlay({ isOpen, onToggle }: GraphOverlayProps) {
           initialType={graphConfig.initialType}
           data={{}} // Data is now pulled directly from store inside component
           onClose={removeGraph}
-          initialPosition={{ x: 20 + index * 30, y: 80 + index * 30 }}
+          initialPosition={{ x: 60 + index * 30, y: 80 + index * 30 }}
         />
       ))}
     </>
   );
 }
 
-function OverlayGraph({ id, initialType, data, onClose }) {
+function OverlayGraph({ id, initialType, data, onClose, initialPosition }) {
   const { overlayOpacity, theme } = useTheme();
-  const { registerOverlay, unregisterOverlay, focusOverlay, getZIndex } = useOverlay();
+  const { 
+    registerOverlay, 
+    unregisterOverlay, 
+    focusOverlay, 
+    getZIndex, 
+    focusedOverlay,
+    overlays,
+    toggleMinimize,
+    getMinimizedPosition
+  } = useOverlay();
   const { dataTimeStep, updateDataTimeStep } = useWorkspace();
   const chartRef = useRef(null);
   
+  const overlayId = `graph-${id}`;
+  const overlayState = overlays.get(overlayId);
+  const isMinimized = overlayState?.isMinimized || false;
+
   // NEW: Get data directly from PhysicsDataStore (no React prop drilling!)
   const physicsHistory = usePhysicsHistory();
   const objectIds = Object.keys(physicsHistory);
@@ -93,12 +106,37 @@ function OverlayGraph({ id, initialType, data, onClose }) {
   const [viewMode, setViewMode] = useState('graph'); // 'graph' or 'table'
   const [maxTableRows, setMaxTableRows] = useState(20);
 
-  // Minimize state (similar to ChatOverlay)
-  const [isMinimized, setIsMinimized] = useState(false);
-  const [position, setPosition] = useState({ x: 20, y: 80 });
+  const [position, setPosition] = useState(initialPosition || { x: 60, y: 80 });
   const [size, setSize] = useState({ width: 500, height: 600 });
-  const [previousPosition, setPreviousPosition] = useState({ x: 20, y: 80 });
+  const [previousPosition, setPreviousPosition] = useState(initialPosition || { x: 60, y: 80 });
   const [previousSize, setPreviousSize] = useState({ width: 500, height: 600 });
+
+  // Register overlay
+  useEffect(() => {
+    registerOverlay(overlayId, 'graph', 60);
+    return () => unregisterOverlay(overlayId);
+  }, [overlayId, registerOverlay, unregisterOverlay]);
+
+  // Handle minimized position
+  useEffect(() => {
+    if (isMinimized) {
+      const minPos = getMinimizedPosition(overlayId);
+      if (minPos) {
+        setPosition(minPos);
+      }
+    } else {
+      setPosition(previousPosition);
+    }
+  }, [isMinimized, getMinimizedPosition, overlayId]);
+
+  const handleMinimize = (e: React.MouseEvent) => {
+    e.stopPropagation();
+    if (!isMinimized) {
+      setPreviousPosition(position);
+      setPreviousSize(size);
+    }
+    toggleMinimize(overlayId);
+  };
 
   // --- DATA PROCESSING ---
   // Use physicsHistory instead of props data
@@ -332,26 +370,6 @@ function OverlayGraph({ id, initialType, data, onClose }) {
     }
   };
 
-  // Minimize handler
-  const handleMinimize = () => {
-    if (isMinimized) {
-      // Maximize: restore previous
-      setPosition(previousPosition);
-      setSize(previousSize);
-      setIsMinimized(false);
-    } else {
-      // Minimize: save current, set compact
-      setPreviousPosition(position);
-      setPreviousSize(size);
-      setPosition({
-        x: (window.innerWidth - 200) / 2, // Centered horizontally
-        y: window.innerHeight - 80 // Above status bar
-      });
-      setSize({ width: 200, height: 40 });
-      setIsMinimized(true);
-    }
-  };
-
   // Escape key to close (like Chat)
   useEffect(() => {
     const handleKeyDown = (e) => {
@@ -367,7 +385,7 @@ function OverlayGraph({ id, initialType, data, onClose }) {
 
   // Initial position (like Chat, but per graph index if needed)
   useEffect(() => {
-    const centerX = Math.max(48, (window.innerWidth - 550) / 2);
+    const centerX = Math.max(60, (window.innerWidth - 550) / 2);
     const centerY = Math.max(0, (window.innerHeight - 380 - 40) / 2);
     setPosition({ x: centerX, y: centerY });
     setPreviousPosition({ x: centerX, y: centerY });
@@ -379,66 +397,73 @@ function OverlayGraph({ id, initialType, data, onClose }) {
     return () => unregisterOverlay(`graph-${id}`);
   }, [id, registerOverlay, unregisterOverlay]);
 
-  const { focusedOverlay } = useOverlay();
-  const currentZIndex = getZIndex(`graph-${id}`);
-  const isFocused = focusedOverlay === `graph-${id}`;
+  const currentZIndex = getZIndex(overlayId);
+  const isFocused = focusedOverlay === overlayId;
   
   const handleOverlayClick = () => {
-    focusOverlay(`graph-${id}`);
+    focusOverlay(overlayId);
   };
 
   // Rnd drag/resize callbacks
   const handleDragStart = useCallback(() => {
-    focusOverlay(`graph-${id}`);
-  }, [id, focusOverlay]);
+    focusOverlay(overlayId);
+  }, [overlayId, focusOverlay]);
 
   const handleDragStop = useCallback((e, data) => {
-    setPosition({ x: data.x, y: data.y });
-  }, []);
+    if (!isMinimized) {
+      setPosition({ x: data.x, y: data.y });
+    }
+  }, [isMinimized]);
 
   const handleResizeStop = useCallback((e, dir, ref, delta, positionDelta) => {
-    setSize({ width: ref.offsetWidth, height: ref.offsetHeight });
-    if (positionDelta) {
-      setPosition({ x: positionDelta.x, y: positionDelta.y });
+    if (!isMinimized) {
+      setSize({ width: ref.offsetWidth, height: ref.offsetHeight });
+      if (positionDelta) {
+        setPosition({ x: positionDelta.x, y: positionDelta.y });
+      }
     }
-  }, []);
+  }, [isMinimized]);
 
   return (
     <Rnd
       position={position}
-      size={size}
+      size={isMinimized ? { width: 200, height: 28 } : size}
       onDragStart={handleDragStart}
       onDragStop={handleDragStop}
       onResizeStop={handleResizeStop}
-      minWidth={380}
-      minHeight={isMinimized ? 40 : 300}
-      bounds="window"
-      className={`overlay-graph ${isMinimized ? 'minimized' : ''} ${isFocused ? 'focused' : ''}`}
-      dragHandleClassName="graph-header"
+      minWidth={isMinimized ? 200 : 380}
+      minHeight={isMinimized ? 28 : 300}
+      bounds=".workbench-body"
+      disableDragging={isMinimized}
+      enableResizing={!isMinimized}
+      className={`engine-overlay ${isMinimized ? 'minimized' : ''} ${isFocused ? 'focused' : ''}`}
+      dragHandleClassName="engine-overlay-header"
       style={{ 
-        '--graph-bg-opacity': overlayOpacity.graph,
+        '--overlay-opacity': overlayOpacity.graph,
         zIndex: currentZIndex
       } as React.CSSProperties}
       onMouseDown={handleOverlayClick}
     >
-        <div className="graph-header">
-          <span className="title-text">{labels.title}</span>
-          <div className="graph-header-controls">
-            <button
-              className="minimize-btn"
-              onClick={handleMinimize}
-              title={isMinimized ? "Maximize" : "Minimize"}
-            >
-              <FontAwesomeIcon icon={isMinimized ? faChevronUp : faChevronDown} />
-            </button>
-            <button onClick={() => onClose(id)} className="close-btn" aria-label="Close">
-              <FontAwesomeIcon icon={faTimes} />
-            </button>
-          </div>
+      <div className="engine-overlay-header">
+        <div className="engine-overlay-title">
+          {labels.title}
         </div>
+        <div className="engine-overlay-controls">
+          <button
+            className="engine-overlay-button"
+            onClick={handleMinimize}
+            title={isMinimized ? "Maximize" : "Minimize"}
+          >
+            <FontAwesomeIcon icon={isMinimized ? faChevronUp : faChevronDown} />
+          </button>
+          <button onClick={() => onClose(id)} className="engine-overlay-button close" aria-label="Close">
+            <FontAwesomeIcon icon={faTimes} />
+          </button>
+        </div>
+      </div>
 
-        {!isMinimized && (
-          <div className="graph-content-wrapper">
+      {!isMinimized && (
+        <div className="engine-overlay-content graph-content-wrapper">
             <div className="graph-controls">
               <select value={selectedObjectId || ''} onChange={(e) => setSelectedObjectId(e.target.value)} disabled={objectIds.length === 0} aria-label="Select Object">
                 <option value="" disabled>{objectIds.length === 0 ? 'No objects' : 'Select Object'}</option>

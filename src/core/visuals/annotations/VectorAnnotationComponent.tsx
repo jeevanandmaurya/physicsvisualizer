@@ -26,6 +26,10 @@ export function VectorAnnotationComponent({
   const shaftRef = useRef<THREE.Mesh>(null);
   const coneRef = useRef<THREE.Mesh>(null);
   
+  // Smooth vector for length and direction transitions
+  const smoothVector = useRef<THREE.Vector3>(new THREE.Vector3());
+  const targetVector = useRef<THREE.Vector3>(new THREE.Vector3());
+  
   // Create geometries once
   const geometries = useMemo(() => ({
     shaft: new THREE.CylinderGeometry(1, 1, 1, 8),
@@ -98,9 +102,13 @@ export function VectorAnnotationComponent({
     // Get and scale vector
     const vector = getVector();
     const scale = annotation.scale || 1.0;
-    vector.multiplyScalar(scale);
+    targetVector.current.copy(vector).multiplyScalar(scale);
+    
+    // Smoothly interpolate the vector itself (handles both length and direction)
+    const smoothness = annotation.smoothness || 0.15;
+    smoothVector.current.lerp(targetVector.current, smoothness);
 
-    const length = vector.length();
+    const length = smoothVector.current.length();
 
     // Hide if vector is too small
     if (length < 0.01) {
@@ -109,7 +117,7 @@ export function VectorAnnotationComponent({
     }
     group.visible = true;
 
-    // Position arrow at object location - NO SMOOTHING for accurate physics display
+    // Position arrow at object location
     const objectSize = getObjectSize(objectConfig);
     const worldPos = calculateWorldPosition(
       physicsData.position,
@@ -118,15 +126,14 @@ export function VectorAnnotationComponent({
       objectSize
     );
     
-    // Vectors need precise positioning - update instantly without smoothing
     group.position.copy(worldPos);
 
-    // Orient arrow
-    dir.copy(vector).normalize();
+    // Orient arrow using the smoothed vector
+    dir.copy(smoothVector.current).normalize();
     quaternion.setFromUnitVectors(up, dir);
     group.quaternion.copy(quaternion);
 
-    // Size arrow components
+    // Size arrow components based on smoothed length
     const headLength = Math.max(length * (annotation.headLength || 0.25), 0.1);
     const headRadius = Math.max(length * (annotation.headRadius || 0.08), 0.03);
     const shaftRadius = Math.max(length * (annotation.shaftRadius || 0.02), 0.01);

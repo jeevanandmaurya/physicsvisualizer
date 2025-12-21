@@ -94,13 +94,45 @@
 
 /* Responsive adjustments */
 @media (max-width: 768px) {
-  .overlay-left,
-  .overlay-right {
-    max-width: 90vw;
+  .overlay-left {
+    left: 0;
+    bottom: 86px; /* 56px ActivityBar + 30px StatusBar */
+    width: 100%;
+    max-width: 100%;
+    z-index: 1001;
   }
 
-  .overlay-top,
+  .overlay-right {
+    right: 0;
+    bottom: 86px;
+    width: 100%;
+    max-width: 100%;
+    z-index: 1001;
+  }
+
+  .overlay-top {
+    left: 0;
+    max-height: 40vh;
+  }
+
   .overlay-bottom {
-    max-height: 50vh;
+    bottom: 86px;
+    left: 0;
+    max-height: 60vh;
+    height: auto;
+  }
+
+  .overlay-center {
+    width: 95vw;
+    max-width: 95vw;
+    max-height: 70vh;
+    bottom: 86px;
+    top: auto;
+    transform: translate(-50%, 0);
+  }
+
+  .overlay-full {
+    left: 0;
+    bottom: 86px;
   }
 }

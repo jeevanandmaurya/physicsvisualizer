@@ -29,9 +29,8 @@ export function TextAnnotationComponent({
   const targetPosition = useRef<THREE.Vector3>(new THREE.Vector3());
   const smoothPosition = useRef<THREE.Vector3>(new THREE.Vector3());
   
-  // Smooth scale to prevent jittery resizing
-  const targetScale = useRef<THREE.Vector3>(new THREE.Vector3(1, 1, 1));
-  const smoothScale = useRef<THREE.Vector3>(new THREE.Vector3(1, 1, 1));
+  // Base scale derived from text dimensions
+  const baseScale = useRef<THREE.Vector3>(new THREE.Vector3(1, 1, 1));
   
   // Calculate update interval from frequency
   const updateInterval = useMemo(() => {
@@ -50,8 +49,14 @@ export function TextAnnotationComponent({
       backgroundColor: annotation.backgroundColor || 'rgba(0, 0, 0, 0.7)',
       padding: annotation.padding || 8,
       borderRadius: annotation.borderRadius || 4,
-      opacity: annotation.opacity || 1.0
+      opacity: annotation.opacity || 1.0,
+      resolutionScale: 4.0 // High resolution for sharpness
     });
+    
+    // Set initial base scale
+    const scale = (annotation.fontSize || 16) / 16;
+    baseScale.current.set(result.width / 40 * scale, result.height / 40 * scale, 1);
+    
     return result;
   }, []); // Only create once
 
@@ -88,7 +93,8 @@ export function TextAnnotationComponent({
         backgroundColor: annotation.backgroundColor || 'rgba(0, 0, 0, 0.7)',
         padding: annotation.padding || 8,
         borderRadius: annotation.borderRadius || 4,
-        opacity: annotation.opacity || 1.0
+        opacity: annotation.opacity || 1.0,
+        resolutionScale: 4.0
       });
       
       if (sprite.material.map) {
@@ -97,9 +103,9 @@ export function TextAnnotationComponent({
       sprite.material.map = result.texture;
       sprite.material.needsUpdate = true;
       
-      // Set base scale based on text size (but don't apply yet)
+      // Update base scale based on new text dimensions
       const scale = (annotation.fontSize || 16) / 16;
-      targetScale.current.set(result.width / 50 * scale, result.height / 50 * scale, 1);
+      baseScale.current.set(result.width / 40 * scale, result.height / 40 * scale, 1);
       
       lastUpdateTime.current = now;
     }
@@ -109,20 +115,18 @@ export function TextAnnotationComponent({
     const distanceScale = calculateDistanceScale(
       worldPos,
       cameraPos,
-      annotation.minScale || 0.5,
-      annotation.maxScale || 2.0
+      annotation.minScale || 0.4,
+      annotation.maxScale || 2.5,
+      5,  // minDistance
+      60  // maxDistance
     );
     
-    // Apply distance scale to target scale
-    targetScale.current.multiplyScalar(distanceScale);
-    
     // Smooth scale interpolation (prevents jittery resizing)
-    const scaleSmooth = annotation.smoothness || 0.15;
-    smoothScale.current.lerp(targetScale.current, scaleSmooth);
-    sprite.scale.copy(smoothScale.current);
-    
-    // Reset target scale for next frame (remove distance multiplier)
-    targetScale.current.divideScalar(distanceScale);
+    // We lerp towards (baseScale * distanceScale) for ultra-smooth transitions
+    const scaleSmooth = annotation.smoothness || 0.1; // Slower lerp for "not noticeable" transitions
+    sprite.scale.x = THREE.MathUtils.lerp(sprite.scale.x, baseScale.current.x * distanceScale, scaleSmooth);
+    sprite.scale.y = THREE.MathUtils.lerp(sprite.scale.y, baseScale.current.y * distanceScale, scaleSmooth);
+    sprite.scale.z = 1;
 
     // Distance-based opacity (fade effect)
     if (annotation.fadeDistance) {

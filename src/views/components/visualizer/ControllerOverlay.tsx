@@ -1,4 +1,5 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect } from 'react';
+import { Rnd } from 'react-rnd';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { faChevronUp, faChevronDown, faTimes, faPlus } from '@fortawesome/free-solid-svg-icons';
 import { useTheme } from '../../../contexts/ThemeContext';
@@ -50,17 +51,54 @@ const ControllerOverlay = ({
   onAddController
 }: ControllerOverlayProps) => {
   const { overlayOpacity, updateOverlayOpacity } = useTheme();
-  const { registerOverlay, unregisterOverlay, focusOverlay, getZIndex } = useOverlay();
-  const [isMinimized, setIsMinimized] = useState(false);
+  const { 
+    registerOverlay, 
+    unregisterOverlay, 
+    focusOverlay, 
+    getZIndex, 
+    focusedOverlay,
+    overlays,
+    toggleMinimize,
+    getMinimizedPosition
+  } = useOverlay();
+
+  const overlayId = 'controller';
+  const overlayState = overlays.get(overlayId);
+  const isMinimized = overlayState?.isMinimized || false;
+
   const [position, setPosition] = useState({ x: 100, y: 100 });
-  const [size, setSize] = useState({ width: 500, height: 600 });
+  const [size, setSize] = useState({ width: 350, height: 500 });
   const [previousPosition, setPreviousPosition] = useState({ x: 100, y: 100 });
-  const [previousSize, setPreviousSize] = useState({ width: 500, height: 600 });
-  const [isDragging, setIsDragging] = useState(false);
-  const [isResizing, setIsResizing] = useState(false);
-  const [dragStart, setDragStart] = useState({ x: 0, y: 0 });
-  const [resizeStart, setResizeStart] = useState({ x: 0, y: 0 });
-  const overlayRef = useRef(null);
+  const [previousSize, setPreviousSize] = useState({ width: 350, height: 500 });
+
+  // Register overlay
+  useEffect(() => {
+    if (isOpen) {
+      registerOverlay(overlayId, 'controller', 55);
+      return () => unregisterOverlay(overlayId);
+    }
+  }, [isOpen, registerOverlay, unregisterOverlay]);
+
+  // Handle minimized position
+  useEffect(() => {
+    if (isMinimized) {
+      const minPos = getMinimizedPosition(overlayId);
+      if (minPos) {
+        setPosition(minPos);
+      }
+    } else {
+      setPosition(previousPosition);
+    }
+  }, [isMinimized, getMinimizedPosition]);
+
+  const handleMinimize = (e: React.MouseEvent) => {
+    e.stopPropagation();
+    if (!isMinimized) {
+      setPreviousPosition(position);
+      setPreviousSize(size);
+    }
+    toggleMinimize(overlayId);
+  };
 
   const normalizePropertyPath = (path) => {
     if (!path) return [];
@@ -71,13 +109,16 @@ const ControllerOverlay = ({
       .filter(part => part.length > 0);
   };
 
-  const isNumericSegment = (segment) => segment !== '' && !Number.isNaN(Number(segment));
+  const isNumericSegment = (segment) => {
+    return !isNaN(Number(segment)) && !isNaN(parseFloat(segment));
+  };
 
   // Set initial position after mount, centered and above status bar
   useEffect(() => {
     if (isOpen) {
-      const centerX = Math.max(48, (window.innerWidth - 350) / 2);
-      const centerY = Math.max(0, (window.innerHeight - 500 - 40) / 2);
+      // Offset slightly from center to avoid stacking with GraphOverlay
+      const centerX = Math.max(60, (window.innerWidth - 350) / 2 + 40);
+      const centerY = Math.max(0, (window.innerHeight - 500 - 40) / 2 + 40);
       setPosition({ x: centerX, y: centerY });
       setSize({ width: 350, height: 500 });
       setPreviousPosition({ x: centerX, y: centerY });
@@ -97,73 +138,13 @@ const ControllerOverlay = ({
     return () => window.removeEventListener('keydown', handleKeyDown);
   }, [isOpen, onToggle]);
 
-  // Drag functionality - only from header
-  const handleMouseDown = (e) => {
-    // Focus overlay first
-    focusOverlay('controller-overlay');
-    
-    // Only allow dragging from header, not from control buttons or resize handle
-    if (e.target.closest('.controller-overlay-control-btn') || e.target.closest('.resize-handle')) return;
 
-    e.preventDefault();
-    setIsDragging(true);
-    setDragStart({
-      x: e.clientX - position.x,
-      y: e.clientY - position.y
-    });
-  };
 
-  const handleMouseMove = (e) => {
-    if (isDragging) {
-      let newX = e.clientX - dragStart.x;
-      let newY = e.clientY - dragStart.y;
 
-      // Keep within viewport bounds, avoiding activity bar (left ~48px) and status bar (bottom ~40px)
-      const activityBarWidth = 48;
-      const statusBarHeight = 40;
-      const currentWidth = isMinimized ? 90 : Math.max(350, size.width);
-      const currentHeight = isMinimized ? 28 : Math.max(300, size.height);
-      newX = Math.max(activityBarWidth, Math.min(window.innerWidth - currentWidth, newX));
-      newY = Math.max(0, Math.min(window.innerHeight - currentHeight - statusBarHeight, newY));
 
-      setPosition({ x: newX, y: newY });
-    } else if (isResizing && !isMinimized) {
-      const rect = overlayRef.current.getBoundingClientRect();
-      const newWidth = Math.max(350, e.clientX - rect.left);
-      const newHeight = Math.max(150, e.clientY - rect.top);
-      setSize({ width: newWidth, height: newHeight });
-    }
-  };
 
-  const handleMouseUp = () => {
-    setIsDragging(false);
-    setIsResizing(false);
-  };
 
-  const handleResizeStart = (e) => {
-    e.stopPropagation();
-    setIsResizing(true);
-    setResizeStart({
-      x: e.clientX,
-      y: e.clientY
-    });
-  };
 
-  useEffect(() => {
-    if (isDragging || isResizing) {
-      document.addEventListener('mousemove', handleMouseMove);
-      document.addEventListener('mouseup', handleMouseUp);
-      document.body.style.userSelect = 'none';
-    } else {
-      document.body.style.userSelect = '';
-    }
-
-    return () => {
-      document.removeEventListener('mousemove', handleMouseMove);
-      document.removeEventListener('mouseup', handleMouseUp);
-      document.body.style.userSelect = '';
-    };
-  }, [isDragging, isResizing]);
 
 
 
@@ -360,145 +341,132 @@ const ControllerOverlay = ({
     return () => unregisterOverlay('controller-overlay');
   }, [registerOverlay, unregisterOverlay]);
 
-  const { focusedOverlay } = useOverlay();
-  const currentZIndex = getZIndex('controller-overlay');
-  const isFocused = focusedOverlay === 'controller-overlay';
+  const currentZIndex = getZIndex(overlayId);
+  const isFocused = focusedOverlay === overlayId;
   
   const handleOverlayClick = () => {
-    focusOverlay('controller-overlay');
+    focusOverlay(overlayId);
   };
 
   if (!isOpen) return null;
 
   return (
-    <div className={`controller-overlay ${isMinimized ? 'minimized' : ''}`}>
-      <div
-        className={`controller-overlay-container ${isFocused ? 'focused' : ''}`}
-        ref={overlayRef}
-        onMouseDown={handleOverlayClick}
-        style={{
-          left: `${position.x}px`,
-          top: `${position.y}px`,
-          width: `${size.width}px`,
-          height: isMinimized ? '28px' : `${size.height}px`,
-          cursor: isResizing ? 'nw-resize' : 'default',
-          zIndex: currentZIndex,
-          '--controller-bg-opacity': overlayOpacity.controller || overlayOpacity.chat
-        } as React.CSSProperties}
-      >
-        {/* Header */}
-        <div
-          className="controller-overlay-header"
-          onMouseDown={handleMouseDown}
-          title={isMinimized ? 'Drag to move. Click to expand.' : 'Drag to move.'}
-        >
-          <div className="controller-overlay-title">Controllers</div>
-          <div className="controller-overlay-header-controls">
-            <button
-              className="controller-overlay-control-btn"
-              onClick={handleAddController}
-              title="Add Controller"
-            >
-              <FontAwesomeIcon icon={faPlus} />
-            </button>
-            <button
-              className="controller-overlay-control-btn"
-              onClick={() => {
-                if (isMinimized) {
-                  // Maximize: restore previous
-                  setPosition(previousPosition);
-                  setSize(previousSize);
-                  setIsMinimized(false);
-                } else {
-                  // Minimize: save current, set compact
-                  setPreviousPosition(position);
-                  setPreviousSize(size);
-                  setPosition({
-                    x: (window.innerWidth - 90) / 2,
-                    y: window.innerHeight - 80
-                  });
-                  setSize({ width: 90, height: 28 });
-                  setIsMinimized(true);
-                }
-              }}
-              title={isMinimized ? "Maximize" : "Minimize"}
-            >
-              <FontAwesomeIcon icon={isMinimized ? faChevronUp : faChevronDown} />
-            </button>
-            <button
-              className="controller-overlay-control-btn close-btn"
-              onClick={onToggle}
-              title="Close (Esc)"
-            >
-              <FontAwesomeIcon icon={faTimes} />
-            </button>
+    <Rnd
+      size={isMinimized ? { width: 200, height: 28 } : size}
+      position={position}
+      onDragStop={(e, d) => {
+        if (!isMinimized) {
+          setPosition({ x: d.x, y: d.y });
+        }
+      }}
+      onResizeStop={(e, direction, ref, delta, newPosition) => {
+        if (!isMinimized) {
+          setSize({
+            width: parseInt(ref.style.width),
+            height: parseInt(ref.style.height),
+          });
+          setPosition(newPosition);
+        }
+      }}
+      minWidth={isMinimized ? 200 : 350}
+      minHeight={isMinimized ? 28 : 150}
+      bounds=".workbench-body"
+      disableDragging={isMinimized}
+      enableResizing={!isMinimized}
+      dragHandleClassName="engine-overlay-header"
+      className={`engine-overlay ${isMinimized ? 'minimized' : ''} ${isFocused ? 'focused' : ''}`}
+      onMouseDown={handleOverlayClick}
+      style={{
+        zIndex: currentZIndex,
+        '--overlay-opacity': overlayOpacity.controller || overlayOpacity.chat
+      } as React.CSSProperties}
+    >
+      <div className="engine-overlay-header">
+        <div className="engine-overlay-title">Controllers</div>
+        <div className="engine-overlay-controls">
+          <button
+            className="engine-overlay-button"
+            onClick={handleAddController}
+            title="Add Controller"
+          >
+            <FontAwesomeIcon icon={faPlus} />
+          </button>
+          <button
+            className="engine-overlay-button"
+            onClick={handleMinimize}
+            title={isMinimized ? "Maximize" : "Minimize"}
+          >
+            <FontAwesomeIcon icon={isMinimized ? faChevronUp : faChevronDown} />
+          </button>
+          <button
+            className="engine-overlay-button close"
+            onClick={(e) => {
+              e.stopPropagation();
+              onToggle();
+            }}
+            title="Close"
+          >
+            <FontAwesomeIcon icon={faTimes} />
+          </button>
+        </div>
+      </div>
+
+      {!isMinimized && (
+        <div className="engine-overlay-content">
+          <div className="controller-list">
+            {(controllers || []).length === 0 ? (
+              <div className="no-controllers">
+                <p>No scene controllers configured.</p>
+                <p>Click + to add a controller.</p>
+              </div>
+            ) : (
+              (controllers || []).map(controller => (
+                <div key={controller.id} className="controller-item">
+                  <label className="controller-label">
+                    {controller.label}
+                  </label>
+                  <div className="controller-input-group">
+                    {controller.type === 'slider' && (
+                      <>
+                        <input
+                          type="range"
+                          min={controller.min}
+                          max={controller.max}
+                          step={controller.step || 1}
+                          value={getControllerValue(controller)}
+                          onChange={(e) => handleControllerChange(controller.id, parseFloat(e.target.value))}
+                          className="controller-slider"
+                        />
+                        <input
+                          type="number"
+                          min={controller.min}
+                          max={controller.max}
+                          step={controller.step || 1}
+                          value={getControllerValue(controller)}
+                          onChange={(e) => handleControllerChange(controller.id, parseFloat(e.target.value))}
+                          className="controller-number-input"
+                        />
+                      </>
+                    )}
+                    {controller.type === 'number' && (
+                      <input
+                        type="number"
+                        min={controller.min}
+                        max={controller.max}
+                        step={controller.step || 1}
+                        value={getControllerValue(controller)}
+                        onChange={(e) => handleControllerChange(controller.id, parseFloat(e.target.value))}
+                        className="controller-number-input full-width"
+                      />
+                    )}
+                  </div>
+                </div>
+              ))
+            )}
           </div>
         </div>
-
-        {!isMinimized && (
-          <>
-            <div className="controller-overlay-content">
-              <div className="controller-list">
-                {(controllers || []).length === 0 ? (
-                  <div className="no-controllers">
-                    <p>No scene controllers configured.</p>
-                    <p>Click + to add a controller.</p>
-                  </div>
-                ) : (
-                  (controllers || []).map(controller => (
-                    <div key={controller.id} className="controller-item">
-                      <label className="controller-label">
-                        {controller.label}
-                      </label>
-                      <div className="controller-input-group">
-                        {controller.type === 'slider' && (
-                          <>
-                            <input
-                              type="range"
-                              min={controller.min}
-                              max={controller.max}
-                              step={controller.step || 1}
-                              value={getControllerValue(controller)}
-                              onChange={(e) => handleControllerChange(controller.id, parseFloat(e.target.value))}
-                              className="controller-slider"
-                            />
-                            <input
-                              type="number"
-                              min={controller.min}
-                              max={controller.max}
-                              step={controller.step || 1}
-                              value={getControllerValue(controller)}
-                              onChange={(e) => handleControllerChange(controller.id, parseFloat(e.target.value))}
-                              className="controller-number-input"
-                            />
-                          </>
-                        )}
-                        {controller.type === 'number' && (
-                          <input
-                            type="number"
-                            min={controller.min}
-                            max={controller.max}
-                            step={controller.step || 1}
-                            value={getControllerValue(controller)}
-                            onChange={(e) => handleControllerChange(controller.id, parseFloat(e.target.value))}
-                            className="controller-number-input full-width"
-                          />
-                        )}
-                      </div>
-                    </div>
-                  ))
-                )}
-              </div>
-            </div>
-            <div
-              className="resize-handle"
-              onMouseDown={handleResizeStart}
-              title="Resize"
-            />
-          </>
-        )}
-      </div>
-    </div>
+      )}
+    </Rnd>
   );
 };
 

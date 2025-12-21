@@ -11,15 +11,17 @@ import './CollectionView.css';
 function SceneSkeleton() {
   return (
     <div className="scene-card skeleton">
-      <div className="scene-thumbnail skeleton-shimmer" />
+      <div className="scene-thumbnail-container">
+        <div className="scene-thumbnail skeleton-shimmer" />
+      </div>
       <div className="scene-card-content">
         <div className="skeleton-title skeleton-shimmer" />
-        <div className="skeleton-description">
-          <div className="skeleton-line skeleton-shimmer" />
-          <div className="skeleton-line skeleton-shimmer" />
-        </div>
+        <div className="skeleton-line skeleton-shimmer" />
+        <div className="skeleton-line skeleton-shimmer" style={{ width: '60%' }} />
       </div>
-      <div className="scene-actions"><div className="skeleton-button skeleton-shimmer" /></div>
+      <div className="scene-actions">
+        <div className="skeleton-button skeleton-shimmer" />
+      </div>
     </div>
   );
 }
@@ -28,45 +30,23 @@ function SceneCard({ scene, isPublic = false, onSceneClick }) {
   const [imageLoaded, setImageLoaded] = useState(false);
   const [imageError, setImageError] = useState(false);
   
-  // Use scene.name as it's more consistent across the app
   const sceneName = scene.name || scene.title || 'Untitled Scene';
 
   const handleSceneClick = () => {
     onSceneClick(scene.id, isPublic);
   };
 
-  const handleImageLoad = () => {
-    setImageLoaded(true);
-  };
-
-  const handleImageError = () => {
-    setImageError(true);
-    setImageLoaded(true); // Show placeholder if image fails
-  };
-
   return (
-    <div className="scene-card" onClick={handleSceneClick} style={{ cursor: 'pointer' }}>
-      <div className="scene-thumbnail-container" style={{ position: 'relative' }}>
-        {!imageLoaded && (
-          <div className="scene-thumbnail skeleton-shimmer" style={{
-            position: 'absolute',
-            top: 0,
-            left: 0,
-            width: '100%',
-            height: '100%',
-            zIndex: 1
-          }} />
-        )}
+    <div className="scene-card" onClick={handleSceneClick}>
+      <div className="scene-thumbnail-container">
+        {!imageLoaded && <div className="scene-thumbnail skeleton-shimmer" />}
         <img
-          src={imageError ? 'https://placehold.co/200/2c2c2c/ffffff?text=Scene' : (scene.thumbnailUrl || 'https://placehold.co/200/2c2c2c/ffffff?text=Scene')}
+          src={imageError ? 'https://placehold.co/400x225/2c2c2c/ffffff?text=Scene' : (scene.thumbnailUrl || 'https://placehold.co/400x225/2c2c2c/ffffff?text=Scene')}
           alt={sceneName}
           className="scene-thumbnail"
-          onLoad={handleImageLoad}
-          onError={handleImageError}
-          style={{ 
-            opacity: imageLoaded ? 1 : 0,
-            transition: 'opacity 0.3s ease-in-out'
-          }}
+          onLoad={() => setImageLoaded(true)}
+          onError={() => { setImageError(true); setImageLoaded(true); }}
+          style={{ display: imageLoaded ? 'block' : 'none' }}
         />
       </div>
       <div className="scene-card-content">
@@ -74,9 +54,7 @@ function SceneCard({ scene, isPublic = false, onSceneClick }) {
         <p className="scene-description">{scene.description || 'No description available.'}</p>
         {!isPublic && scene.updatedAt && (
           <div className="scene-meta">
-            <span className="scene-meta-item">
-              Updated: {new Date(scene.updatedAt).toLocaleDateString()}
-            </span>
+            <span>Updated: {new Date(scene.updatedAt).toLocaleDateString()}</span>
           </div>
         )}
       </div>
@@ -324,64 +302,30 @@ function CollectionView() {
       <main className="collection-page-main-content">
         {activeTab === 'publicScenes' && (
           <section className="content-section">
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '10px' }}>
-              <div>
+            <div className="section-header">
+              <div className="section-title-group">
                 <h2 className="section-title">Example Scenes</h2>
                 <p className="section-description">Explore simulations created by educators and the community.</p>
               </div>
 
-              {/* Search and Sort Controls - Top Right */}
-              <div className="collection-controls" style={{
-                display: 'flex',
-                gap: '20px',
-                alignItems: 'center',
-                flexWrap: 'wrap',
-                marginLeft: '20px'
-              }}>
-                <div className="search-container" style={{
-                  position: 'relative',
-                  minWidth: '150px',
-                  width: '180px'
-                }}>
-                  <FontAwesomeIcon icon={faSearch} style={{
-                    position: 'absolute',
-                    left: '10px',
-                    top: '50%',
-                    transform: 'translateY(-50%)',
-                    color: 'var(--border-color)',
-                    fontSize: '12px'
-                  }} />
+              <div className="collection-controls">
+                <div className="search-container">
+                  <FontAwesomeIcon icon={faSearch} className="search-icon" />
                   <input
                     type="text"
                     placeholder="Search scenes..."
                     value={searchTerm}
                     onChange={(e) => setSearchTerm(e.target.value)}
-                    style={{
-                      width: '100%',
-                      padding: '8px 10px 8px 30px',
-                      border: '1px solid var(--border-color)',
-                      borderRadius: '4px',
-                      backgroundColor: 'var(--card-bg)',
-                      color: 'var(--text-color)',
-                      fontSize: '13px'
-                    }}
+                    className="search-input"
                   />
                 </div>
 
-                <div className="sort-container" style={{ display: 'flex', gap: '5px', alignItems: 'center' }}>
-                  <FontAwesomeIcon icon={faSort} style={{ color: 'var(--border-color)', fontSize: '12px' }} />
+                <div className="sort-container">
+                  <FontAwesomeIcon icon={faSort} className="sort-icon" />
                   <select
                     value={sortBy}
                     onChange={(e) => handleSortChange(e.target.value)}
-                    style={{
-                      padding: '6px 8px',
-                      border: '1px solid var(--border-color)',
-                      borderRadius: '4px',
-                      backgroundColor: 'var(--card-bg)',
-                      color: 'var(--text-color)',
-                      fontSize: '13px',
-                      cursor: 'pointer'
-                    }}
+                    className="sort-select"
                   >
                     <option value="name">Name A-Z</option>
                     <option value="name-desc">Name Z-A</option>
@@ -397,64 +341,30 @@ function CollectionView() {
         )}
         {activeTab === 'myScenes' && (
           <section className="content-section">
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '10px' }}>
-              <div>
+            <div className="section-header">
+              <div className="section-title-group">
                 <h2 className="section-title">Your Scenes</h2>
                 <p className="section-description">Your personal collection of physics simulations.</p>
               </div>
 
-              {/* Search and Sort Controls - Top Right */}
-              <div className="collection-controls" style={{
-                display: 'flex',
-                gap: '20px',
-                alignItems: 'center',
-                flexWrap: 'wrap',
-                marginLeft: '20px'
-              }}>
-                <div className="search-container" style={{
-                  position: 'relative',
-                  minWidth: '150px',
-                  width: '180px'
-                }}>
-                  <FontAwesomeIcon icon={faSearch} style={{
-                    position: 'absolute',
-                    left: '10px',
-                    top: '50%',
-                    transform: 'translateY(-50%)',
-                    color: 'var(--border-color)',
-                    fontSize: '12px'
-                  }} />
+              <div className="collection-controls">
+                <div className="search-container">
+                  <FontAwesomeIcon icon={faSearch} className="search-icon" />
                   <input
                     type="text"
                     placeholder="Search your scenes..."
                     value={searchTerm}
                     onChange={(e) => setSearchTerm(e.target.value)}
-                    style={{
-                      width: '100%',
-                      padding: '8px 10px 8px 30px',
-                      border: '1px solid var(--border-color)',
-                      borderRadius: '4px',
-                      backgroundColor: 'var(--card-bg)',
-                      color: 'var(--text-color)',
-                      fontSize: '13px'
-                    }}
+                    className="search-input"
                   />
                 </div>
 
-                <div className="sort-container" style={{ display: 'flex', gap: '5px', alignItems: 'center' }}>
-                  <FontAwesomeIcon icon={faSort} style={{ color: 'var(--border-color)', fontSize: '12px' }} />
+                <div className="sort-container">
+                  <FontAwesomeIcon icon={faSort} className="sort-icon" />
                   <select
                     value={sortBy}
                     onChange={(e) => handleSortChange(e.target.value)}
-                    style={{
-                      padding: '6px 8px',
-                      border: '1px solid var(--border-color)',
-                      borderRadius: '4px',
-                      backgroundColor: 'var(--card-bg)',
-                      color: 'var(--text-color)',
-                      fontSize: '13px',
-                      cursor: 'pointer'
-                    }}
+                    className="sort-select"
                   >
                     <option value="name">Name A-Z</option>
                     <option value="name-desc">Name Z-A</option>

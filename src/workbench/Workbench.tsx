@@ -12,12 +12,13 @@ import {
   useWorkspaceScene,
   useWorkspaceChat,
 } from "../contexts/WorkspaceContext";
-import { SceneData } from "../contexts/DatabaseContext"; // Import SceneData for type safety
+import { useDatabase, SceneData } from "../contexts/DatabaseContext"; // Import SceneData for type safety
 
 import "./Workbench.css";
 
 const Workbench = () => {
-  const { currentView, setCurrentView, getChatForScene, resetSimulation } = useWorkspace();
+  const dataManager = useDatabase();
+  const { currentView, setCurrentView, getChatForScene, resetSimulation, zenMode, setZenMode, togglePlayPause } = useWorkspace();
   const { scene, updateScene, replaceCurrentScene } = useWorkspaceScene();
   const { messages, addMessage } = useWorkspaceChat();
   const [chatOpen, setChatOpen] = useState(false);
@@ -86,7 +87,13 @@ const Workbench = () => {
 
   // Keyboard shortcuts for view switching (VS Code style: Ctrl+1,2,3...)
   useEffect(() => {
-    const handleKeyDown = (e: React.KeyboardEvent<Document>) => { // Added type for event
+    const handleKeyDown = (e: KeyboardEvent) => { // Changed to standard KeyboardEvent
+      // Don't trigger shortcuts if user is typing in an input or textarea
+      const target = e.target as HTMLElement;
+      if (target.tagName === 'INPUT' || target.tagName === 'TEXTAREA' || target.isContentEditable) {
+        return;
+      }
+
       if (e.ctrlKey || e.metaKey) {
         switch (e.key) {
           case "1":
@@ -116,51 +123,137 @@ const Workbench = () => {
           default:
             break;
         }
+      } else {
+        // Single key shortcuts (only in visualizer view for some)
+        switch (e.key.toLowerCase()) {
+          case " ": // Space: Play/Pause
+            if (currentView === 'visualizer') {
+              e.preventDefault();
+              togglePlayPause();
+            }
+            break;
+          case "r": // R: Reset
+            if (currentView === 'visualizer') {
+              e.preventDefault();
+              resetSimulation();
+            }
+            break;
+          case "c": // C: Chat
+            if (currentView === 'visualizer') {
+              e.preventDefault();
+              setChatOpen(prev => !prev);
+            }
+            break;
+          case "g": // G: Graph
+            if (currentView === 'visualizer') {
+              e.preventDefault();
+              setGraphOpen(prev => !prev);
+            }
+            break;
+          case "k": // K: Controller
+            if (currentView === 'visualizer') {
+              e.preventDefault();
+              setControllerOpen(prev => !prev);
+            }
+            break;
+          case "s": // S: Scene Selector
+            if (currentView === 'visualizer') {
+              e.preventDefault();
+              setSceneSelectorOpen(prev => !prev);
+            }
+            break;
+          default:
+            break;
+        }
+      }
+
+      // Alt+Z for Zen Mode
+      if (e.altKey && e.key.toLowerCase() === 'z') {
+        e.preventDefault();
+        setZenMode(!zenMode);
       }
     };
 
     window.addEventListener("keydown", handleKeyDown);
     return () => window.removeEventListener("keydown", handleKeyDown);
-  }, [setCurrentView]);
+  }, [setCurrentView, zenMode, setZenMode, currentView, togglePlayPause, resetSimulation, setChatOpen, setGraphOpen, setControllerOpen, setSceneSelectorOpen]);
 
   return (
-    <div className="workbench">
+    <div className={`workbench ${zenMode ? 'zen-mode' : ''}`}>
       <div className="workbench-body">
-        <ActivityBar
-          activeView={currentView}
-          onViewChange={setCurrentView}
-        />
+        {!zenMode && (
+          <ActivityBar
+            activeView={currentView}
+            onViewChange={setCurrentView}
+          />
+        )}
         <div className="workbench-main">
           <div className="workbench-content">
             <EditorArea activeView={currentView} onViewChange={setCurrentView} />
           </div>
         </div>
       </div>
-      <StatusBar
-        activeView={currentView}
-        chatOpen={chatOpen}
-        onChatToggle={() => setChatOpen(!chatOpen)}
-        graphOpen={graphOpen}
-        onGraphToggle={() => setGraphOpen(!graphOpen)}
-        controllerOpen={controllerOpen}
-        onControllerToggle={() => setControllerOpen(!controllerOpen)}
-        sceneSelectorOpen={sceneSelectorOpen}
-        onSceneSelectorToggle={() => setSceneSelectorOpen(!sceneSelectorOpen)}
-      />
+      {!zenMode && (
+        <StatusBar
+          activeView={currentView}
+          chatOpen={chatOpen}
+          onChatToggle={() => setChatOpen(!chatOpen)}
+          graphOpen={graphOpen}
+          onGraphToggle={() => setGraphOpen(!graphOpen)}
+          controllerOpen={controllerOpen}
+          onControllerToggle={() => setControllerOpen(!controllerOpen)}
+          sceneSelectorOpen={sceneSelectorOpen}
+          onSceneSelectorToggle={() => setSceneSelectorOpen(!sceneSelectorOpen)}
+        />
+      )}
       <SceneSelectorUI
         isOpen={sceneSelectorOpen}
         onToggle={() => setSceneSelectorOpen(!sceneSelectorOpen)}
         currentScene={scene}
         handleSceneChange={updateScene}
-        userScenes={[]}
-        loadingUserScenes={false}
-        onDeleteScene={() => {}}
-        onSaveScene={() => {}}
-        onUpdateScene={() => {}}
+        onDeleteScene={async (sceneToDelete) => {
+          if (window.confirm(`Are you sure you want to delete "${sceneToDelete.name}"?`)) {
+            try {
+              await dataManager.deleteScene(sceneToDelete.id);
+              // The SceneSelectorUI will refresh itself via useSceneSelector hook
+            } catch (error) {
+              console.error("Failed to delete scene:", error);
+              alert("Error: Could not delete the scene.");
+            }
+          }
+        }}
+        onSaveScene={async (sceneToSave) => {
+          try {
+            await dataManager.saveScene(sceneToSave);
+          } catch (error) {
+            console.error("Failed to save scene:", error);
+          }
+        }}
+        onUpdateScene={async (sceneToUpdate) => {
+          try {
+            await dataManager.saveScene(sceneToUpdate);
+          } catch (error) {
+            console.error("Failed to update scene:", error);
+          }
+        }}
         currentChatId={null}
-        onChatSelect={() => {}}
-        onNewChat={() => {}}
-        onSceneButtonClick={() => {}}
+        onChatSelect={(chat) => {
+          // Handle chat selection from scene selector
+          if (chat && chat.id) {
+            // Logic to switch to chat view or open chat overlay
+            console.log("Chat selected:", chat.id);
+          }
+        }}
+        onNewChat={() => {
+          // Logic to create a new chat
+          console.log("New chat requested");
+        }}
+        onSceneButtonClick={(chat, sceneIndex) => {
+          // Handle scene button click in chat list
+          if (chat.scenes && chat.scenes[sceneIndex]) {
+            updateScene(chat.scenes[sceneIndex]);
+          }
+        }}
         refreshTrigger={0}
         activeTab="examples"
         onTabChange={() => {}}

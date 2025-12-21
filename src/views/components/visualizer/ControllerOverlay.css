@@ -200,14 +200,14 @@
 }
 
 /* Responsive tweaks - avoid activity bar and status bar */
-@media (max-width: 640px) {
+@media (max-width: 768px) {
   .controller-overlay-container {
-    left: 56px !important; /* Clear activity bar */
+    left: 8px !important;
     right: 8px !important;
-    width: calc(100% - 64px) !important; /* Account for activity bar */
-    height: calc(100% - 50px) !important; /* Account for status bar with extra clearance */
+    width: calc(100% - 16px) !important;
+    height: calc(100% - 102px) !important; /* Account for bottom bars + padding */
     top: 8px !important;
-    bottom: 42px !important; /* Clear status bar with extra space */
+    bottom: 94px !important; /* 86px bottom bars + 8px padding */
     min-width: 0;
     min-height: 0;
     border-radius: 6px;
@@ -215,9 +215,9 @@
 }
 
 /* Responsive minimized state */
-@media (max-width: 640px) {
+@media (max-width: 768px) {
   .controller-overlay.minimized .controller-overlay-container {
-    left: 56px !important;
+    left: 8px !important;
     top: 8px !important;
     width: auto !important;
     height: auto !important;

@@ -30,6 +30,7 @@ export class CanvasSpriteRenderer {
     padding?: number;
     borderRadius?: number;
     opacity?: number;
+    resolutionScale?: number;
   }): { texture: THREE.CanvasTexture; width: number; height: number } {
     const {
       text,
@@ -39,18 +40,24 @@ export class CanvasSpriteRenderer {
       backgroundColor = 'rgba(0, 0, 0, 0.7)',
       padding = 8,
       borderRadius = 4,
-      opacity = 1.0
+      opacity = 1.0,
+      resolutionScale = 4.0 // Default to 4x resolution for sharpness
     } = options;
 
+    // Apply resolution scale to all dimensions
+    const scaledFontSize = fontSize * resolutionScale;
+    const scaledPadding = padding * resolutionScale;
+    const scaledBorderRadius = borderRadius * resolutionScale;
+
     // Set font to measure text
-    this.context.font = `${fontSize}px ${fontFamily}`;
+    this.context.font = `${scaledFontSize}px ${fontFamily}`;
     const metrics = this.context.measureText(text);
     
     // Calculate canvas size with padding
     const textWidth = metrics.width;
-    const textHeight = fontSize * 1.2; // Approximate height
-    const canvasWidth = Math.ceil(textWidth + padding * 2);
-    const canvasHeight = Math.ceil(textHeight + padding * 2);
+    const textHeight = scaledFontSize * 1.2; // Approximate height
+    const canvasWidth = Math.ceil(textWidth + scaledPadding * 2);
+    const canvasHeight = Math.ceil(textHeight + scaledPadding * 2);
 
     // Resize canvas (powers of 2 for better performance)
     this.canvas.width = this.nextPowerOf2(canvasWidth);
@@ -60,7 +67,7 @@ export class CanvasSpriteRenderer {
     this.context.clearRect(0, 0, this.canvas.width, this.canvas.height);
 
     // Set font again (canvas resize resets context)
-    this.context.font = `${fontSize}px ${fontFamily}`;
+    this.context.font = `${scaledFontSize}px ${fontFamily}`;
     this.context.textBaseline = 'middle';
     this.context.textAlign = 'left';
 
@@ -74,7 +81,7 @@ export class CanvasSpriteRenderer {
         0,
         canvasWidth,
         canvasHeight,
-        borderRadius
+        scaledBorderRadius
       );
       this.context.fill();
     }
@@ -82,18 +89,19 @@ export class CanvasSpriteRenderer {
     // Draw text
     this.context.globalAlpha = opacity;
     this.context.fillStyle = color;
-    this.context.fillText(text, padding, canvasHeight / 2);
+    this.context.fillText(text, scaledPadding, canvasHeight / 2);
 
     // Create texture
     const texture = new THREE.CanvasTexture(this.canvas);
     texture.needsUpdate = true;
     texture.minFilter = THREE.LinearFilter;
     texture.magFilter = THREE.LinearFilter;
+    texture.anisotropy = 16; // Max anisotropy for sharpness at angles
 
     return {
       texture,
-      width: canvasWidth,
-      height: canvasHeight
+      width: canvasWidth / resolutionScale,
+      height: canvasHeight / resolutionScale
     };
   }
 

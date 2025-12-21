@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react';
+import { Rnd } from 'react-rnd';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { faChevronUp, faChevronDown, faTimes, faComments } from '@fortawesome/free-solid-svg-icons';
 import { Send } from 'lucide-react';
@@ -17,7 +18,16 @@ const ChatOverlay = ({
   onSceneUpdate
 }) => {
   const { overlayOpacity } = useTheme();
-  const { registerOverlay, unregisterOverlay, focusOverlay, getZIndex, focusedOverlay } = useOverlay();
+  const { 
+    registerOverlay, 
+    unregisterOverlay, 
+    focusOverlay, 
+    getZIndex, 
+    focusedOverlay,
+    overlays,
+    toggleMinimize,
+    getMinimizedPosition
+  } = useOverlay();
   const dataManager = useDatabase();
   const { 
     getCurrentChat, 
@@ -28,17 +38,47 @@ const ChatOverlay = ({
     navigationContext,
     selectChatSession
   } = useWorkspace();
-  const [isMinimized, setIsMinimized] = useState(false);
-  const [position, setPosition] = useState({ x: 100, y: 100 });
+
+  const overlayState = overlays.get('chat');
+  const isMinimized = overlayState?.isMinimized || false;
+
+  const [position, setPosition] = useState({ x: Math.max(60, window.innerWidth - 540), y: 60 });
   const [size, setSize] = useState({ width: 500, height: 600 });
-  const [previousPosition, setPreviousPosition] = useState({ x: 100, y: 100 });
+  const [previousPosition, setPreviousPosition] = useState({ x: Math.max(60, window.innerWidth - 540), y: 60 });
   const [previousSize, setPreviousSize] = useState({ width: 500, height: 600 });
-  const [isDragging, setIsDragging] = useState(false);
-  const [isResizing, setIsResizing] = useState(false);
-  const [dragStart, setDragStart] = useState({ x: 0, y: 0 });
-  const [resizeStart, setResizeStart] = useState({ x: 0, y: 0 });
-  const overlayRef = useRef(null);
-  const messagesEndRef = useRef(null);
+  const chatContainerRef = useRef<HTMLDivElement>(null);
+
+  // Register overlay
+  useEffect(() => {
+    if (isOpen) {
+      registerOverlay('chat', 'chat', 1000);
+      return () => unregisterOverlay('chat');
+    }
+  }, [isOpen, registerOverlay, unregisterOverlay]);
+
+  // Handle minimized position
+  useEffect(() => {
+    if (isMinimized) {
+      const minPos = getMinimizedPosition('chat');
+      if (minPos) {
+        setPosition(minPos);
+      }
+    } else {
+      // When unminimizing, we might want to restore previous position
+      // but Rnd handles it if we don't force it. 
+      // However, since we forced it for minimization, we should restore it.
+      setPosition(previousPosition);
+    }
+  }, [isMinimized, getMinimizedPosition]);
+
+  const handleMinimize = (e: React.MouseEvent) => {
+    e.stopPropagation();
+    if (!isMinimized) {
+      setPreviousPosition(position);
+      setPreviousSize(size);
+    }
+    toggleMinimize('chat');
+  };
 
   // Prioritize navigationContext.linkedChatId (when navigating from chat)
   // Otherwise fall back to scene-chat link lookup
@@ -46,6 +86,14 @@ const ChatOverlay = ({
                         (scene?.id ? getChatForScene(scene.id) : null);
   const currentChat = getCurrentChat();
   const workspaceMessages = currentChat?.messages || [];
+
+  // Sync workspace chat with overlay chat if they differ
+  useEffect(() => {
+    if (currentChatId && currentChatId !== currentChat?.id) {
+      console.log('🔄 Syncing workspace chat to overlay chat:', currentChatId);
+      selectChatSession(currentChatId);
+    }
+  }, [currentChatId, currentChat?.id, selectChatSession]);
 
   // Use the conversation hook for both messages and sending
   const { messages, isLoading, sendMessage } = useConversation({
@@ -133,39 +181,14 @@ const ChatOverlay = ({
     // Enhanced formatting with LaTeX, modern LLM styling, and better code highlighting
     let formatted = cleanText || '';
 
-    // LaTeX block equations ($$...$$) - using KaTeX classes
+    // LaTeX block equations ($$...$$) - using data attributes for reliable rendering
     formatted = formatted.replace(/\$\$([\s\S]*?)\$\$/g, (match, equation) => {
-      const id = `latex-block-${Math.random().toString(36).substr(2, 9)}`;
-      // Use setTimeout to ensure DOM is ready for KaTeX rendering
-      setTimeout(() => {
-        if (window.katex && window.renderMathInElement) {
-          const element = document.getElementById(id);
-          if (element) {
-            window.katex.render(equation.trim(), element, {
-              displayMode: true,
-              throwOnError: false
-            });
-          }
-        }
-      }, 0);
-      return `<div id="${id}" class="latex-block">${equation.trim()}</div>`;
+      return `<div class="latex-block" data-latex="${encodeURIComponent(equation.trim())}" data-display="true"></div>`;
     });
 
-    // LaTeX inline equations ($...$) - using KaTeX classes
+    // LaTeX inline equations ($...$) - using data attributes
     formatted = formatted.replace(/\$([^$\n]+)\$/g, (match, equation) => {
-      const id = `latex-inline-${Math.random().toString(36).substr(2, 9)}`;
-      setTimeout(() => {
-        if (window.katex) {
-          const element = document.getElementById(id);
-          if (element) {
-            window.katex.render(equation.trim(), element, {
-              displayMode: false,
-              throwOnError: false
-            });
-          }
-        }
-      }, 0);
-      return `<span id="${id}" class="latex-inline">${equation.trim()}</span>`;
+      return `<span class="latex-inline" data-latex="${encodeURIComponent(equation.trim())}" data-display="false"></span>`;
     });
 
     // Headers with modern styling
@@ -297,29 +320,40 @@ const ChatOverlay = ({
   };
 
   const scrollToBottom = () => {
-    messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+    if (chatContainerRef.current) {
+      const container = chatContainerRef.current;
+      // Use requestAnimationFrame to ensure the DOM has updated and scrollHeight is correct
+      requestAnimationFrame(() => {
+        container.scrollTop = container.scrollHeight;
+      });
+    }
   };
 
   useEffect(() => {
-    scrollToBottom();
-  }, [messages]);
+    if (isOpen) {
+      scrollToBottom();
+    }
+  }, [messages, isOpen]);
 
   // Trigger KaTeX rendering when messages change or overlay opens
   useEffect(() => {
     const renderKaTeX = () => {
-      if (window.katex && window.renderMathInElement) {
+      if (window.katex && chatContainerRef.current) {
         try {
-          // Render KaTeX in the chat overlay specifically
-          const overlayElement = document.querySelector('.chat-overlay');
-          if (overlayElement) {
-            window.renderMathInElement(overlayElement, {
-              delimiters: [
-                {left: '$$', right: '$$', display: true},
-                {left: '$', right: '$', display: false}
-              ],
-              throwOnError: false
-            });
-          }
+          // Find all elements with data-latex attribute within the chat container
+          const latexElements = chatContainerRef.current.querySelectorAll('[data-latex]');
+          latexElements.forEach(el => {
+            const latex = decodeURIComponent(el.getAttribute('data-latex') || '');
+            const displayMode = el.getAttribute('data-display') === 'true';
+            
+            if (latex) {
+              window.katex.render(latex, el, {
+                throwOnError: false,
+                displayMode: displayMode
+              });
+              el.removeAttribute('data-latex');
+            }
+          });
         } catch (error) {
           console.warn('KaTeX rendering failed:', error);
         }
@@ -327,7 +361,7 @@ const ChatOverlay = ({
     };
 
     // Small delay to ensure DOM is updated
-    const timeoutId = setTimeout(renderKaTeX, 200);
+    const timeoutId = setTimeout(renderKaTeX, 100);
     return () => clearTimeout(timeoutId);
   }, [messages, isOpen]);
 
@@ -343,14 +377,8 @@ const ChatOverlay = ({
     return () => window.removeEventListener('keydown', handleKeyDown);
   }, [isOpen, onToggle]);
 
-  // Register with overlay system
-  useEffect(() => {
-    registerOverlay('chat-overlay', 'chat', 55);
-    return () => unregisterOverlay('chat-overlay');
-  }, [registerOverlay, unregisterOverlay]);
-
   // Get dynamic z-index and focused state
-  const currentZIndex = getZIndex('chat-overlay');
+  const currentZIndex = getZIndex('chat');
 
   // Back to Chat handler - navigates to the chat that created this scene
   const handleBackToChat = useCallback(() => {
@@ -366,7 +394,7 @@ const ChatOverlay = ({
 
   // Check if we should show the back to chat button
   const showBackToChat = navigationContext?.fromView === 'chat' && navigationContext?.linkedChatId;
-  const isFocused = focusedOverlay === 'chat-overlay';
+  const isFocused = focusedOverlay === 'chat';
 
   // When overlay opens with a linked chat, select that chat in the workspace
   useEffect(() => {
@@ -380,231 +408,137 @@ const ChatOverlay = ({
     }
   }, [isOpen, navigationContext?.linkedChatId, selectChatSession, getCurrentChat]);
 
-  // Focus overlay on click
   const handleOverlayClick = () => {
-    focusOverlay('chat-overlay');
+    focusOverlay('chat');
   };
-
-  // Set initial position after mount, centered and above status bar
-  useEffect(() => {
-    if (isOpen) {
-      const centerX = Math.max(48, (window.innerWidth - 400) / 2);
-      const centerY = Math.max(0, (window.innerHeight - 300 - 40) / 2);
-      setPosition({ x: centerX, y: centerY });
-      setSize({ width: 400, height: 300 });
-      setPreviousPosition({ x: centerX, y: centerY });
-      setPreviousSize({ width: 400, height: 300 });
-    }
-  }, [isOpen]);
-
-  // Drag functionality - only from header
-  const handleMouseDown = (e) => {
-    // Focus overlay first
-    focusOverlay('chat-overlay');
-    
-    // Only allow dragging from header, not from control buttons or resize handle
-    if (e.target.closest('.chat-overlay-control-btn') || e.target.closest('.resize-handle')) return;
-
-    e.preventDefault();
-    setIsDragging(true);
-    setDragStart({
-      x: e.clientX - position.x,
-      y: e.clientY - position.y
-    });
-  };
-
-  const handleMouseMove = (e) => {
-    if (isDragging) {
-      let newX = e.clientX - dragStart.x;
-      let newY = e.clientY - dragStart.y;
-
-      // Keep within viewport bounds, avoiding activity bar (left ~48px) and status bar (bottom ~40px)
-      const activityBarWidth = 48;
-      const statusBarHeight = 40;
-      const currentWidth = isMinimized ? 90 : Math.max(400, size.width);
-      const currentHeight = isMinimized ? 28 : Math.max(300, size.height);
-      newX = Math.max(activityBarWidth, Math.min(window.innerWidth - currentWidth, newX));
-      newY = Math.max(0, Math.min(window.innerHeight - currentHeight - statusBarHeight, newY));
-
-      setPosition({ x: newX, y: newY });
-    } else if (isResizing && !isMinimized) {
-      const rect = overlayRef.current.getBoundingClientRect();
-      const newWidth = Math.max(400, e.clientX - rect.left);
-      const newHeight = Math.max(150, e.clientY - rect.top); // Minimum height to fit header + input area
-      setSize({ width: newWidth, height: newHeight });
-    }
-  };
-
-  const handleMouseUp = () => {
-    setIsDragging(false);
-    setIsResizing(false);
-  };
-
-  const handleResizeStart = (e) => {
-    e.stopPropagation();
-    setIsResizing(true);
-    setResizeStart({
-      x: e.clientX,
-      y: e.clientY
-    });
-  };
-
-  useEffect(() => {
-    if (isDragging || isResizing) {
-      document.addEventListener('mousemove', handleMouseMove);
-      document.addEventListener('mouseup', handleMouseUp);
-      document.body.style.userSelect = 'none';
-    } else {
-      document.body.style.userSelect = '';
-    }
-
-    return () => {
-      document.removeEventListener('mousemove', handleMouseMove);
-      document.removeEventListener('mouseup', handleMouseUp);
-      document.body.style.userSelect = '';
-    };
-  }, [isDragging, isResizing]);
 
   if (!isOpen) return null;
 
   return (
-    <div className={`chat-overlay ${isMinimized ? 'minimized' : ''}`}>
-        <div
-          className={`chat-overlay-container ${isFocused ? 'focused' : ''}`}
-          ref={overlayRef}
-          onMouseDown={handleOverlayClick}
-          style={{
-            left: `${position.x}px`,
-            top: `${position.y}px`,
-            width: `${size.width}px`,
-            height: isMinimized ? '28px' : `${size.height}px`,
-            cursor: isResizing ? 'nw-resize' : 'default',
-            zIndex: currentZIndex,
-            '--chat-bg-opacity': overlayOpacity.chat
-          } as React.CSSProperties}
-        >
-        {/* Minimal header with title and controls - draggable */}
-        <div
-          className="chat-overlay-header"
-          onMouseDown={handleMouseDown}
-          title={isMinimized ? 'Drag to move. Click to expand.' : 'Drag to move.'}
-        >
-          <div className="chat-overlay-title">Chat</div>
-          <div className="chat-overlay-header-controls">
-            {/* Back to Chat button - shows when navigated from chat */}
-            {showBackToChat && (
-              <button
-                className="chat-overlay-control-btn back-to-chat-btn"
-                onClick={handleBackToChat}
-                title="Return to the chat view"
-              >
-                <FontAwesomeIcon icon={faComments} />
-              </button>
-            )}
-            <button
-              className="chat-overlay-control-btn"
-              onClick={() => {
-                if (isMinimized) {
-                  // Maximize: restore previous
-                  setPosition(previousPosition);
-                  setSize(previousSize);
-                  setIsMinimized(false);
-                } else {
-                  // Minimize: save current, set compact
-                  setPreviousPosition(position);
-                  setPreviousSize(size);
-                  setPosition({
-                    x: (window.innerWidth - 90) / 2, // Horizontally centered
-                    y: window.innerHeight - 80 // Above status bar
-                  });
-                  setSize({ width: 90, height: 28 });
-                  setIsMinimized(true);
-                }
-              }}
-              title={isMinimized ? "Maximize" : "Minimize"}
-            >
-              <FontAwesomeIcon icon={isMinimized ? faChevronUp : faChevronDown} />
-            </button>
-            <button
-              className="chat-overlay-control-btn close-btn"
-              onClick={onToggle}
-              title="Close (Esc)"
-            >
-              <FontAwesomeIcon icon={faTimes} />
-            </button>
-          </div>
+    <Rnd
+      size={isMinimized ? { width: 200, height: 28 } : size}
+      position={position}
+      onDragStop={(e, d) => {
+        if (!isMinimized) {
+          setPosition({ x: d.x, y: d.y });
+        }
+      }}
+      onResizeStop={(e, direction, ref, delta, newPosition) => {
+        if (!isMinimized) {
+          setSize({
+            width: parseInt(ref.style.width),
+            height: parseInt(ref.style.height),
+          });
+          setPosition(newPosition);
+        }
+      }}
+      minWidth={isMinimized ? 200 : 400}
+      minHeight={isMinimized ? 28 : 300}
+      bounds=".workbench-body"
+      dragHandleClassName="engine-overlay-header"
+      className={`engine-overlay ${isMinimized ? 'minimized' : ''} ${isFocused ? 'focused' : ''}`}
+      onMouseDown={handleOverlayClick}
+      style={{
+        zIndex: currentZIndex,
+        '--overlay-opacity': overlayOpacity.chat
+      } as React.CSSProperties}
+    >
+      <div className="engine-overlay-header">
+        <div className="engine-overlay-title">
+          <FontAwesomeIcon icon={faComments} style={{ marginRight: '8px' }} />
+          AI Chat {currentChat?.name ? `- ${currentChat.name}` : ''}
         </div>
+        <div className="engine-overlay-controls">
+          {showBackToChat && (
+            <button
+              className="engine-overlay-button"
+              onClick={handleBackToChat}
+              title="Return to chat view"
+            >
+              <FontAwesomeIcon icon={faComments} />
+            </button>
+          )}
+          <button
+            className="engine-overlay-button"
+            onClick={handleMinimize}
+            title={isMinimized ? "Maximize" : "Minimize"}
+          >
+            <FontAwesomeIcon icon={isMinimized ? faChevronUp : faChevronDown} />
+          </button>
+          <button
+            className="engine-overlay-button close"
+            onClick={(e) => {
+              e.stopPropagation();
+              onToggle();
+            }}
+            title="Close"
+          >
+            <FontAwesomeIcon icon={faTimes} />
+          </button>
+        </div>
+      </div>
 
-        {!isMinimized && (
-          <>
-            <div className="chat-overlay-content">
-              <div className="chat-container">
-                {/* Messages */}
-                <div className="chat-messages">
-                  {messages.map((message) => (
-                    <div
-                      key={message.id}
-                      className={`message ${message.isUser ? 'user' : 'ai'}`}
-                    >
-                      <div className="message-content">
-                        <div className="message-text" dangerouslySetInnerHTML={{ __html: formatMessageText((message as any).text || (message as any).content || '') }} />
-                        
-                        {/* Scene Preview Card */}
-                        {!message.isUser && (message as any).sceneMetadata?.hasSceneGeneration && (
-                          <ScenePreviewCard 
-                            message={message as any}
-                            chatId={currentChatId || ''}
-                          />
-                        )}
-                      </div>
-                    </div>
-                  ))}
-                  {isLoading && (
-                    <div className="message ai">
-                      <div className="message-content">
-                        <div className="typing-indicator">
-                          <span></span>
-                          <span></span>
-                          <span></span>
-                        </div>
-                      </div>
-                    </div>
-                  )}
-                  <div ref={messagesEndRef} />
-                </div>
-
-                {/* Input */}
-                <div className="chat-input">
-                  <div className="input-container">
-                    <textarea
-                      value={input}
-                      onChange={(e) => setInput(e.target.value)}
-                      onKeyDown={handleKeyPress}
-                      placeholder="Ask anything..."
-                      disabled={isLoading}
-                      rows={1}
-                    />
-                    <button
-                      onClick={handleSend}
-                      disabled={!input.trim() || isLoading}
-                      className="send-btn"
-                    >
-                      <Send size={18} />
-                      Send
-                    </button>
+      {!isMinimized && (
+        <div className="engine-overlay-content chat-overlay-content">
+          <div className="chat-container">
+            {/* Messages */}
+            <div className="chat-messages" ref={chatContainerRef}>
+              {messages.map((message) => (
+                <div
+                  key={message.id}
+                  className={`message ${message.isUser ? 'user' : 'ai'}`}
+                >
+                  <div className="message-content">
+                    <div className="message-text" dangerouslySetInnerHTML={{ __html: formatMessageText((message as any).text || (message as any).content || '') }} />
+                    
+                    {/* Scene Preview Card */}
+                    {!message.isUser && (message as any).sceneMetadata?.hasSceneGeneration && (
+                      <ScenePreviewCard 
+                        message={message as any}
+                        chatId={currentChatId || ''}
+                      />
+                    )}
                   </div>
                 </div>
+              ))}
+              {isLoading && (
+                <div className="message ai">
+                  <div className="message-content">
+                    <div className="typing-indicator">
+                      <span></span>
+                      <span></span>
+                      <span></span>
+                    </div>
+                  </div>
+                </div>
+              )}
+            </div>
+
+            {/* Input */}
+            <div className="chat-input">
+              <div className="input-container">
+                <textarea
+                  value={input}
+                  onChange={(e) => setInput(e.target.value)}
+                  onKeyDown={handleKeyPress}
+                  placeholder="Ask anything..."
+                  disabled={isLoading}
+                  rows={1}
+                />
+                <button
+                  onClick={handleSend}
+                  disabled={!input.trim() || isLoading}
+                  className="send-btn"
+                  title="Send Message"
+                >
+                  <Send size={18} />
+                </button>
               </div>
             </div>
-            <div
-              className="resize-handle"
-              onMouseDown={handleResizeStart}
-              title="Resize"
-            />
-          </>
-        )}
-      </div>
-    </div>
+          </div>
+        </div>
+      )}
+    </Rnd>
   );
 };
 

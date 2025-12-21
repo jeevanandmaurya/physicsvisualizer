@@ -1,0 +1,114 @@
+.about-view {
+  padding: 20px;
+  color: var(--text-color);
+  background-color: var(--bg-color);
+  min-height: 100vh;
+}
+
+.about-content {
+  width: 100%;
+  max-width: 1200px;
+  margin: 0 auto;
+}
+
+.about-view h1 {
+  font-size: 2.5rem;
+  margin-bottom: 1.5rem;
+  border-bottom: 2px solid var(--border-color);
+  padding-bottom: 0.5rem;
+}
+
+.about-view h2 {
+  font-size: 1.8rem;
+  margin-top: 2rem;
+  margin-bottom: 1rem;
+  color: var(--primary-color);
+}
+
+.about-view p {
+  line-height: 1.6;
+  margin-bottom: 1rem;
+}
+
+.about-view ul {
+  margin-bottom: 1.5rem;
+  padding-left: 1.5rem;
+}
+
+.about-view li {
+  margin-bottom: 0.5rem;
+}
+
+.ai-tools-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+  gap: 20px;
+  margin-top: 20px;
+  margin-bottom: 2rem;
+}
+
+.ai-tool-card {
+  padding: 20px;
+  border-radius: 12px;
+  border: 1px solid var(--border-color);
+  transition: transform 0.2s, box-shadow 0.2s;
+}
+
+.ai-tool-card:hover {
+  transform: translateY(-5px);
+  box-shadow: 0 10px 20px rgba(0,0,0,0.1);
+}
+
+.ai-tool-card strong {
+  display: block;
+  font-size: 1.2rem;
+  margin-bottom: 5px;
+}
+
+.ai-tool-card small {
+  color: var(--text-muted);
+}
+
+.tool-copilot { background-color: rgba(0, 122, 204, 0.1); border-color: #007acc; }
+.tool-cline { background-color: rgba(14, 165, 233, 0.1); border-color: #0ea5e9; }
+.tool-grok { background-color: rgba(168, 85, 247, 0.1); border-color: #a855f7; }
+.tool-gemini { background-color: rgba(16, 185, 129, 0.1); border-color: #10b981; }
+
+.tech-stack-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+  gap: 15px;
+  margin-top: 20px;
+}
+
+.tech-item {
+  background-color: var(--secondary-bg);
+  padding: 10px 15px;
+  border-radius: 8px;
+  text-align: center;
+  font-weight: 500;
+  border: 1px solid var(--border-color);
+}
+
+/* Mobile Optimization */
+@media (max-width: 768px) {
+  .about-view {
+    padding: 16px;
+  }
+
+  .about-view h1 {
+    font-size: 2rem;
+  }
+
+  .about-view h2 {
+    font-size: 1.5rem;
+  }
+
+  .ai-tools-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .tech-stack-grid {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}

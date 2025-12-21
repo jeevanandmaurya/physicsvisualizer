@@ -91,8 +91,14 @@ export interface WorkspaceContextType {
   objectHistory: Record<string, any>;
   loopMode: string;
   dataTimeStep: number;
+  showGrid: boolean;
+  showAxes: boolean;
+  zenMode: boolean;
   // View management
   setCurrentView: (view: string) => void;
+  setShowGrid: (show: boolean) => void;
+  setShowAxes: (show: boolean) => void;
+  setZenMode: (zen: boolean) => void;
   // Workspace data
   workspaceScenes: SceneData[];
   // Workspace operations
@@ -178,6 +184,9 @@ export function WorkspaceProvider({ children }: { children: React.ReactNode }) {
   const [objectHistory, setObjectHistory] = useState<Record<string, any>>({});
   const [loopMode, setLoopMode] = useState('none'); // 'none', '5sec', '10sec'
   const [dataTimeStep, setDataTimeStep] = useState(0.01); // Time step for data sampling in seconds
+  const [showGrid, setShowGrid] = useState(true);
+  const [showAxes, setShowAxes] = useState(true);
+  const [zenMode, setZenMode] = useState(false);
 
   const togglePlayPause = useCallback(() => {
     setIsPlaying(prev => !prev);
@@ -658,9 +667,15 @@ export function WorkspaceProvider({ children }: { children: React.ReactNode }) {
     dataTimeStep,
     simulationSpeed,
     setSimulationSpeed,
+    showGrid,
+    showAxes,
+    zenMode,
 
     // View management
     setCurrentView,
+    setShowGrid,
+    setShowAxes,
+    setZenMode,
 
     // Workspace data
     workspaceScenes: currentWorkspace?.scenes || [],

@@ -1,4 +1,5 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect } from 'react';
+import { Rnd } from 'react-rnd';
 import { useDatabase } from '../../../contexts/DatabaseContext';
 import { useWorkspace } from '../../../contexts/WorkspaceContext';
 import { useTheme } from '../../../contexts/ThemeContext';
@@ -33,11 +34,24 @@ function SceneSelectorUI({
     const GEMINI_API_KEY = import.meta.env.VITE_GEMINI_API_KEY;
     const { setCurrentScene: setWorkspaceCurrentScene } = useWorkspace(); // Get workspace scene switching function
     const { overlayOpacity } = useTheme();
-    const { registerOverlay, unregisterOverlay, focusOverlay, getZIndex, focusedOverlay } = useOverlay();
+    const { 
+        registerOverlay, 
+        unregisterOverlay, 
+        focusOverlay, 
+        getZIndex, 
+        focusedOverlay,
+        toggleMinimize,
+        isMinimized: isOverlayMinimized,
+        getMinimizedPosition
+    } = useOverlay();
     
+    const isMinimized = isOverlayMinimized('sceneSelector');
+
     // Overlay state
-    const [isMinimized, setIsMinimized] = useState(true);
-    const overlayRef = useRef(null);
+    const [position, setPosition] = useState({ x: 60, y: 60 });
+    const [size, setSize] = useState({ width: 350, height: window.innerHeight - 120 });
+    const [previousPosition, setPreviousPosition] = useState({ x: 60, y: 60 });
+    const [previousSize, setPreviousSize] = useState({ width: 350, height: window.innerHeight - 120 });
 
     // Register overlay
     useEffect(() => {
@@ -46,6 +60,28 @@ function SceneSelectorUI({
             return () => unregisterOverlay('sceneSelector');
         }
     }, [isOpen, registerOverlay, unregisterOverlay]);
+
+    // Set initial position after mount
+    useEffect(() => {
+        if (isOpen) {
+            // Position on the left, below the top
+            const initialPos = { x: 60, y: 20 };
+            const initialSize = { width: 350, height: Math.min(600, window.innerHeight - 100) };
+            setPosition(initialPos);
+            setSize(initialSize);
+            setPreviousPosition(initialPos);
+            setPreviousSize(initialSize);
+        }
+    }, [isOpen]);
+
+    const handleMinimize = (e: React.MouseEvent) => {
+        e.stopPropagation();
+        if (!isMinimized) {
+            setPreviousPosition(position);
+            setPreviousSize(size);
+        }
+        toggleMinimize('sceneSelector');
+    };
 
     const {
         activeTab,
@@ -189,6 +225,12 @@ function SceneSelectorUI({
                     >
                         <div className="scene-content">
                             <div className="scene-name">
+                                <FontAwesomeIcon icon={faCube} className="scene-3d-icon" />
+                                {scene.name}
+                                {scene.authorName && <span className="scene-author">by {scene.authorName}</span>}
+                                {(scene.isTemporary || scene.isExtracted) && (
+                                    <span className="unsaved-badge" title="Unsaved"><FontAwesomeIcon icon={faExclamationTriangle} /></span>
+                                )}
                                 <button
                                     className="scene-details-toggle-btn-inline"
                                     onClick={(e) => {
@@ -200,12 +242,6 @@ function SceneSelectorUI({
                                 >
                                     <FontAwesomeIcon icon={faChevronRight} />
                                 </button>
-                                <FontAwesomeIcon icon={faCube} className="scene-3d-icon" />
-                                {scene.name}
-                                {scene.authorName && <span className="scene-author">by {scene.authorName}</span>}
-                                {(scene.isTemporary || scene.isExtracted) && (
-                                    <span className="unsaved-badge" title="Unsaved"><FontAwesomeIcon icon={faExclamationTriangle} /></span>
-                                )}
                             </div>
                         </div>
                         {isLocalSection && (
@@ -266,35 +302,55 @@ function SceneSelectorUI({
 
     const isFocused = focusedOverlay === 'sceneSelector';
     const zIndex = getZIndex('sceneSelector');
+    const currentPosition = isMinimized ? getMinimizedPosition('sceneSelector') : position;
 
     return (
         <div className="scene-selector-overlay" style={{ zIndex }}>
-            <div 
-                ref={overlayRef}
-                className={`scene-selector-overlay-container ${isFocused ? 'focused' : ''} ${isMinimized ? 'minimized' : ''}`}
+            <Rnd
+                size={isMinimized ? { width: 200, height: 28 } : size}
+                position={currentPosition}
+                onDragStop={(e, d) => {
+                    if (!isMinimized) setPosition({ x: d.x, y: d.y });
+                }}
+                onResizeStop={(e, direction, ref, delta, position) => {
+                    if (!isMinimized) {
+                        setSize({
+                            width: parseInt(ref.style.width),
+                            height: parseInt(ref.style.height),
+                        });
+                        setPosition(position);
+                    }
+                }}
+                minWidth={isMinimized ? 200 : 300}
+                minHeight={isMinimized ? 28 : 200}
+                bounds=".workbench-body"
+                disableDragging={isMinimized}
+                enableResizing={!isMinimized}
+                dragHandleClassName="engine-overlay-header"
+                className={`engine-overlay ${isFocused ? 'focused' : ''} ${isMinimized ? 'minimized' : ''}`}
                 style={{
-                    '--scene-selector-opacity': overlayOpacity.sceneSelector
+                    '--overlay-opacity': overlayOpacity.sceneSelector,
+                    zIndex: zIndex,
+                    pointerEvents: 'auto'
                 } as React.CSSProperties}
-                onClick={() => focusOverlay('sceneSelector')}
+                onMouseDown={() => focusOverlay('sceneSelector')}
             >
-                {/* Header without drag functionality */}
-                <div 
-                    className="scene-selector-overlay-header"
-                >
-                    <div className="scene-selector-overlay-title">Scene Selector</div>
-                    <div className="scene-selector-overlay-header-controls">
+                {/* Header */}
+                <div className="engine-overlay-header">
+                    <div className="engine-overlay-title">
+                        <FontAwesomeIcon icon={faCube} style={{ marginRight: '6px', fontSize: '12px', opacity: 0.7 }} />
+                        Scene Selector
+                    </div>
+                    <div className="engine-overlay-controls">
                         <button
-                            className="scene-selector-overlay-control-btn"
-                            onClick={(e) => {
-                                e.stopPropagation();
-                                setIsMinimized(!isMinimized);
-                            }}
-                            title={isMinimized ? 'Maximize' : 'Minimize'}
+                            className="engine-overlay-button"
+                            onClick={handleMinimize}
+                            title={isMinimized ? 'Restore' : 'Minimize'}
                         >
-                            <FontAwesomeIcon icon={isMinimized ? faChevronUp : faChevronDown} />
+                            <FontAwesomeIcon icon={isMinimized ? faExpand : faCompress} />
                         </button>
                         <button
-                            className="scene-selector-overlay-control-btn close-btn"
+                            className="engine-overlay-button close"
                             onClick={(e) => {
                                 e.stopPropagation();
                                 onToggle();
@@ -307,79 +363,81 @@ function SceneSelectorUI({
                 </div>
 
                 {/* Content */}
-                <div className="scene-selector-overlay-content">
-                    <div className="scene-list-panel">
-                        {/* New Scene Button */}
-                        <div className="scene-selector-top-bar">
-                            <button
-                                className="new-scene-btn"
-                                onClick={handleNewScene}
-                                title="Create a new empty scene"
-                            >
-                                <FontAwesomeIcon icon={faCube} />
-                                New Scene
-                            </button>
-                        </div>
+                {!isMinimized && (
+                    <div className="engine-overlay-content">
+                        <div className="scene-list-panel">
+                            {/* New Scene Button */}
+                            <div className="scene-selector-top-bar">
+                                <button
+                                    className="new-scene-btn"
+                                    onClick={handleNewScene}
+                                    title="Create a new empty scene"
+                                >
+                                    <FontAwesomeIcon icon={faCube} />
+                                    New Scene
+                                </button>
+                            </div>
 
-                    {/* Workspace Scenes - Currently Active Scenes */}
-                    {workspaceScenes && workspaceScenes.length > 1 && (
-                        <div className="scene-section workspace-scenes">
-                            <h4 onClick={() => setWorkspaceScenesExpanded(!workspaceScenesExpanded)} style={{ cursor: 'pointer' }}>
-                                <FontAwesomeIcon
-                                    icon={workspaceScenesExpanded ? faChevronDown : faChevronRight}
-                                    style={{ marginRight: '8px', fontSize: '12px' }}
-                                />
-                                Current Workspace ({workspaceScenes.length} scenes)
-                            </h4>
-                            {workspaceScenesExpanded && (
-                                <ul className="scene-list workspace-list">
-                                    {workspaceScenes.map((scene, index) => (
-                                        <li
-                                            key={scene.id || `workspace-scene-${index}`}
-                                            onClick={() => {
-                                                console.log('Switching to workspace scene:', index);
-                                                setWorkspaceCurrentScene(index);
-                                            }}
-                                            className={`scene-item workspace-item ${currentScene && currentScene.id === scene.id ? 'selected' : ''}`}
-                                            title={`Workspace scene: ${scene.description || 'No description'}`}
-                                        >
-                                            <div className="scene-content">
-                                                <div className="scene-name">
-                                                    <FontAwesomeIcon icon={faCube} className="scene-3d-icon" />
-                                                    {scene.name || `Scene ${index + 1}`}
-                                                    <span className="workspace-indicator" title="Workspace scene">●</span>
-                                                </div>
-                                            </div>
-                                        </li>
-                                    ))}
-                                </ul>
+                            {/* Workspace Scenes - Currently Active Scenes */}
+                            {workspaceScenes && workspaceScenes.length > 1 && (
+                                <div className="scene-section workspace-scenes">
+                                    <h4 onClick={() => setWorkspaceScenesExpanded(!workspaceScenesExpanded)}>
+                                        <FontAwesomeIcon
+                                            icon={workspaceScenesExpanded ? faChevronDown : faChevronRight}
+                                            style={{ marginRight: '8px', fontSize: '12px' }}
+                                        />
+                                        Current Workspace ({workspaceScenes.length} scenes)
+                                    </h4>
+                                    {workspaceScenesExpanded && (
+                                        <ul className="scene-list workspace-list">
+                                            {workspaceScenes.map((scene, index) => (
+                                                <li
+                                                    key={scene.id || `workspace-scene-${index}`}
+                                                    onClick={() => {
+                                                        console.log('Switching to workspace scene:', index);
+                                                        setWorkspaceCurrentScene(index);
+                                                    }}
+                                                    className={`scene-item workspace-item ${currentScene && currentScene.id === scene.id ? 'selected' : ''}`}
+                                                    title={`Workspace scene: ${scene.description || 'No description'}`}
+                                                >
+                                                    <div className="scene-content">
+                                                        <div className="scene-name">
+                                                            <FontAwesomeIcon icon={faCube} className="scene-3d-icon" />
+                                                            {scene.name || `Scene ${index + 1}`}
+                                                            <span className="workspace-indicator" title="Workspace scene">●</span>
+                                                        </div>
+                                                    </div>
+                                                </li>
+                                            ))}
+                                        </ul>
+                                    )}
+                                </div>
                             )}
-                        </div>
-                    )}
 
-                    <div className="scene-section example-scenes">
-                        <h4 onClick={() => setExampleScenesExpanded(!exampleScenesExpanded)} style={{ cursor: 'pointer' }}>
-                            <FontAwesomeIcon
-                                icon={exampleScenesExpanded ? faChevronDown : faChevronRight}
-                                style={{ marginRight: '8px', fontSize: '12px' }}
-                            />
-                            Example Scenes
-                        </h4>
-                        {exampleScenesExpanded && renderSceneList(exampleScenes, loading, "No examples found.", false)}
+                            <div className="scene-section example-scenes">
+                                <h4 onClick={() => setExampleScenesExpanded(!exampleScenesExpanded)}>
+                                    <FontAwesomeIcon
+                                        icon={exampleScenesExpanded ? faChevronDown : faChevronRight}
+                                        style={{ marginRight: '8px', fontSize: '12px' }}
+                                    />
+                                    Example Scenes
+                                </h4>
+                                {exampleScenesExpanded && renderSceneList(exampleScenes, loading, "No examples found.", false)}
+                            </div>
+                            <div className="scene-section user-scenes">
+                                <h4 onClick={() => setUserScenesExpanded(!userScenesExpanded)}>
+                                    <FontAwesomeIcon
+                                        icon={userScenesExpanded ? faChevronDown : faChevronRight}
+                                        style={{ marginRight: '8px', fontSize: '12px' }}
+                                    />
+                                    Your Scenes
+                                </h4>
+                                {userScenesExpanded && renderSceneList(fetchedUserScenes, loading, "No saved scenes yet.", true)}
+                            </div>
+                        </div>
                     </div>
-                    <div className="scene-section user-scenes">
-                        <h4 onClick={() => setUserScenesExpanded(!userScenesExpanded)} style={{ cursor: 'pointer' }}>
-                            <FontAwesomeIcon
-                                icon={userScenesExpanded ? faChevronDown : faChevronRight}
-                                style={{ marginRight: '8px', fontSize: '12px' }}
-                            />
-                            Your Scenes
-                        </h4>
-                        {userScenesExpanded && renderSceneList(userScenes, loadingUserScenes, "No saved scenes yet.", true)}
-                    </div>
-                </div>
-            </div>
-            </div>
+                )}
+            </Rnd>
         </div>
     );
 }
