@@ -164,18 +164,17 @@ class SceneLoaderClass {
    */
   private async loadScene(folderName: string, loadThumbnails: boolean = false): Promise<LoadedScene | null> {
     try {
-      // Find the JSON file (should match pattern: folderName_v*.json)
-      const sceneData = await this.loadSceneJSON(folderName);
+      // Load core files and context in parallel for significantly faster loading
+      const [sceneData, context, thumbnail] = await Promise.all([
+        this.loadSceneJSON(folderName),
+        this.loadContext(folderName),
+        loadThumbnails ? this.loadThumbnail(folderName) : Promise.resolve(undefined)
+      ]);
+
       if (!sceneData) {
         console.warn(`No scene JSON found for ${folderName}`);
         return null;
       }
-
-      // Load context if available
-      const context = await this.loadContext(folderName);
-
-      // Load thumbnail only if requested
-      const thumbnail = loadThumbnails ? await this.loadThumbnail(folderName) : undefined;
 
       // Merge all data
       const loadedScene: LoadedScene = {
