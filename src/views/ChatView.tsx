@@ -101,6 +101,7 @@ function ModernChatInterface({ onViewChange }: ModernChatInterfaceProps) {
             window.katex.render(latex, el, {
               displayMode,
               throwOnError: false,
+              strict: false,
             });
             // Remove the attribute to mark as rendered
             el.removeAttribute('data-latex');

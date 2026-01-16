@@ -385,7 +385,8 @@ const ChatOverlay = ({
             if (latex) {
               window.katex.render(latex, el, {
                 throwOnError: false,
-                displayMode: displayMode
+                displayMode: displayMode,
+                strict: false
               });
               el.removeAttribute('data-latex');
             }

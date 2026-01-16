@@ -12,7 +12,7 @@ export interface DBSchema {
 
 class IndexedDBServiceClass {
   private dbName = 'PhysicsVisualizerDB';
-  private dbVersion = 1;
+  private dbVersion = 2;
   private db: IDBDatabase | null = null;
 
   /**

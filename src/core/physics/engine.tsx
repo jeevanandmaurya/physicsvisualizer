@@ -346,18 +346,11 @@ function NonPhysicsAnimator({ nonPhysicsEngineRef, isPlaying }) {
                 loggedOnce.current = true;
             }
             
-            // Log every 60 frames (once per second at 60fps) for debugging
+            // Log every 600 frames (once per 10 seconds at 60fps) for debugging
             frameCount.current++;
-            if (frameCount.current % 60 === 0) {
+            if (frameCount.current % 600 === 0) {
                 const animCount = nonPhysicsEngineRef.current.objects.size;
                 console.log(`🎬 NonPhysics: ${animCount} total objects, checking animations...`);
-                
-                // Log which objects have animations
-                for (const [id, obj] of nonPhysicsEngineRef.current.objects.entries()) {
-                    if (obj.animation) {
-                        console.log(`  ✨ "${id}" has animation:`, obj.animation.type || 'custom code');
-                    }
-                }
             }
         }
     });

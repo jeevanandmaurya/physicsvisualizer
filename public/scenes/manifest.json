@@ -67,12 +67,6 @@
       "category": "gravitation"
     },
     {
-      "id": "gravitational-field-vectors",
-      "folderName": "gravitational_field_vectors",
-      "enabled": true,
-      "category": "gravitation"
-    },
-    {
       "id": "tool-demo-spiral",
       "folderName": "tool_demo_spiral",
       "enabled": true,
