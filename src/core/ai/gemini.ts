@@ -28,7 +28,12 @@ class GeminiAIManager {
 
     // Prompts are already loaded via imports, just mark as initialized
     this.isInitialized = true;
-    console.log('Gemini AI Manager initialized successfully');
+    
+    if (this.apiKey) {
+      console.log('✅ Gemini AI Manager initialized: Using Gemini (gemini-3-flash-preview)');
+    } else {
+      console.log(`✅ Gemini AI Manager initialized: Using Ollama fallback (${this.ollamaModel})`);
+    }
   }
 
 
@@ -203,6 +208,8 @@ class GeminiAIManager {
     if (!this.apiKey) {
       if (!this.ollamaEndpoint) throw new Error('Gemini API key not found and no Ollama endpoint configured.');
 
+      console.log(`🤖 AI Request: Using Ollama (${this.ollamaModel})`);
+
       const ollamaPayload = {
         model: this.ollamaModel,
         prompt,
@@ -238,6 +245,7 @@ class GeminiAIManager {
     }
 
     // Gemini path
+    console.log('🚀 AI Request: Using Gemini (gemini-3-flash-preview)');
     for (let attempt = 1; attempt <= maxRetries; attempt++) {
       try {
         const response = await fetch(
