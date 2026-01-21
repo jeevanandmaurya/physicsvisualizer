@@ -203,7 +203,7 @@ class GeminiAIManager {
   }
 
   // Unified AI call: prefer Gemini when API key is present; fallback to Ollama only when Gemini key is not configured
-  async callGeminiAPI(prompt: string, maxRetries = 3) {
+  async callGeminiAPI(prompt: string, maxRetries = 3): Promise<{ text: string, usage?: { promptTokens: number, completionTokens: number, totalTokens: number } }> {
     // If no Gemini API key, use local Ollama-style endpoint as fallback
     if (!this.apiKey) {
       if (!this.ollamaEndpoint) throw new Error('Gemini API key not found and no Ollama endpoint configured.');
@@ -213,7 +213,7 @@ class GeminiAIManager {
       const ollamaPayload = {
         model: this.ollamaModel,
         prompt,
-        max_tokens: 2048,
+        max_tokens: 10000, // Increased from 2048 to allow longer scene JSON responses
         temperature: 0.7,
       };
 
@@ -231,17 +231,20 @@ class GeminiAIManager {
       const raw = await this.readResponseBodyAsString(resp);
       // If server streamed line-delimited JSON events, try to extract inner responses first
       const extracted = this.parseStreamedEventPayload(raw);
+      
+      let text = extracted;
       try {
         const parsed = JSON.parse(extracted);
-        if (typeof parsed === 'string') return parsed;
-        if (parsed.output) return typeof parsed.output === 'string' ? parsed.output : JSON.stringify(parsed.output);
-        if (Array.isArray(parsed.generations) && parsed.generations[0] && parsed.generations[0].text) return parsed.generations[0].text;
-        if (Array.isArray(parsed.content) && parsed.content[0] && parsed.content[0].message) return parsed.content[0].message;
-        return JSON.stringify(parsed);
+        if (typeof parsed === 'string') text = parsed;
+        else if (parsed.output) text = typeof parsed.output === 'string' ? parsed.output : JSON.stringify(parsed.output);
+        else if (Array.isArray(parsed.generations) && parsed.generations[0] && parsed.generations[0].text) text = parsed.generations[0].text;
+        else if (Array.isArray(parsed.content) && parsed.content[0] && parsed.content[0].message) text = parsed.content[0].message;
+        else text = JSON.stringify(parsed);
       } catch (err) {
         // If we couldn't parse extracted JSON, return the assembled text (best-effort)
-        return extracted;
+        text = extracted;
       }
+      return { text };
     }
 
     // Gemini path
@@ -269,7 +272,7 @@ class GeminiAIManager {
                 temperature: 0.7,
                 topK: 40,
                 topP: 0.95,
-                maxOutputTokens: 2048,
+                maxOutputTokens: 10000, // Increased from 2048 to allow longer scene JSON responses
               },
             }),
           }
@@ -307,11 +310,18 @@ class GeminiAIManager {
           try {
             const parsed = JSON.parse(extracted);
             if (parsed.candidates && parsed.candidates[0] && parsed.candidates[0].content && parsed.candidates[0].content.parts && parsed.candidates[0].content.parts[0]) {
-              return parsed.candidates[0].content.parts[0].text;
+              return { 
+                text: parsed.candidates[0].content.parts[0].text,
+                usage: parsed.usageMetadata ? {
+                  promptTokens: parsed.usageMetadata.promptTokenCount,
+                  completionTokens: parsed.usageMetadata.candidatesTokenCount,
+                  totalTokens: parsed.usageMetadata.totalTokenCount
+                } : undefined
+              };
             }
-            return JSON.stringify(parsed);
+            return { text: JSON.stringify(parsed) };
           } catch (err) {
-            return extracted;
+            return { text: extracted };
           }
         }
 
@@ -319,11 +329,18 @@ class GeminiAIManager {
         const data = await response.json();
         if (data.error) throw new Error(`Gemini API error: ${data.error.message || 'Unknown error'}`);
         if (data.candidates && data.candidates[0] && data.candidates[0].content && data.candidates[0].content.parts && data.candidates[0].content.parts[0]) {
-          return data.candidates[0].content.parts[0].text;
+          return {
+            text: data.candidates[0].content.parts[0].text,
+            usage: data.usageMetadata ? {
+              promptTokens: data.usageMetadata.promptTokenCount,
+              completionTokens: data.usageMetadata.candidatesTokenCount,
+              totalTokens: data.usageMetadata.totalTokenCount
+            } : undefined
+          };
         }
 
         // Unknown shape: fallback to stringified body
-        return JSON.stringify(data);
+        return { text: JSON.stringify(data) };
       } catch (error: any) {
         if (attempt === maxRetries) throw error;
         // Only retry on transient network/server errors
@@ -399,6 +416,32 @@ class GeminiAIManager {
       if (parsed.type === 'chat') {
         return { type: 'chat', text: parsed.content || '', updatedScene: sceneContext, sceneModifications: [], metadata: { timestamp: new Date().toISOString(), intent: 'chat' } };
       }
+
+      if (parsed.type === 'create_scene') {
+        // AI is creating a new scene
+        if (parsed.scene && parsed.scene.objects) {
+          return {
+            type: 'create',
+            text: parsed.message || 'Created new scene',
+            updatedScene: parsed.scene,
+            sceneModifications: [],
+            metadata: { timestamp: new Date().toISOString(), intent: 'create' }
+          };
+        }
+      }
+
+      if (parsed.type === 'edit_patches') {
+        // AI is editing existing scene with patches
+        if (parsed.patches && Array.isArray(parsed.patches)) {
+          return {
+            type: 'edit',
+            text: parsed.message || 'Modified scene',
+            updatedScene: sceneContext,
+            sceneModifications: parsed.patches,
+            metadata: { timestamp: new Date().toISOString(), intent: 'edit' }
+          };
+        }
+      }
     }
 
     // Fallback to raw text
@@ -433,8 +476,8 @@ class GeminiAIManager {
     const prompt = `${this.prompt}\n\nCHAT CONTEXT (recent):\n${JSON.stringify(compactChat, null, 2)}\n\n${sceneSummary}\n\nUSER MESSAGE: ${message}`;
 
     const response = await this.callGeminiAPI(prompt);
-    const parsed = this.parseAIResponse(response, sceneContext);
-    return parsed;
+    const parsed = await this.parseAIResponse(response.text, sceneContext);
+    return { ...parsed, usage: response.usage };
   }
 
   // Get available AI capabilities

@@ -1,5 +1,5 @@
 .physics-overlay-inner {
-  background: rgba(15, 15, 20, var(--overlay-opacity, 0.8));
+  background: transparent;
   backdrop-filter: blur(8px);
   padding: 15px;
   color: #e0e0e0;
@@ -90,4 +90,13 @@
   background: rgba(255, 193, 7, 0.2);
   color: #ffc107;
   border: 1px solid rgba(255, 193, 7, 0.3);
+}
+
+/* Make inner elements transparent - only container has controlled bg */
+.physics-overlay-inner .physics-overlay-content {
+  background: transparent;
+}
+
+.physics-overlay-inner .overlay-section {
+  background: transparent;
 }

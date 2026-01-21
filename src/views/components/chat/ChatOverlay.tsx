@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef, useCallback } from 'react';
+import React, { useState, useEffect, useRef, useCallback, useMemo } from 'react';
 import { Rnd } from 'react-rnd';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { faChevronUp, faChevronDown, faTimes, faComments } from '@fortawesome/free-solid-svg-icons';
@@ -8,8 +8,12 @@ import { useWorkspace } from '../../../contexts/WorkspaceContext';
 import { useDatabase } from '../../../contexts/DatabaseContext';
 import { useTheme } from '../../../contexts/ThemeContext';
 import { useOverlay } from '../../../contexts/OverlayContext';
-import ScenePreviewCard from './ScenePreviewCard';
+import { useNavigation } from '../../../contexts/NavigationContext';
+import MediaPreview from './MediaPreview';
 import './ChatOverlay.css';
+
+// Stable empty array reference to prevent re-renders
+const EMPTY_MESSAGES: any[] = [];
 
 const ChatOverlay = ({
   isOpen,
@@ -30,14 +34,14 @@ const ChatOverlay = ({
   } = useOverlay();
   const dataManager = useDatabase();
   const { 
-    getCurrentChat, 
+    getChatOverlayCurrentChat, // Get ChatOverlay's current chat (from shared history)
+    setChatOverlayCurrentChat, // Set which chat ChatOverlay is viewing
+    setChatViewCurrentChat, // For navigating back to ChatView with specific chat
     addMessage, 
     getChatForScene, 
-    updateChatName,
-    setCurrentView,
-    navigationContext,
-    selectChatSession
+    updateChatName
   } = useWorkspace();
+  const { setCurrentView, navigationContext } = useNavigation();
 
   const overlayState = overlays.get('chat');
   const isMinimized = overlayState?.isMinimized || false;
@@ -50,6 +54,21 @@ const ChatOverlay = ({
       y: isMobile ? 50 : 60 
     };
   });
+
+  // Calculate bounds for mobile to keep overlay above status bar
+  const getMobileBounds = () => {
+    const isMobile = window.innerWidth <= 768;
+    if (isMobile) {
+      const statusBarHeight = 44;
+      return {
+        left: 0,
+        top: 0,
+        right: window.innerWidth,
+        bottom: window.innerHeight - statusBarHeight
+      };
+    }
+    return 'window';
+  };
 
   const [size, setSize] = useState(() => {
     const isMobile = window.innerWidth <= 768;
@@ -115,20 +134,10 @@ const ChatOverlay = ({
     toggleMinimize('chat');
   };
 
-  // Prioritize navigationContext.linkedChatId (when navigating from chat)
-  // Otherwise fall back to scene-chat link lookup
-  const currentChatId = navigationContext?.linkedChatId || 
-                        (scene?.id ? getChatForScene(scene.id) : null);
-  const currentChat = getCurrentChat();
-  const workspaceMessages = currentChat?.messages || [];
-
-  // Sync workspace chat with overlay chat if they differ
-  useEffect(() => {
-    if (currentChatId && currentChatId !== currentChat?.id) {
-      console.log('🔄 Syncing workspace chat to overlay chat:', currentChatId);
-      selectChatSession(currentChatId);
-    }
-  }, [currentChatId, currentChat?.id, selectChatSession]);
+  // Get current chat for ChatOverlay (from shared history)
+  const currentChat = getChatOverlayCurrentChat();
+  const currentChatId = currentChat?.id;
+  const workspaceMessages = currentChat?.messages ?? EMPTY_MESSAGES;
 
   // Use the conversation hook for both messages and sending
   const { messages, isLoading, sendMessage } = useConversation({
@@ -420,33 +429,28 @@ const ChatOverlay = ({
   // Back to Chat handler - navigates to the chat that created this scene
   const handleBackToChat = useCallback(() => {
     if (navigationContext?.linkedChatId) {
-      // Select the chat session that created this scene
-      selectChatSession(navigationContext.linkedChatId);
+      // Select the chat session that created this scene in ChatView
+      setChatViewCurrentChat(navigationContext.linkedChatId);
     }
     // Navigate back to chat view
     setCurrentView('chat');
     // Close the overlay
     onToggle();
-  }, [navigationContext, selectChatSession, setCurrentView, onToggle]);
+  }, [navigationContext, setChatViewCurrentChat, setCurrentView, onToggle]);
 
   // Check if we should show the back to chat button
   const showBackToChat = navigationContext?.fromView === 'chat' && navigationContext?.linkedChatId;
 
-  // When overlay opens with a linked chat, select that chat in the workspace
-  useEffect(() => {
-    if (isOpen && navigationContext?.linkedChatId) {
-      const currentSelectedChat = getCurrentChat();
-      // Only select if it's not already selected (avoid unnecessary updates)
-      if (currentSelectedChat?.id !== navigationContext.linkedChatId) {
-        console.log('📱 ChatOverlay: Selecting linked chat from navigation:', navigationContext.linkedChatId);
-        selectChatSession(navigationContext.linkedChatId);
-      }
-    }
-  }, [isOpen, navigationContext?.linkedChatId, selectChatSession, getCurrentChat]);
-
   const handleOverlayClick = () => {
     focusOverlay('chat');
   };
+
+  const totalTokens = messages.reduce((acc, msg: any) => {
+    if (msg.tokenUsage && typeof msg.tokenUsage.totalTokens === 'number') {
+      return acc + msg.tokenUsage.totalTokens;
+    }
+    return acc;
+  }, 0);
 
   if (!isOpen) return null;
 
@@ -470,19 +474,24 @@ const ChatOverlay = ({
       }}
       minWidth={isMinimized ? 200 : (window.innerWidth <= 768 ? Math.min(280, window.innerWidth - 20) : 400)}
       minHeight={isMinimized ? 28 : 300}
-      bounds="window"
+      bounds={getMobileBounds()}
       dragHandleClassName="engine-overlay-header"
       className={`engine-overlay ${isMinimized ? 'minimized' : ''} ${isFocused ? 'focused' : ''}`}
       onMouseDown={handleOverlayClick}
       style={{
         zIndex: currentZIndex,
-        '--overlay-opacity': overlayOpacity.chat
+        '--chat-bg-opacity': overlayOpacity.chat
       } as React.CSSProperties}
     >
       <div className="engine-overlay-header">
         <div className="engine-overlay-title">
           <FontAwesomeIcon icon={faComments} style={{ marginRight: '8px' }} />
           AI Chat {currentChat?.name ? `- ${currentChat.name}` : ''}
+          {totalTokens > 0 && (
+            <span style={{ fontSize: '0.7em', marginLeft: '10px', opacity: 0.8 }} title="Total tokens used in this session">
+              ({totalTokens.toLocaleString()})
+            </span>
+          )}
         </div>
         <div className="engine-overlay-controls">
           {showBackToChat && (
@@ -527,11 +536,33 @@ const ChatOverlay = ({
                   <div className="message-content">
                     <div className="message-text" dangerouslySetInnerHTML={{ __html: formatMessageText((message as any).text || (message as any).content || '') }} />
                     
-                    {/* Scene Preview Card */}
-                    {!message.isUser && (message as any).sceneMetadata?.hasSceneGeneration && (
-                      <ScenePreviewCard 
-                        message={message as any}
+                    {/* Media Preview for simulations */}
+                    {!message.isUser && (message as any).sceneMetadata?.hasSceneGeneration && (message as any).sceneMetadata?.sceneId && (
+                      <MediaPreview
+                        type="simulation"
+                        sceneId={(message as any).sceneMetadata.sceneId}
+                        sceneData={(message as any).sceneMetadata.sceneData}
                         chatId={currentChatId || ''}
+                        title={(message as any).sceneMetadata.sceneSummary?.name || 'Simulation'}
+                        description={(message as any).sceneMetadata.sceneAction === 'create' ? 'Created Scene' : 'Modified Scene'}
+                        metadata={{
+                          objectCount: (message as any).sceneMetadata.sceneSummary?.objectCount
+                        }}
+                      />
+                    )}
+                    
+                    {/* Media Preview from mediaContent */}
+                    {!message.isUser && (message as any).mediaContent && (
+                      <MediaPreview
+                        type={(message as any).mediaContent.type}
+                        src={(message as any).mediaContent.src}
+                        sceneId={(message as any).mediaContent.sceneId}
+                        chatId={currentChatId || ''}
+                        title={(message as any).mediaContent.title}
+                        description={(message as any).mediaContent.description}
+                        autoPlay={(message as any).mediaContent.autoPlay}
+                        thumbnail={(message as any).mediaContent.thumbnail}
+                        metadata={(message as any).mediaContent.metadata}
                       />
                     )}
                   </div>

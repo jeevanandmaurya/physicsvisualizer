@@ -74,6 +74,21 @@ const ControllerOverlay = ({
     };
   });
 
+  // Calculate bounds for mobile to keep overlay above status bar
+  const getMobileBounds = () => {
+    const isMobile = window.innerWidth <= 768;
+    if (isMobile) {
+      const statusBarHeight = 44;
+      return {
+        left: 0,
+        top: 0,
+        right: window.innerWidth,
+        bottom: window.innerHeight - statusBarHeight
+      };
+    }
+    return 'window';
+  };
+
   const [size, setSize] = useState(() => {
     const isMobile = window.innerWidth <= 768;
     return { 
@@ -404,7 +419,7 @@ const ControllerOverlay = ({
       }}
       minWidth={isMinimized ? 200 : (window.innerWidth <= 768 ? Math.min(280, window.innerWidth - 20) : 300)}
       minHeight={isMinimized ? 28 : 150}
-      bounds="window"
+      bounds={getMobileBounds()}
       disableDragging={isMinimized}
       enableResizing={!isMinimized}
       dragHandleClassName="engine-overlay-header"
@@ -412,7 +427,7 @@ const ControllerOverlay = ({
       onMouseDown={handleOverlayClick}
       style={{
         zIndex: currentZIndex,
-        '--overlay-opacity': overlayOpacity.controller || overlayOpacity.chat
+        '--controller-bg-opacity': overlayOpacity.controller || overlayOpacity.chat
       } as React.CSSProperties}
     >
       <div className="engine-overlay-header">

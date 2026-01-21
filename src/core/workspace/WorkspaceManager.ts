@@ -13,11 +13,15 @@ class Workspace {
   name: string;
   scenes: any[];
   currentSceneIndex: number;
-  chats: any[];
-  currentChatId: string;
+  chats: any[]; // SHARED chat history across all views
+  currentChatId: string; // Global current chat
+  // Separate current chat tracking for each view (shares same chat history)
+  chatViewCurrentChatId: string | null; // Which chat ChatView is currently viewing
+  overlayViewCurrentChatId: string | null; // Which chat ChatOverlay is currently viewing
   settings: any;
   metadata: any;
   sceneChatLinks: Map<string, string>;
+  sceneVersions: Map<string, number>; // Track scene versions for naming
 
   constructor(id: string, name: string = 'New Workspace') {
     this.id = id;
@@ -27,9 +31,14 @@ class Workspace {
     this.scenes = [this.createDefaultScene()];
     this.currentSceneIndex = 0; // Active scene
 
-    // Multiple chat sessions per workspace
-    this.chats = [this.createDefaultChat()];
-    this.currentChatId = this.chats[0].id; // Active chat
+    // Multiple chat sessions per workspace (SHARED across all views)
+    const defaultChat = this.createDefaultChat();
+    this.chats = [defaultChat];
+    this.currentChatId = defaultChat.id; // Global active chat
+    
+    // Track which chat each view is currently displaying (shares same history)
+    this.chatViewCurrentChatId = defaultChat.id; // ChatView starts with default chat
+    this.overlayViewCurrentChatId = defaultChat.id; // Overlay starts with default chat
 
     this.settings = {
       uiMode: 'simple', // 'simple' or 'advanced'
@@ -44,6 +53,9 @@ class Workspace {
 
     // Track which chat last modified each scene
     this.sceneChatLinks = new Map(); // sceneId -> chatId
+    
+    // Track scene versions for intelligent naming
+    this.sceneVersions = new Map(); // baseSceneId -> version number
   }
 
   createDefaultScene() {
@@ -269,6 +281,78 @@ class Workspace {
     return linkedScenes;
   }
 
+  // Get current chat for ChatView (returns chat from shared history)
+  getChatViewCurrentChat() {
+    if (!this.chatViewCurrentChatId || !this.getChatById(this.chatViewCurrentChatId)) {
+      // Default to first chat if invalid
+      this.chatViewCurrentChatId = this.chats[0]?.id || null;
+    }
+    return this.getChatById(this.chatViewCurrentChatId);
+  }
+
+  // Set current chat for ChatView
+  setChatViewCurrentChat(chatId: string) {
+    if (this.getChatById(chatId)) {
+      this.chatViewCurrentChatId = chatId;
+      this.metadata.updatedAt = new Date().toISOString();
+      return true;
+    }
+    return false;
+  }
+
+  // Get current chat for ChatOverlay (returns chat from shared history)
+  getChatOverlayCurrentChat() {
+    if (!this.overlayViewCurrentChatId || !this.getChatById(this.overlayViewCurrentChatId)) {
+      // Try to get scene-linked chat, or default to first chat
+      const currentScene = this.getCurrentScene();
+      const linkedChatId = currentScene ? this.getChatForScene(currentScene.id) : null;
+      this.overlayViewCurrentChatId = linkedChatId || this.chats[0]?.id || null;
+    }
+    return this.getChatById(this.overlayViewCurrentChatId);
+  }
+
+  // Set current chat for ChatOverlay
+  setChatOverlayCurrentChat(chatId: string) {
+    if (this.getChatById(chatId)) {
+      this.overlayViewCurrentChatId = chatId;
+      this.metadata.updatedAt = new Date().toISOString();
+      return true;
+    }
+    return false;
+  }
+
+  // Add a scene with intelligent versioning
+  addSceneWithVersion(sceneData: any, baseName: string = 'Scene') {
+    const baseId = sceneData.id || `scene-${Date.now()}`;
+    
+    // Check if a scene with similar content already exists
+    const existingScene = this.scenes.find(s => 
+      s.name === baseName || 
+      (s.id && s.id.startsWith(baseId.split('-v')[0]))
+    );
+
+    if (existingScene) {
+      // Scene was edited - create a new version
+      const baseSceneId = existingScene.id.split('-v')[0];
+      const currentVersion = this.sceneVersions.get(baseSceneId) || 1;
+      const newVersion = currentVersion + 1;
+      
+      sceneData.id = `${baseSceneId}-v${newVersion}`;
+      sceneData.name = `${baseName} v${newVersion}`;
+      sceneData.version = newVersion;
+      
+      this.sceneVersions.set(baseSceneId, newVersion);
+    } else {
+      // New scene
+      sceneData.id = baseId;
+      sceneData.name = baseName;
+      sceneData.version = 1;
+      this.sceneVersions.set(baseId, 1);
+    }
+
+    return this.addScene(sceneData, true);
+  }
+
   // Export for saving
   toJSON() {
     return {
@@ -276,11 +360,14 @@ class Workspace {
       name: this.name,
       scenes: this.scenes,
       currentSceneIndex: this.currentSceneIndex,
-      chats: this.chats, // Include chats array
-      currentChatId: this.currentChatId, // Include current chat ID
+      chats: this.chats,
+      currentChatId: this.currentChatId,
+      chatViewCurrentChatId: this.chatViewCurrentChatId,
+      overlayViewCurrentChatId: this.overlayViewCurrentChatId,
       settings: this.settings,
       metadata: this.metadata,
-      sceneChatLinks: Object.fromEntries(this.sceneChatLinks) // Convert Map to object
+      sceneChatLinks: Object.fromEntries(this.sceneChatLinks),
+      sceneVersions: Object.fromEntries(this.sceneVersions)
     };
   }
 
@@ -312,10 +399,19 @@ class Workspace {
       workspace.chats = [workspace.createDefaultChat()];
     }
     workspace.currentChatId = data.currentChatId || (workspace.chats.length > 0 ? workspace.chats[0].id : null);
+    
+    // Restore view-specific current chat IDs
+    workspace.chatViewCurrentChatId = data.chatViewCurrentChatId || workspace.chats[0]?.id || null;
+    workspace.overlayViewCurrentChatId = data.overlayViewCurrentChatId || workspace.chats[0]?.id || null;
 
     // Restore scene-chat links
     if (data.sceneChatLinks) {
       workspace.sceneChatLinks = new Map(Object.entries(data.sceneChatLinks));
+    }
+    
+    // Restore scene versions
+    if (data.sceneVersions) {
+      workspace.sceneVersions = new Map(Object.entries(data.sceneVersions));
     }
 
     return workspace;

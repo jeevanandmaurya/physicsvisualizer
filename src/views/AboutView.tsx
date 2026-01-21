@@ -30,24 +30,38 @@ const AboutView = () => {
           <li><strong>Web-Based Platform:</strong> No installation required, runs directly in modern browsers</li>
         </ul>
 
-        <h2>AI Assistance & Tools</h2>
-        <p>This application was developed with the assistance of various AI tools and agents:</p>
+        <h2>AI Assistance</h2>
+        <p>This application was developed with the assistance of various AI tools and models:</p>
+        
+        <h3 style={{ marginTop: '1.5rem', marginBottom: '0.8rem', color: 'var(--text-muted)' }}>AI Tools</h3>
         <div className="ai-tools-grid">
           <div className="ai-tool-card tool-copilot">
             <strong>GitHub Copilot</strong>
-            <small>Code suggestions and autocomplete during development</small>
+            <small>AI-powered code suggestions and autocomplete integrated in VS Code</small>
           </div>
           <div className="ai-tool-card tool-cline">
             <strong>Cline</strong>
-            <small>AI-powered coding assistant for project planning and implementation</small>
+            <small>Autonomous AI coding agent for project planning and implementation</small>
+          </div>
+        </div>
+
+        <h3 style={{ marginTop: '1.5rem', marginBottom: '0.8rem', color: 'var(--text-muted)' }}>AI Models</h3>
+        <div className="ai-tools-grid">
+          <div className="ai-tool-card tool-claude">
+            <strong>Claude</strong>
+            <small>Anthropic's advanced reasoning model for complex code generation</small>
+          </div>
+          <div className="ai-tool-card tool-gemini">
+            <strong>Gemini</strong>
+            <small>Google's multimodal AI for physics simulations and analysis</small>
           </div>
           <div className="ai-tool-card tool-grok">
             <strong>Grok</strong>
-            <small>Problem-solving assistance and code optimization</small>
+            <small>xAI's model for problem-solving and code optimization</small>
           </div>
-          <div className="ai-tool-card tool-gemini">
-            <strong>Gemini AI</strong>
-            <small>Integrated AI features for physics simulations and this section</small>
+          <div className="ai-tool-card tool-chatgpt">
+            <strong>ChatGPT</strong>
+            <small>OpenAI's conversational model for ideation and debugging</small>
           </div>
         </div>
 

@@ -2,13 +2,15 @@
   padding: 20px;
   color: var(--text-color);
   background-color: var(--bg-color);
-  min-height: 100vh;
+  height: 100%;
+  overflow-y: auto;
 }
 
 .about-content {
   width: 100%;
   max-width: 1200px;
   margin: 0 auto;
+  padding-bottom: 40px;
 }
 
 .about-view h1 {
@@ -71,8 +73,10 @@
 
 .tool-copilot { background-color: rgba(0, 122, 204, 0.1); border-color: #007acc; }
 .tool-cline { background-color: rgba(14, 165, 233, 0.1); border-color: #0ea5e9; }
-.tool-grok { background-color: rgba(168, 85, 247, 0.1); border-color: #a855f7; }
+.tool-claude { background-color: rgba(217, 119, 87, 0.1); border-color: #d97757; }
 .tool-gemini { background-color: rgba(16, 185, 129, 0.1); border-color: #10b981; }
+.tool-grok { background-color: rgba(168, 85, 247, 0.1); border-color: #a855f7; }
+.tool-chatgpt { background-color: rgba(16, 163, 127, 0.1); border-color: #10a37f; }
 
 .tech-stack-grid {
   display: grid;

@@ -1,11 +1,27 @@
 import React, { useState, useCallback } from 'react';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { faPlay, faPause, faRedo, faTachometerAlt, faSave, faChartLine, faChevronDown, faChevronUp, faComments, faSlidersH, faRepeat, faList } from '@fortawesome/free-solid-svg-icons';
-import { useWorkspace } from '../contexts/WorkspaceContext';
+import { useWorkspace, useWorkspaceScene } from '../contexts/WorkspaceContext';
+import { useSimulation } from '../contexts/SimulationContext';
 
-
-const StatusBar = ({ activeView, chatOpen, onChatToggle, graphOpen, onGraphToggle, controllerOpen, onControllerToggle, sceneSelectorOpen, onSceneSelectorToggle }) => {
-  const { workspaceScenes, workspaceChats, isPlaying, simulationTime, fps, openGraphs, togglePlayPause, resetSimulation, addGraph, getCurrentScene, saveCurrentScene, loopMode, toggleLoop, simulationSpeed, setSimulationSpeed, showStats, setShowStats } = useWorkspace();
+const StatusBar = ({ activeView, chatOpen, onChatToggle, graphOpen, onGraphToggle, controllerOpen, onControllerToggle }) => {
+  const { saveCurrentScene } = useWorkspace();
+  const { scene: currentScene } = useWorkspaceScene();
+  const { 
+    isPlaying, 
+    simulationTime, 
+    fps, 
+    openGraphs, 
+    togglePlayPause, 
+    resetSimulation, 
+    addGraph, 
+    loopMode, 
+    toggleLoop, 
+    simulationSpeed, 
+    setSimulationSpeed, 
+    showStats, 
+    setShowStats 
+  } = useSimulation();
 
 
 
@@ -26,7 +42,6 @@ const StatusBar = ({ activeView, chatOpen, onChatToggle, graphOpen, onGraphToggl
     onGraphToggle();
   }, [graphOpen, onGraphToggle, openGraphs.length, addGraph]);
   const [showGraphDropdown, setShowGraphDropdown] = useState(false);
-  const currentScene = getCurrentScene();
 
   const cycleSimulationSpeed = useCallback(() => {
     const speeds = [0.125, 0.25, 0.5, 1];
@@ -107,13 +122,6 @@ const StatusBar = ({ activeView, chatOpen, onChatToggle, graphOpen, onGraphToggl
             {simulationSpeed}x
           </button>
           <div className="status-separator"></div>
-          <button
-            className={`status-control-button ${sceneSelectorOpen ? 'active' : ''}`}
-            onClick={onSceneSelectorToggle}
-            title="Scenes"
-          >
-            <FontAwesomeIcon icon={faList} />
-          </button>
           <button
             className={`status-control-button ${chatOpen ? 'active' : ''}`}
             onClick={onChatToggle}

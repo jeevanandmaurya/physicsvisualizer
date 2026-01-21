@@ -5,8 +5,6 @@ export interface OverlayOpacitySettings {
   chat: number;
   graph: number;
   controller: number;
-  sceneSelector: number;
-  activityBar: number;
   physicsStats: number;
 }
 
@@ -43,12 +41,10 @@ export const ThemeProvider = ({ children }: ThemeProviderProps) => {
 
   const [theme, setTheme] = useState(getInitialTheme);
   const [overlayOpacity, setOverlayOpacity] = useState({
-    chat: 0.85,
-    graph: 0.8,
-    controller: 0.85,
-    sceneSelector: 0.9,
-    activityBar: 0.95,
-    physicsStats: 0.8
+    chat: 0.5,
+    graph: 0.5,
+    controller: 0.5,
+    physicsStats: 0.5
   });
 
   // Apply theme class immediately on mount and whenever theme changes
@@ -63,11 +59,14 @@ export const ThemeProvider = ({ children }: ThemeProviderProps) => {
 
   // Load overlay opacity settings once on mount
   useEffect(() => {
-    const overlayTypes: (keyof OverlayOpacitySettings)[] = ['chat', 'graph', 'controller', 'sceneSelector', 'activityBar'];
+    const overlayTypes: (keyof OverlayOpacitySettings)[] = ['chat', 'graph', 'controller', 'physicsStats'];
     overlayTypes.forEach(type => {
       const savedOpacity = localStorage.getItem(`${type}Opacity`);
       if (savedOpacity) {
-        setOverlayOpacity(prev => ({ ...prev, [type]: parseFloat(savedOpacity) }));
+        const parsed = parseFloat(savedOpacity);
+        // Ensure minimum opacity of 0.1 for visibility
+        const value = parsed < 0.1 ? 0.5 : parsed;
+        setOverlayOpacity(prev => ({ ...prev, [type]: value }));
       }
     });
   }, []);

@@ -1,11 +1,11 @@
 import React, { useState, useEffect, useCallback, useRef, useMemo } from 'react';
 import { Rnd } from 'react-rnd';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
-import { faChevronUp, faChevronDown, faTimes } from '@fortawesome/free-solid-svg-icons';
+import { faChevronUp, faChevronDown, faTimes, faChartLine, faTable, faSync, faCog } from '@fortawesome/free-solid-svg-icons';
 import { Chart as ChartJS, CategoryScale, LinearScale, PointElement, LineElement, Title, Tooltip, Legend } from 'chart.js';
 import { Scatter } from 'react-chartjs-2';
 import zoomPlugin from 'chartjs-plugin-zoom';
-import { useWorkspace } from '../../../contexts/WorkspaceContext';
+import { useSimulation } from '../../../contexts/SimulationContext';
 import { useTheme } from '../../../contexts/ThemeContext';
 import { useOverlay } from '../../../contexts/OverlayContext';
 import { usePhysicsHistory } from '../../../core/physics/usePhysicsDataStore';
@@ -54,7 +54,7 @@ interface PlotDataPoint {
 }
 
 function GraphOverlay({ isOpen, onToggle }: GraphOverlayProps) {
-  const { openGraphs, removeGraph } = useWorkspace();
+  const { openGraphs, removeGraph } = useSimulation();
   const chartRef = useRef(null);
 
   if (!isOpen) return null;
@@ -87,7 +87,7 @@ function OverlayGraph({ id, initialType, data, onClose, initialPosition }) {
     toggleMinimize,
     getMinimizedPosition
   } = useOverlay();
-  const { dataTimeStep, updateDataTimeStep } = useWorkspace();
+  const { dataTimeStep, updateDataTimeStep } = useSimulation();
   const chartRef = useRef(null);
   
   const overlayId = `graph-${id}`;
@@ -113,6 +113,21 @@ function OverlayGraph({ id, initialType, data, onClose, initialPosition }) {
     }
     return initialPosition || { x: 60, y: 80 };
   });
+
+  // Calculate bounds for mobile to keep overlay above status bar
+  const getMobileBounds = () => {
+    const isMobile = window.innerWidth <= 768;
+    if (isMobile) {
+      const statusBarHeight = 44;
+      return {
+        left: 0,
+        top: 0,
+        right: window.innerWidth,
+        bottom: window.innerHeight - statusBarHeight
+      };
+    }
+    return 'window';
+  };
 
   const [size, setSize] = useState(() => {
     const isMobile = window.innerWidth <= 768;
@@ -467,13 +482,13 @@ function OverlayGraph({ id, initialType, data, onClose, initialPosition }) {
       onResizeStop={handleResizeStop}
       minWidth={isMinimized ? 200 : (window.innerWidth <= 768 ? Math.min(300, window.innerWidth - 20) : 380)}
       minHeight={isMinimized ? 28 : 300}
-      bounds="window"
+      bounds={getMobileBounds()}
       disableDragging={isMinimized}
       enableResizing={!isMinimized}
       className={`engine-overlay ${isMinimized ? 'minimized' : ''} ${isFocused ? 'focused' : ''}`}
       dragHandleClassName="engine-overlay-header"
       style={{ 
-        '--overlay-opacity': overlayOpacity.graph,
+        '--graph-bg-opacity': overlayOpacity.graph,
         zIndex: currentZIndex
       } as React.CSSProperties}
       onMouseDown={handleOverlayClick}
@@ -498,58 +513,85 @@ function OverlayGraph({ id, initialType, data, onClose, initialPosition }) {
 
       {!isMinimized && (
         <div className="engine-overlay-content graph-content-wrapper">
-            <div className="graph-controls">
-              <select value={selectedObjectId || ''} onChange={(e) => setSelectedObjectId(e.target.value)} disabled={objectIds.length === 0} aria-label="Select Object">
-                <option value="" disabled>{objectIds.length === 0 ? 'No objects' : 'Select Object'}</option>
-                {objectIds.map(objId => <option key={objId} value={objId}>{`Object ${objId}`}</option>)}
-              </select>
+            <div className="graph-controls-modern">
+              <div className="graph-control-group">
+                <label className="control-label">Object</label>
+                <select 
+                  className="modern-select"
+                  value={selectedObjectId || ''} 
+                  onChange={(e) => setSelectedObjectId(e.target.value)} 
+                  disabled={objectIds.length === 0}
+                >
+                  <option value="" disabled>{objectIds.length === 0 ? 'No objects' : 'Select...'}</option>
+                  {objectIds.map(objId => <option key={objId} value={objId}>{`Object ${objId}`}</option>)}
+                </select>
+              </div>
               
-              <div className="view-mode-toggle">
+              <div className="graph-control-group view-toggle">
                 <button 
-                  className={viewMode === 'graph' ? 'active' : ''} 
+                  className={`toggle-btn ${viewMode === 'graph' ? 'active' : ''}`}
                   onClick={() => setViewMode('graph')}
                   title="Graph View"
                 >
-                  Graph
+                  <FontAwesomeIcon icon={faChartLine} />
                 </button>
                 <button 
-                  className={viewMode === 'table' ? 'active' : ''} 
+                  className={`toggle-btn ${viewMode === 'table' ? 'active' : ''}`}
                   onClick={() => setViewMode('table')}
                   title="Table View"
                 >
-                  Table
+                  <FontAwesomeIcon icon={faTable} />
                 </button>
               </div>
 
-              <div className="time-step-control">
-                <label>
-                  Time Step:
-                  <select 
-                    value={dataTimeStep} 
-                    onChange={(e) => updateDataTimeStep(Number(e.target.value))}
-                    title="Data sampling interval"
-                  >
-                    <option value={0.001}>0.001s</option>
-                    <option value={0.01}>0.01s</option>
-                    <option value={0.05}>0.05s</option>
-                    <option value={0.1}>0.1s</option>
-                    <option value={0.5}>0.5s</option>
-                    <option value={1}>1s</option>
-                  </select>
+              <div className="graph-control-group">
+                <label className="control-label">
+                  <FontAwesomeIcon icon={faCog} style={{ marginRight: 4 }} />
+                  Δt
                 </label>
+                <select 
+                  className="modern-select compact"
+                  value={dataTimeStep} 
+                  onChange={(e) => updateDataTimeStep(Number(e.target.value))}
+                  title="Data sampling interval"
+                >
+                  <option value={0.001}>1ms</option>
+                  <option value={0.01}>10ms</option>
+                  <option value={0.05}>50ms</option>
+                  <option value={0.1}>100ms</option>
+                  <option value={0.5}>500ms</option>
+                  <option value={1}>1s</option>
+                </select>
               </div>
 
               {viewMode === 'graph' && (
                 <>
-                  <label>
-                    <input type="checkbox" checked={connectPoints} onChange={(e) => setConnectPoints(e.target.checked)} />
-                    Connect Points
+                  <label className="checkbox-label">
+                    <input 
+                      type="checkbox" 
+                      checked={connectPoints} 
+                      onChange={(e) => setConnectPoints(e.target.checked)} 
+                    />
+                    <span>Lines</span>
                   </label>
+                  
                   {initialType !== 'yvx' && (
-                    <div className="live-controls">
-                      <span className={`live-indicator ${isLive ? 'active' : ''}`} title={isLive ? 'Live' : 'Paused'}></span>
-                      <button onClick={handleGoLive} disabled={isLive}>Go Live</button>
-                      <select value={liveWindowSeconds} onChange={(e) => setLiveWindowSeconds(Number(e.target.value))} aria-label="Live Window Size">
+                    <div className="graph-control-group live-group">
+                      <span className={`live-dot ${isLive ? 'active' : ''}`}></span>
+                      <button 
+                        className={`live-btn ${isLive ? 'active' : ''}`}
+                        onClick={handleGoLive} 
+                        disabled={isLive}
+                        title="Go Live"
+                      >
+                        <FontAwesomeIcon icon={faSync} />
+                      </button>
+                      <select 
+                        className="modern-select compact"
+                        value={liveWindowSeconds} 
+                        onChange={(e) => setLiveWindowSeconds(Number(e.target.value))}
+                        title="Live window duration"
+                      >
                         <option value={5}>5s</option>
                         <option value={10}>10s</option>
                         <option value={30}>30s</option>
@@ -561,16 +603,18 @@ function OverlayGraph({ id, initialType, data, onClose, initialPosition }) {
               )}
 
               {viewMode === 'table' && (
-                <div className="table-controls">
-                  <label>
-                    Max Rows:
-                    <select value={maxTableRows} onChange={(e) => setMaxTableRows(Number(e.target.value))}>
-                      <option value={10}>10</option>
-                      <option value={20}>20</option>
-                      <option value={50}>50</option>
-                      <option value={100}>100</option>
-                    </select>
-                  </label>
+                <div className="graph-control-group">
+                  <label className="control-label">Rows</label>
+                  <select 
+                    className="modern-select compact"
+                    value={maxTableRows} 
+                    onChange={(e) => setMaxTableRows(Number(e.target.value))}
+                  >
+                    <option value={10}>10</option>
+                    <option value={20}>20</option>
+                    <option value={50}>50</option>
+                    <option value={100}>100</option>
+                  </select>
                 </div>
               )}
             </div>
@@ -581,16 +625,16 @@ function OverlayGraph({ id, initialType, data, onClose, initialPosition }) {
               </div>
             ) : (
               <div className="table-area-wrapper">
-                <table className="stats-table">
+                <table className="modern-data-table">
                   <thead>
                     <tr>
-                      <th>Time (s)</th>
-                      <th>X (m)</th>
-                      <th>Y (m)</th>
-                      <th>Z (m)</th>
-                      <th>Vx (m/s)</th>
-                      <th>Vy (m/s)</th>
-                      <th>Vz (m/s)</th>
+                      <th>t (s)</th>
+                      <th>X</th>
+                      <th>Y</th>
+                      <th>Z</th>
+                      <th>Vx</th>
+                      <th>Vy</th>
+                      <th>Vz</th>
                     </tr>
                   </thead>
                   <tbody>
@@ -608,7 +652,10 @@ function OverlayGraph({ id, initialType, data, onClose, initialPosition }) {
                       ))
                     ) : (
                       <tr>
-                        <td colSpan={7} className="no-data">No data available</td>
+                        <td colSpan={7} className="no-data">
+                          <span>No data available</span>
+                          <small>Start the simulation to record data</small>
+                        </td>
                       </tr>
                     )}
                   </tbody>

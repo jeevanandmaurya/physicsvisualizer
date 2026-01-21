@@ -3,11 +3,13 @@ import { WorkspaceManager } from '../core/workspace/WorkspaceManager';
 import { useDatabase } from './DatabaseContext';
 import { SceneData } from './DatabaseContext';
 
-// Define types for WorkspaceContext
-export interface GraphData {
-  id: string;
-  initialType: string;
-}
+/**
+ * WorkspaceContext - Manages workspace data (scenes, chats, persistence)
+ * 
+ * This context is now focused ONLY on data operations.
+ * Simulation state moved to SimulationContext.
+ * Navigation state moved to NavigationContext.
+ */
 
 export interface WorkspaceSettings {
   uiMode?: string;
@@ -31,6 +33,7 @@ export interface WorkspaceChatMessage {
       objectTypes: string[];
       thumbnailUrl?: string;
     };
+    sceneData?: any; // NEW: Include the actual scene data to avoid async loading issues
   };
   
   aiMetadata?: any;
@@ -74,41 +77,22 @@ export interface WorkspaceObject {
 }
 
 export interface WorkspaceContextType {
-  // State
+  // Core workspace state
   currentWorkspace: WorkspaceObject | null;
-  currentView: string;
   loading: boolean;
   error: string | null;
-  // Visualizer state
-  isPlaying: boolean;
-  simulationTime: number;
-  fps: number;
-  simulationSpeed: number;
-  showVelocityVectors: boolean;
-  vectorScale: number;
-  openGraphs: GraphData[];
-  resetTrigger: number;
-  objectHistory: Record<string, any>;
-  loopMode: string;
-  dataTimeStep: number;
-  showGrid: boolean;
-  showAxes: boolean;
-  showStats: boolean;
-  zenMode: boolean;
-  // View management
-  setCurrentView: (view: string) => void;
-  setShowGrid: (show: boolean) => void;
-  setShowAxes: (show: boolean) => void;
-  setShowStats: (show: boolean) => void;
-  setZenMode: (zen: boolean) => void;
+  workspaceManager: WorkspaceManager;
+  
   // Workspace data
   workspaceScenes: SceneData[];
+  
   // Workspace operations
   createWorkspace: (name: string) => Promise<WorkspaceObject>;
   loadWorkspace: (id: string) => Promise<WorkspaceObject>;
   saveWorkspace: () => Promise<void>;
   updateWorkspace: (updater: (workspace: WorkspaceObject) => WorkspaceObject) => void;
-  // Scene management methods
+  
+  // Scene management
   getCurrentScene: () => SceneData | null;
   setCurrentScene: (index: number) => void;
   addScene: (sceneData: SceneData, switchScene?: boolean) => void;
@@ -117,46 +101,29 @@ export interface WorkspaceContextType {
   replaceCurrentScene: (newScene: SceneData) => Promise<void>;
   deleteScene: (index: number) => void;
   clearScenes: () => void;
-  // Convenience methods
   updateScene: (updates: any) => Promise<void>;
+  saveCurrentScene: (sceneData: SceneData) => Promise<string>;
+  
+  // Chat management
   addMessage: (message: WorkspaceChatMessage) => void;
   updateSettings: (settings: WorkspaceSettings) => void;
-  // Visualizer actions
-  togglePlayPause: () => void;
-  play: () => void;
-  pause: () => void;
-  resetSimulation: () => void;
-  loopReset: () => void;
-  updateSimulationTime: (time: number) => void;
-  updateFps: (newFps: number) => void;
-  toggleVelocityVectors: () => void;
-  updateVectorScale: (scale: number) => void;
-  setSimulationSpeed: (speed: number) => void;
-  addGraph: (type: string) => void;
-  removeGraph: (id: string) => void;
-  saveCurrentScene: (sceneData: SceneData) => Promise<string>;
-  setIsPlaying: React.Dispatch<React.SetStateAction<boolean>>;
-  toggleLoop: () => void;
-  updateDataTimeStep: (step: number) => void;
-  // Chat management methods
   addChatSession: () => WorkspaceChat | null;
   deleteChatSession: (chatId: string) => boolean;
   selectChatSession: (chatId: string) => boolean;
   getCurrentChat: () => WorkspaceChat | null | undefined;
   getAllChats: () => WorkspaceChat[];
   updateChatName: (chatId: string, name: string) => boolean;
-  // Scene-chat linking methods
+  
+  // View-specific current chat methods
+  getChatViewCurrentChat: () => WorkspaceChat | null;
+  setChatViewCurrentChat: (chatId: string) => boolean;
+  getChatOverlayCurrentChat: () => WorkspaceChat | null;
+  setChatOverlayCurrentChat: (chatId: string) => boolean;
+  
+  // Scene-chat linking
   linkSceneToChat: (sceneId: string, chatId: string) => void;
   getChatForScene: (sceneId: string) => string | null;
   getScenesForChat: (chatId: string) => any[];
-  // Navigation methods for chat-visualizer integration
-  navigateToVisualizerWithScene: (sceneId: string, chatId: string, options?: { openChat?: boolean }) => void;
-  navigationContext: {
-    fromView?: string;
-    linkedChatId?: string;
-  };
-  // Direct access to manager for advanced operations
-  workspaceManager: WorkspaceManager;
 }
 
 const WorkspaceContext = createContext<WorkspaceContextType | null>(null);
@@ -165,97 +132,8 @@ export function WorkspaceProvider({ children }: { children: React.ReactNode }) {
   const database = useDatabase();
   const [workspaceManager] = useState(() => new WorkspaceManager(database));
   const [currentWorkspace, setCurrentWorkspace] = useState<WorkspaceObject | null>(null);
-  const [currentView, setCurrentView] = useState('dashboard');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
-  
-  // Navigation context for chat-visualizer linking
-  const [navigationContext, setNavigationContext] = useState<{
-    fromView?: string;
-    linkedChatId?: string;
-  }>({});
-
-  // Visualizer runtime state
-  const [isPlaying, setIsPlaying] = useState(false);
-  const [simulationTime, setSimulationTime] = useState(0);
-  const [fps, setFps] = useState(0);
-  const [simulationSpeed, setSimulationSpeed] = useState(1); // 0.25x, 0.5x, 1x
-  const [showVelocityVectors, setShowVelocityVectors] = useState(false);
-  const [vectorScale, setVectorScale] = useState(1);
-  const [openGraphs, setOpenGraphs] = useState<GraphData[]>([]);
-  const [resetTrigger, setResetTrigger] = useState(0);
-  const [objectHistory, setObjectHistory] = useState<Record<string, any>>({});
-  const [loopMode, setLoopMode] = useState('none'); // 'none', '5sec', '10sec'
-  const [dataTimeStep, setDataTimeStep] = useState(0.01); // Time step for data sampling in seconds
-  const [showGrid, setShowGrid] = useState(true);
-  const [showAxes, setShowAxes] = useState(true);
-  const [showStats, setShowStats] = useState(false);
-  const [zenMode, setZenMode] = useState(false);
-
-  const togglePlayPause = useCallback(() => {
-    setIsPlaying(prev => !prev);
-  }, []);
-
-  const play = useCallback(() => {
-    setIsPlaying(true);
-  }, []);
-
-  const pause = useCallback(() => {
-    setIsPlaying(false);
-  }, []);
-
-  const resetSimulation = useCallback(() => {
-    setIsPlaying(false);
-    setSimulationTime(0);
-    setFps(0);
-    setResetTrigger(Date.now());
-    // Note: Actual object reset happens in Visualizer
-  }, []);
-
-  const loopReset = useCallback(() => {
-    setSimulationTime(0);
-    setFps(0);
-    setResetTrigger(Date.now());
-    // Note: Keeps playing, just resets positions and time
-  }, []);
-
-  const updateSimulationTime = useCallback((time: number) => {
-    setSimulationTime(time);
-  }, []);
-
-  const updateFps = useCallback((newFps: number) => {
-    setFps(newFps);
-  }, []);
-
-  const toggleVelocityVectors = useCallback(() => {
-    setShowVelocityVectors(prev => !prev);
-  }, []);
-
-  const updateVectorScale = useCallback((scale: number) => {
-    setVectorScale(scale);
-  }, []);
-
-  const addGraph = useCallback((type: string) => {
-    const id = `graph-${Date.now()}`;
-    setOpenGraphs(prev => [...prev, { id, initialType: type }]);
-  }, []);
-
-  const removeGraph = useCallback((id: string) => {
-    setOpenGraphs(prev => prev.filter((g: GraphData) => g.id !== id));
-  }, []);
-
-  const toggleLoop = useCallback(() => {
-    setLoopMode(prev => {
-      if (prev === 'none') return '5sec';
-      if (prev === '5sec') return '10sec';
-      if (prev === '10sec') return 'none';
-      return 'none';
-    });
-  }, []);
-
-  const updateDataTimeStep = useCallback((step: number) => {
-    setDataTimeStep(step);
-  }, []);
 
   const saveCurrentScene = useCallback(async (sceneData: SceneData): Promise<string> => {
     try {
@@ -295,7 +173,7 @@ export function WorkspaceProvider({ children }: { children: React.ReactNode }) {
               // Load from IndexedDB
               const workspace = await workspaceManager.loadWorkspace(savedWorkspace.id);
               setCurrentWorkspace(workspace);
-              console.log('✅ Loaded workspace from IndexedDB');
+              // Workspace loaded
               return;
             }
           }
@@ -605,6 +483,50 @@ export function WorkspaceProvider({ children }: { children: React.ReactNode }) {
     return true;
   }, [workspaceManager]);
 
+  // Get current chat for ChatView (from shared history)
+  const getChatViewCurrentChat = useCallback(() => {
+    const workspace = workspaceManager.getCurrentWorkspace();
+    if (!workspace) return null;
+    return workspace.getChatViewCurrentChat();
+  }, [workspaceManager, currentWorkspace]);
+
+  // Set current chat for ChatView
+  const setChatViewCurrentChat = useCallback((chatId: string) => {
+    const workspace = workspaceManager.getCurrentWorkspace();
+    if (!workspace) return false;
+    
+    const success = workspace.setChatViewCurrentChat(chatId);
+    if (success) {
+      setCurrentWorkspace({...workspace});
+      workspaceManager.saveCurrentWorkspace().catch(err => {
+        console.error('Failed to save workspace:', err);
+      });
+    }
+    return success;
+  }, [workspaceManager]);
+
+  // Get current chat for ChatOverlay (from shared history)
+  const getChatOverlayCurrentChat = useCallback(() => {
+    const workspace = workspaceManager.getCurrentWorkspace();
+    if (!workspace) return null;
+    return workspace.getChatOverlayCurrentChat();
+  }, [workspaceManager, currentWorkspace]);
+
+  // Set current chat for ChatOverlay
+  const setChatOverlayCurrentChat = useCallback((chatId: string) => {
+    const workspace = workspaceManager.getCurrentWorkspace();
+    if (!workspace) return false;
+    
+    const success = workspace.setChatOverlayCurrentChat(chatId);
+    if (success) {
+      setCurrentWorkspace({...workspace});
+      workspaceManager.saveCurrentWorkspace().catch(err => {
+        console.error('Failed to save workspace:', err);
+      });
+    }
+    return success;
+  }, [workspaceManager]);
+
   // Scene-chat linking methods
   const linkSceneToChat = useCallback((sceneId: string, chatId: string) => {
     workspaceManager.updateCurrentWorkspace((workspace: any) => workspace.linkSceneToChat(sceneId, chatId), true); // Silent update
@@ -624,82 +546,15 @@ export function WorkspaceProvider({ children }: { children: React.ReactNode }) {
     return currentWorkspace.getScenesForChat(chatId);
   }, [currentWorkspace]);
 
-  // Navigation function for chat-visualizer integration
-  const navigateToVisualizerWithScene = useCallback((
-    sceneId: string, 
-    chatId: string, 
-    options?: { openChat?: boolean }
-  ) => {
-    console.log('🚀 Navigating to visualizer with scene:', sceneId, 'chat:', chatId);
-    
-    // 1. Find and set the scene
-    const scenes = currentWorkspace?.scenes || [];
-    const sceneIndex = scenes.findIndex(s => s.id === sceneId);
-    
-    if (sceneIndex >= 0) {
-      setCurrentScene(sceneIndex);
-      console.log('✅ Scene set:', sceneIndex);
-    } else {
-      console.warn('⚠️ Scene not found in workspace:', sceneId);
-    }
-    
-    // 2. Link scene to chat
-    linkSceneToChat(sceneId, chatId);
-    
-    // 3. Store navigation context
-    setNavigationContext({
-      fromView: currentView,
-      linkedChatId: chatId
-    });
-    
-    // 4. Switch to visualizer view
-    setCurrentView('visualizer');
-    
-    // 5. Store chat open preference (will be used by Workbench)
-    if (options?.openChat) {
-      // Store in sessionStorage so Workbench can read it
-      sessionStorage.setItem('openChatOverlay', 'true');
-    }
-    
-    console.log('✅ Navigation complete');
-  }, [currentWorkspace, currentView, setCurrentScene, linkSceneToChat, setNavigationContext]);
-
   const contextValue = {
-    // State
+    // Core workspace state
     currentWorkspace,
-    currentView,
     loading,
     error,
-
-    // Visualizer state
-    isPlaying,
-    simulationTime,
-    fps,
-    showVelocityVectors,
-    vectorScale,
-    openGraphs,
-    resetTrigger,
-    objectHistory,
-    setObjectHistory,
-    loopMode,
-    dataTimeStep,
-    simulationSpeed,
-    setSimulationSpeed,
-    showGrid,
-    showAxes,
-    showStats,
-    zenMode,
-
-    // View management
-    setCurrentView,
-    setShowGrid,
-    setShowAxes,
-    setShowStats,
-    setZenMode,
+    workspaceManager,
 
     // Workspace data
     workspaceScenes: currentWorkspace?.scenes || [],
-    // workspaceChats: currentWorkspace?.chat?.messages || [], // This was for the old single chat structure
 
     // Workspace operations
     createWorkspace,
@@ -707,7 +562,7 @@ export function WorkspaceProvider({ children }: { children: React.ReactNode }) {
     saveWorkspace,
     updateWorkspace,
 
-    // Scene management methods
+    // Scene management
     getCurrentScene,
     setCurrentScene,
     addScene,
@@ -716,48 +571,27 @@ export function WorkspaceProvider({ children }: { children: React.ReactNode }) {
     replaceCurrentScene,
     deleteScene,
     clearScenes,
-
-    // Convenience methods
     updateScene,
+    saveCurrentScene,
+
+    // Chat management
     addMessage,
     updateSettings,
-
-    // Visualizer actions
-    togglePlayPause,
-    play,
-    pause,
-    resetSimulation,
-    loopReset,
-    updateSimulationTime,
-    updateFps,
-    toggleVelocityVectors,
-    updateVectorScale,
-    addGraph,
-    removeGraph,
-    saveCurrentScene,
-    setIsPlaying,
-    toggleLoop,
-    updateDataTimeStep,
-
-    // Chat management methods
     addChatSession,
     deleteChatSession,
     selectChatSession,
     getCurrentChat,
     getAllChats,
     updateChatName,
+    getChatViewCurrentChat,
+    setChatViewCurrentChat,
+    getChatOverlayCurrentChat,
+    setChatOverlayCurrentChat,
 
-    // Scene-chat linking methods
+    // Scene-chat linking
     linkSceneToChat,
     getChatForScene,
     getScenesForChat,
-    
-    // Navigation methods for chat-visualizer integration
-    navigateToVisualizerWithScene,
-    navigationContext,
-
-    // Direct access to manager for advanced operations
-    workspaceManager
   };
 
   return (
@@ -793,15 +627,15 @@ export function useWorkspaceScene() {
 }
 
 export function useWorkspaceChat() {
-  const { addMessage, selectChatSession, getCurrentChat, getAllChats, addChatSession, deleteChatSession } = useWorkspace();
+  const { addMessage, selectChatSession, getChatViewCurrentChat, getAllChats, addChatSession, deleteChatSession } = useWorkspace();
 
   return {
-    // Use the current chat's messages
-    messages: getCurrentChat()?.messages || [],
+    // Use the current chat's messages (defaults to ChatView's current chat)
+    messages: getChatViewCurrentChat()?.messages || [],
     addMessage,
     // Expose chat management functions
     selectChatSession,
-    getCurrentChat,
+    getChatViewCurrentChat,
     getAllChats,
     addChatSession,
     deleteChatSession

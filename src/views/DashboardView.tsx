@@ -6,10 +6,12 @@ import logo from '../assets/physicsvisualizer.svg';
 
 import { useDatabase, SceneData } from '../contexts/DatabaseContext';
 import { useWorkspace, useWorkspaceScene } from '../contexts/WorkspaceContext';
+import { useNavigation } from '../contexts/NavigationContext';
 
 function DashboardView() {
-    const { setCurrentView } = useWorkspace();
+    const { setCurrentView } = useNavigation();
     const { updateScene } = useWorkspaceScene();
+    const { addChatSession, setChatOverlayCurrentChat } = useWorkspace();
     
     const dataManager = useDatabase();
 
@@ -68,8 +70,14 @@ function DashboardView() {
             newScene.id = savedId;
             newScene.isTemporary = false; // Mark as saved
 
-            // Create and link a chat for this scene
-            await dataManager.getOrCreateChatForScene(savedId, newScene.name || 'New Scene');
+            // Create a new chat session for this scene
+            const newChat = addChatSession();
+            if (newChat) {
+                // Link the chat to the scene in IndexedDB
+                await dataManager.getOrCreateChatForScene(savedId, newScene.name || 'New Scene');
+                // Set it as the current chat for the overlay (visualizer view)
+                setChatOverlayCurrentChat(newChat.id);
+            }
 
             updateScene(newScene);
             setCurrentView('visualizer');
@@ -79,7 +87,7 @@ function DashboardView() {
             updateScene(newScene);
             setCurrentView('visualizer');
         }
-    }, [createNewScene, updateScene, setCurrentView, dataManager]);
+    }, [createNewScene, updateScene, setCurrentView, dataManager, addChatSession, setChatOverlayCurrentChat]);
 
     const handleOpenScene = useCallback(async (sceneId: string) => {
         if (!dataManager) return;

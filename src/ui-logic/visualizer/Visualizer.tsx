@@ -18,6 +18,7 @@ import spaceTexture from '../../assets/space.svg';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { faCube } from '@fortawesome/free-solid-svg-icons';
 import { useWorkspace } from '../../contexts/WorkspaceContext';
+import { useSimulation } from '../../contexts/SimulationContext';
 import SceneDetailsUI from '../../views/components/scene-management/SceneDetailsUI';
 import { functionCallSystem } from '../../core/tools/FunctionCallSystem.js';
 import { physicsDataStore } from '../../core/physics/PhysicsDataStore';
@@ -192,7 +193,33 @@ function Skybox({ texturePath, backgroundType = 'normal' }) {
 }
 
 function Visualizer({ scene, showSceneDetails, onToggleSceneDetails }) {
-    const { isPlaying, simulationTime, fps, showVelocityVectors, vectorScale, openGraphs, resetSimulation, loopReset, updateSimulationTime, updateFps, resetTrigger, removeGraph, setObjectHistory, loopMode, setIsPlaying, dataTimeStep, simulationSpeed, showGrid, showAxes, setShowGrid, setShowAxes, showStats, zenMode, setZenMode } = useWorkspace();
+    // Simulation state from SimulationContext
+    const { 
+        isPlaying, 
+        simulationTime, 
+        fps, 
+        showVelocityVectors, 
+        vectorScale, 
+        openGraphs, 
+        resetTrigger, 
+        loopMode, 
+        setIsPlaying, 
+        dataTimeStep, 
+        simulationSpeed, 
+        showGrid, 
+        showAxes, 
+        setShowGrid, 
+        setShowAxes, 
+        showStats, 
+        zenMode, 
+        setZenMode,
+        setObjectHistory,
+        updateSimulationTime,
+        updateFps,
+        resetSimulation,
+        loopReset,
+        removeGraph
+    } = useSimulation();
 
     // Skybox state - cycles through: normal, space, black, white
     const [skyboxType, setSkyboxType] = useState('normal');
@@ -359,19 +386,23 @@ function Visualizer({ scene, showSceneDetails, onToggleSceneDetails }) {
                         style={{ position: 'absolute', top: 0, left: 0, width: '100%', height: '100%', zIndex: 0 }}
                         shadows
                         frameloop="always"
-                        dpr={[1, 2]}
+                        dpr={Math.min(window.devicePixelRatio, 2)}
                         performance={{ min: 0.5 }}
                         gl={{ 
                             logLevel: 'errors', 
                             preserveDrawingBuffer: false,
                             antialias: true,
                             powerPreference: 'high-performance',
-                            alpha: false
+                            alpha: false,
+                            stencil: false,
+                            depth: true
                         }}
                         camera={{ position: [10, 5, 25], fov: 50, near: 0.1, far: 200000 }}
                         onError={() => setCanvasError(true)}
                         onCreated={({ gl }) => {
                             window._webglContext = gl;
+                            // Ensure crisp rendering
+                            gl.setPixelRatio(Math.min(window.devicePixelRatio, 2));
                             try {
                                 r3fCanvasRef.current = gl.domElement;
                                 if (r3fCanvasRef.current) r3fCanvasRef.current.dataset.engine = 'three.js';

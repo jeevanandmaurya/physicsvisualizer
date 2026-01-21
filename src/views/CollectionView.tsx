@@ -3,7 +3,8 @@ import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { faUserCircle, faSignInAlt, faSignOutAlt, faSpinner, faSearch, faSort, faSortAlphaDown, faSortAlphaUp, faCalendarAlt, faCalendar } from '@fortawesome/free-solid-svg-icons';
 
 import { useDatabase } from '../contexts/DatabaseContext';
-import { useWorkspace, useWorkspaceScene } from '../contexts/WorkspaceContext';
+import { useWorkspaceScene } from '../contexts/WorkspaceContext';
+import { useNavigation } from '../contexts/NavigationContext';
 import './CollectionView.css';
 
 // --- Reusable UI Components ---
@@ -65,7 +66,7 @@ function SceneCard({ scene, isPublic = false, onSceneClick }) {
 // --- Main CollectionView Component ---
 
 function CollectionView() {
-  const { setCurrentView } = useWorkspace();
+  const { setCurrentView } = useNavigation();
   const { updateScene } = useWorkspaceScene();
   const dataManager = useDatabase();
 

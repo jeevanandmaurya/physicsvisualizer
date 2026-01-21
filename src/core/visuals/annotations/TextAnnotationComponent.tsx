@@ -43,19 +43,20 @@ export function TextAnnotationComponent({
     const text = getAnnotationText(annotation, physicsData);
     const result = rendererRef.current.renderText({
       text,
-      fontSize: annotation.fontSize || 16,
-      fontFamily: annotation.fontFamily || 'Arial',
-      color: annotation.color || '#ffffff',
-      backgroundColor: annotation.backgroundColor || 'rgba(0, 0, 0, 0.7)',
-      padding: annotation.padding || 8,
-      borderRadius: annotation.borderRadius || 4,
+      fontSize: annotation.fontSize || 13,
+      fontFamily: annotation.fontFamily || 'Inter, -apple-system, BlinkMacSystemFont, Segoe UI, sans-serif',
+      color: annotation.color || '#f8fafc',
+      backgroundColor: annotation.backgroundColor || 'rgba(15, 23, 42, 0.88)',
+      padding: annotation.padding || 6,
+      borderRadius: annotation.borderRadius || 6,
       opacity: annotation.opacity || 1.0,
-      resolutionScale: 4.0 // High resolution for sharpness
+      resolutionScale: Math.min(window.devicePixelRatio * 2, 4),
+      fontWeight: 500
     });
     
-    // Set initial base scale
-    const scale = (annotation.fontSize || 16) / 16;
-    baseScale.current.set(result.width / 40 * scale, result.height / 40 * scale, 1);
+    // Set initial base scale - adjusted for better sizing
+    const scale = (annotation.fontSize || 13) / 14;
+    baseScale.current.set(result.width / 50 * scale, result.height / 50 * scale, 1);
     
     return result;
   }, []); // Only create once
@@ -87,14 +88,15 @@ export function TextAnnotationComponent({
       const text = getAnnotationText(annotation, physicsData);
       const result = rendererRef.current.renderText({
         text,
-        fontSize: annotation.fontSize || 16,
-        fontFamily: annotation.fontFamily || 'Arial',
-        color: annotation.color || '#ffffff',
-        backgroundColor: annotation.backgroundColor || 'rgba(0, 0, 0, 0.7)',
-        padding: annotation.padding || 8,
-        borderRadius: annotation.borderRadius || 4,
+        fontSize: annotation.fontSize || 13,
+        fontFamily: annotation.fontFamily || "Inter, -apple-system, BlinkMacSystemFont, Segoe UI, sans-serif",
+        color: annotation.color || '#f8fafc',
+        backgroundColor: annotation.backgroundColor || 'rgba(15, 23, 42, 0.88)',
+        padding: annotation.padding || 6,
+        borderRadius: annotation.borderRadius || 6,
         opacity: annotation.opacity || 1.0,
-        resolutionScale: 4.0
+        resolutionScale: Math.min(window.devicePixelRatio * 2, 4),
+        fontWeight: 500
       });
       
       if (sprite.material.map) {
@@ -104,8 +106,8 @@ export function TextAnnotationComponent({
       sprite.material.needsUpdate = true;
       
       // Update base scale based on new text dimensions
-      const scale = (annotation.fontSize || 16) / 16;
-      baseScale.current.set(result.width / 40 * scale, result.height / 40 * scale, 1);
+      const scale = (annotation.fontSize || 13) / 14;
+      baseScale.current.set(result.width / 50 * scale, result.height / 50 * scale, 1);
       
       lastUpdateTime.current = now;
     }

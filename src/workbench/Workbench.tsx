@@ -4,42 +4,64 @@ import EditorArea from "./EditorArea";
 import StatusBar from "./StatusBar";
 import { PhysicsOverlay } from "../views/components/PhysicsOverlay";
 import logo from '../assets/icon-transparent.svg';
-import ChatOverlay from "../views/components/chat/ChatOverlay";
+import { UnifiedOverlay } from "../views/components/UnifiedOverlay";
 import GraphOverlay from "../views/components/visualizer/GraphOverlay";
 import ControllerOverlay from "../views/components/visualizer/ControllerOverlay";
-import SceneSelectorUI from "../views/components/scene-management/SceneSelectorUI";
-import {
-  useWorkspace,
-  useWorkspaceScene,
-  useWorkspaceChat,
-} from "../contexts/WorkspaceContext";
-import { useDatabase, SceneData } from "../contexts/DatabaseContext"; // Import SceneData for type safety
+import { useWorkspace, useWorkspaceScene, useWorkspaceChat } from "../contexts/WorkspaceContext";
+import { useSimulation } from "../contexts/SimulationContext";
+import { useNavigation } from "../contexts/NavigationContext";
+import { useDatabase, SceneData } from "../contexts/DatabaseContext";
 
 import "./Workbench.css";
 
 const Workbench = () => {
   const dataManager = useDatabase();
-  const { currentView, setCurrentView, getChatForScene, resetSimulation, zenMode, setZenMode, togglePlayPause, showStats, setShowStats, isPlaying, simulationSpeed, fps } = useWorkspace();
+  
+  // Data operations
+  const { getChatForScene } = useWorkspace();
   const { scene, updateScene, replaceCurrentScene } = useWorkspaceScene();
   const { messages, addMessage } = useWorkspaceChat();
-  const [chatOpen, setChatOpen] = useState(false);
+  
+  // Simulation state
+  const { 
+    resetSimulation, 
+    zenMode, 
+    setZenMode, 
+    togglePlayPause, 
+    showStats, 
+    setShowStats, 
+    isPlaying, 
+    simulationSpeed, 
+    fps 
+  } = useSimulation();
+  
+  // Navigation
+  const { currentView, setCurrentView } = useNavigation();
+  
+  const [unifiedOverlayOpen, setUnifiedOverlayOpen] = useState(false);
   const [graphOpen, setGraphOpen] = useState(false);
   const [controllerOpen, setControllerOpen] = useState(false);
-  const [sceneSelectorOpen, setSceneSelectorOpen] = useState(false);
-
-  // Open scene selector by default only in visualizer view
-  useEffect(() => {
-    setSceneSelectorOpen(currentView === 'visualizer');
-  }, [currentView]);
 
   // Check if chat should auto-open (from navigation)
   useEffect(() => {
     const shouldOpenChat = sessionStorage.getItem('openChatOverlay');
     if (shouldOpenChat === 'true' && currentView === 'visualizer') {
-      setChatOpen(true);
+      setUnifiedOverlayOpen(true);
       sessionStorage.removeItem('openChatOverlay'); // Clear flag
+      
+      // Load pending scene if available
+      const pendingScene = sessionStorage.getItem('pendingSceneLoad');
+      if (pendingScene) {
+        try {
+          const sceneData = JSON.parse(pendingScene);
+          replaceCurrentScene(sceneData);
+          sessionStorage.removeItem('pendingSceneLoad');
+        } catch (err) {
+          console.error('Error loading pending scene:', err);
+        }
+      }
     }
-  }, [currentView]);
+  }, [currentView, replaceCurrentScene]);
 
   // VS Code-inspired layout configuration for each view
   const getLayoutConfig = (view: string) => { // Added type for view
@@ -139,10 +161,11 @@ const Workbench = () => {
               resetSimulation();
             }
             break;
-          case "c": // C: Chat
+          case "c": // C: Chat/Scenes (Unified Overlay)
+          case "s": // S: Scene Selector (now unified with chat)
             if (currentView === 'visualizer') {
               e.preventDefault();
-              setChatOpen(prev => !prev);
+              setUnifiedOverlayOpen(prev => !prev);
             }
             break;
           case "g": // G: Graph
@@ -155,12 +178,6 @@ const Workbench = () => {
             if (currentView === 'visualizer') {
               e.preventDefault();
               setControllerOpen(prev => !prev);
-            }
-            break;
-          case "s": // S: Scene Selector
-            if (currentView === 'visualizer') {
-              e.preventDefault();
-              setSceneSelectorOpen(prev => !prev);
             }
             break;
           default:
@@ -177,7 +194,7 @@ const Workbench = () => {
 
     window.addEventListener("keydown", handleKeyDown);
     return () => window.removeEventListener("keydown", handleKeyDown);
-  }, [setCurrentView, zenMode, setZenMode, currentView, togglePlayPause, resetSimulation, setChatOpen, setGraphOpen, setControllerOpen, setSceneSelectorOpen]);
+  }, [setCurrentView, zenMode, setZenMode, currentView, togglePlayPause, resetSimulation, setUnifiedOverlayOpen, setGraphOpen, setControllerOpen]);
 
   return (
     <div className={`workbench ${zenMode ? 'zen-mode' : ''}`}>
@@ -194,85 +211,23 @@ const Workbench = () => {
           </div>
         </div>
       </div>
-      {!zenMode && (
+      {!zenMode && currentView === 'visualizer' && (
         <StatusBar
           activeView={currentView}
-          chatOpen={chatOpen}
-          onChatToggle={() => setChatOpen(!chatOpen)}
+          chatOpen={unifiedOverlayOpen}
+          onChatToggle={() => setUnifiedOverlayOpen(!unifiedOverlayOpen)}
           graphOpen={graphOpen}
           onGraphToggle={() => setGraphOpen(!graphOpen)}
           controllerOpen={controllerOpen}
           onControllerToggle={() => setControllerOpen(!controllerOpen)}
-          sceneSelectorOpen={sceneSelectorOpen}
-          onSceneSelectorToggle={() => setSceneSelectorOpen(!sceneSelectorOpen)}
         />
       )}
-      <SceneSelectorUI
-        isOpen={sceneSelectorOpen}
-        onToggle={() => setSceneSelectorOpen(!sceneSelectorOpen)}
-        currentScene={scene}
-        handleSceneChange={updateScene}
-        onDeleteScene={async (sceneToDelete) => {
-          if (window.confirm(`Are you sure you want to delete "${sceneToDelete.name}"?`)) {
-            try {
-              await dataManager.deleteScene(sceneToDelete.id);
-              // The SceneSelectorUI will refresh itself via useSceneSelector hook
-            } catch (error) {
-              console.error("Failed to delete scene:", error);
-              alert("Error: Could not delete the scene.");
-            }
-          }
-        }}
-        onSaveScene={async (sceneToSave) => {
-          try {
-            await dataManager.saveScene(sceneToSave);
-          } catch (error) {
-            console.error("Failed to save scene:", error);
-          }
-        }}
-        onUpdateScene={async (sceneToUpdate) => {
-          try {
-            await dataManager.saveScene(sceneToUpdate);
-          } catch (error) {
-            console.error("Failed to update scene:", error);
-          }
-        }}
-        currentChatId={null}
-        onChatSelect={(chat) => {
-          // Handle chat selection from scene selector
-          if (chat && chat.id) {
-            // Logic to switch to chat view or open chat overlay
-            console.log("Chat selected:", chat.id);
-          }
-        }}
-        onNewChat={() => {
-          // Logic to create a new chat
-          console.log("New chat requested");
-        }}
-        onSceneButtonClick={(chat, sceneIndex) => {
-          // Handle scene button click in chat list
-          if (chat.scenes && chat.scenes[sceneIndex]) {
-            updateScene(chat.scenes[sceneIndex]);
-          }
-        }}
-        refreshTrigger={0}
-        activeTab="examples"
-        onTabChange={() => {}}
-        onToggleSceneDetails={() => {}}
-        onRefreshSceneList={() => {}}
-        workspaceScenes={[scene]}
-      />
-      <ChatOverlay
-        key={`chat-overlay-${scene?.id || 'default'}`}
-        isOpen={chatOpen}
-        onToggle={() => setChatOpen(!chatOpen)}
+      <UnifiedOverlay
+        isOpen={unifiedOverlayOpen}
+        onToggle={() => setUnifiedOverlayOpen(!unifiedOverlayOpen)}
         scene={scene}
         onSceneUpdate={(updatedScene: SceneData) => {
-          // When conversation generates a new scene, update the workspace
-          // Note: The scene should already be updated via addScene/updateCurrentScene in Conversation
-          // This callback is for additional sync if needed
-          console.log("Scene updated in chat overlay:", updatedScene?.name);
-          // The scene prop will auto-update from useWorkspaceScene() hook
+          console.log("Scene updated in unified overlay:", updatedScene?.name);
         }}
       />
       <GraphOverlay

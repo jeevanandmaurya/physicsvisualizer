@@ -10,7 +10,7 @@
 
 .controller-overlay-container {
   position: absolute;
-  background: rgba(255, 255, 255, var(--controller-bg-opacity, 0.9));
+  background: rgba(255, 255, 255, var(--controller-bg-opacity, 0.5));
   border: 1px solid var(--border-color);
   border-radius: 8px;
   box-shadow: 0 4px 16px rgba(0, 0, 0, 0.15);
@@ -30,7 +30,7 @@
 }
 
 .dark .controller-overlay-container {
-  background: rgba(18, 18, 18, var(--controller-bg-opacity, 0.9));
+  background: rgba(18, 18, 18, var(--controller-bg-opacity, 0.5));
   border-color: rgba(255, 255, 255, 0.1);
 }
 
@@ -304,4 +304,17 @@
 /* Make the header clickable to toggle minimize when minimized */
 .controller-overlay.minimized .controller-overlay-header {
   cursor: pointer;
+}
+
+/* Make inner elements transparent - only container has controlled bg */
+.controller-overlay-container .controller-overlay-content {
+  background: transparent;
+}
+
+.controller-overlay-container .controller-overlay-header {
+  background: transparent;
+}
+
+.controller-overlay-container .controller-list {
+  background: transparent;
 }

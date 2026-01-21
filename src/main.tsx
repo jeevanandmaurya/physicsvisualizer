@@ -3,6 +3,8 @@ import { createRoot } from 'react-dom/client';
 import './index.css';
 import { DatabaseProvider } from './contexts/DatabaseContext';
 import { WorkspaceProvider } from './contexts/WorkspaceContext';
+import { SimulationProvider } from './contexts/SimulationContext';
+import { NavigationProvider } from './contexts/NavigationContext';
 import { ThemeProvider } from './contexts/ThemeContext';
 import { OverlayProvider } from './contexts/OverlayContext';
 import App from './App.tsx';
@@ -13,7 +15,11 @@ createRoot(document.getElementById('root')).render(
       <OverlayProvider>
         <DatabaseProvider>
           <WorkspaceProvider>
-            <App />
+            <SimulationProvider>
+              <NavigationProvider>
+                <App />
+              </NavigationProvider>
+            </SimulationProvider>
           </WorkspaceProvider>
         </DatabaseProvider>
       </OverlayProvider>

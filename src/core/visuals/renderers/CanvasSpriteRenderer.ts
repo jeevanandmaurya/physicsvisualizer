@@ -9,13 +9,13 @@ import { PhysicsData } from '../types';
 export class CanvasSpriteRenderer {
   private canvas: HTMLCanvasElement;
   private context: CanvasRenderingContext2D;
-  private defaultFontSize: number = 16;
-  private defaultFontFamily: string = 'Arial, sans-serif';
+  private defaultFontSize: number = 14;
+  private defaultFontFamily: string = "Inter, -apple-system, BlinkMacSystemFont, Segoe UI, system-ui, sans-serif";
 
   constructor() {
     // Create off-screen canvas for texture rendering
     this.canvas = document.createElement('canvas');
-    this.context = this.canvas.getContext('2d')!;
+    this.context = this.canvas.getContext('2d', { alpha: true })!;
   }
 
   /**
@@ -31,17 +31,19 @@ export class CanvasSpriteRenderer {
     borderRadius?: number;
     opacity?: number;
     resolutionScale?: number;
+    fontWeight?: number;
   }): { texture: THREE.CanvasTexture; width: number; height: number } {
     const {
       text,
       fontSize = this.defaultFontSize,
       fontFamily = this.defaultFontFamily,
-      color = '#ffffff',
-      backgroundColor = 'rgba(0, 0, 0, 0.7)',
-      padding = 8,
-      borderRadius = 4,
+      color = '#f8fafc',
+      backgroundColor = 'rgba(15, 23, 42, 0.88)',
+      padding = 6,
+      borderRadius = 6,
       opacity = 1.0,
-      resolutionScale = 4.0 // Default to 4x resolution for sharpness
+      resolutionScale = Math.min(window.devicePixelRatio * 2, 4), // Adapt to device
+      fontWeight = 500
     } = options;
 
     // Apply resolution scale to all dimensions
@@ -50,12 +52,12 @@ export class CanvasSpriteRenderer {
     const scaledBorderRadius = borderRadius * resolutionScale;
 
     // Set font to measure text
-    this.context.font = `${scaledFontSize}px ${fontFamily}`;
+    this.context.font = `${fontWeight} ${scaledFontSize}px ${fontFamily}`;
     const metrics = this.context.measureText(text);
     
     // Calculate canvas size with padding
     const textWidth = metrics.width;
-    const textHeight = scaledFontSize * 1.2; // Approximate height
+    const textHeight = scaledFontSize * 1.15; // Tighter line height
     const canvasWidth = Math.ceil(textWidth + scaledPadding * 2);
     const canvasHeight = Math.ceil(textHeight + scaledPadding * 2);
 
@@ -66,10 +68,14 @@ export class CanvasSpriteRenderer {
     // Clear canvas
     this.context.clearRect(0, 0, this.canvas.width, this.canvas.height);
 
-    // Set font again (canvas resize resets context)
-    this.context.font = `${scaledFontSize}px ${fontFamily}`;
+    // Set font again (canvas resize resets context) - with font weight
+    this.context.font = `${fontWeight} ${scaledFontSize}px ${fontFamily}`;
     this.context.textBaseline = 'middle';
     this.context.textAlign = 'left';
+    
+    // Enable crisp text rendering
+    this.context.imageSmoothingEnabled = true;
+    this.context.imageSmoothingQuality = 'high';
 
     // Draw background with rounded corners
     if (backgroundColor && backgroundColor !== 'transparent') {
@@ -86,16 +92,17 @@ export class CanvasSpriteRenderer {
       this.context.fill();
     }
 
-    // Draw text
+    // Draw text with slight shadow for better readability
     this.context.globalAlpha = opacity;
     this.context.fillStyle = color;
     this.context.fillText(text, scaledPadding, canvasHeight / 2);
 
-    // Create texture
+    // Create texture with proper filtering for sharpness
     const texture = new THREE.CanvasTexture(this.canvas);
     texture.needsUpdate = true;
-    texture.minFilter = THREE.LinearFilter;
+    texture.minFilter = THREE.LinearMipmapLinearFilter;
     texture.magFilter = THREE.LinearFilter;
+    texture.generateMipmaps = true;
     texture.anisotropy = 16; // Max anisotropy for sharpness at angles
 
     return {

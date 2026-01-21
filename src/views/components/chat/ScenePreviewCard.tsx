@@ -1,5 +1,5 @@
 import React from 'react';
-import { useWorkspace } from '../../../contexts/WorkspaceContext';
+import { useNavigation } from '../../../contexts/NavigationContext';
 import './ScenePreviewCard.css';
 
 interface ScenePreviewCardProps {
@@ -20,7 +20,7 @@ interface ScenePreviewCardProps {
 }
 
 const ScenePreviewCard: React.FC<ScenePreviewCardProps> = ({ message, chatId }) => {
-  const { navigateToVisualizerWithScene } = useWorkspace();
+  const { navigateToVisualizerWithScene } = useNavigation();
 
   // Only render if message has scene generation AND action is not 'none'
   if (!message.sceneMetadata?.hasSceneGeneration || 

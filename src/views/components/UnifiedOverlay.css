@@ -1,0 +1,806 @@
+/* UnifiedOverlay.css - Combined Chat & Scene Selector */
+
+.unified-overlay-container {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  background: rgba(255, 255, 255, var(--chat-bg-opacity, 0.5));
+  border: 1px solid var(--border-color);
+  border-radius: 12px;
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.2);
+  overflow: hidden;
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+}
+
+.dark .unified-overlay-container {
+  background: rgba(18, 18, 18, var(--chat-bg-opacity, 0.5));
+}
+
+.unified-overlay-container.minimized {
+  width: auto !important;
+  height: auto !important;
+}
+
+.unified-overlay-minimized {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 16px;
+  background: rgba(255, 255, 255, var(--chat-bg-opacity, 0.5));
+  border: 1px solid var(--border-color);
+  border-radius: 8px;
+  cursor: pointer;
+  color: var(--text-color);
+  font-size: 13px;
+  font-weight: 600;
+  transition: all 0.2s;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+}
+
+.dark .unified-overlay-minimized {
+  background: rgba(18, 18, 18, var(--chat-bg-opacity, 0.5));
+}
+
+.unified-overlay-minimized:hover {
+  background: var(--hover-bg);
+  box-shadow: 0 6px 16px rgba(0, 0, 0, 0.2);
+}
+
+/* Header */
+.unified-overlay-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 12px 16px;
+  background: transparent;
+  border-bottom: 1px solid var(--border-color);
+  cursor: move;
+  user-select: none;
+}
+
+.unified-overlay-title {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--text-color);
+}
+
+.unified-overlay-controls {
+  display: flex;
+  gap: 6px;
+}
+
+.unified-overlay-controls button {
+  background: none;
+  border: none;
+  color: var(--text-color);
+  opacity: 0.6;
+  cursor: pointer;
+  padding: 6px;
+  border-radius: 4px;
+  transition: all 0.2s;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.unified-overlay-controls button:hover {
+  opacity: 1;
+  background: var(--hover-bg);
+}
+
+/* Main Layout */
+.unified-overlay-main {
+  flex: 1;
+  display: flex;
+  overflow: hidden;
+}
+
+/* Sidebar */
+.unified-overlay-sidebar {
+  width: 280px;
+  background: transparent;
+  border-right: 1px solid var(--border-color);
+  display: flex;
+  flex-direction: column;
+  overflow-y: auto;
+  flex-shrink: 0;
+}
+
+.sidebar-section {
+  padding: 8px;
+  border-bottom: 1px solid var(--border-color);
+}
+
+.sidebar-section-header {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 12px 12px 8px;
+  font-size: 11px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: var(--text-color);
+  opacity: 0.7;
+}
+
+.sidebar-action-btn {
+  margin-left: auto;
+  background: none;
+  border: none;
+  color: var(--text-color);
+  cursor: pointer;
+  padding: 4px;
+  opacity: 0.6;
+  transition: opacity 0.2s;
+  display: flex;
+  align-items: center;
+}
+
+.sidebar-action-btn:hover {
+  opacity: 1;
+}
+
+/* Content Area */
+.unified-overlay-content-area {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  background: transparent;
+  position: relative;
+}
+
+/* Sidebar Toggle Button */
+.sidebar-toggle-btn {
+  position: absolute;
+  top: 12px;
+  left: 12px;
+  z-index: 10;
+  background: var(--bg-darker);
+  border: 1px solid var(--border-color);
+  border-radius: 8px;
+  padding: 8px;
+  cursor: pointer;
+  color: var(--text-color);
+  opacity: 0.8;
+  transition: all 0.2s;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+}
+
+.sidebar-toggle-btn:hover {
+  opacity: 1;
+  background: var(--hover-bg);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+}
+
+/* Tabs - Remove or keep hidden */
+.unified-overlay-content {
+  flex: 1;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+}
+
+/* Chat List in Sidebar */
+.chat-list {
+  padding: 8px;
+}
+
+.chat-list-item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 12px 14px;
+  border-radius: 8px;
+  cursor: pointer;
+  margin-bottom: 4px;
+  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+  border: 1px solid transparent;
+  position: relative;
+  font-size: 14px;
+  color: var(--text-color);
+}
+
+.chat-list-item:hover {
+  background-color: var(--hover-bg);
+}
+
+.chat-list-item.active {
+  background-color: var(--bg-color);
+  border-color: var(--border-color);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
+}
+
+.chat-list-item.active .chat-name {
+  font-weight: 600;
+}
+
+.chat-list-item svg {
+  opacity: 0.5;
+  flex-shrink: 0;
+}
+
+.chat-list-item.active svg {
+  opacity: 1;
+}
+
+.chat-item-info {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  overflow: hidden;
+  flex: 1;
+}
+
+.chat-name {
+  flex: 1;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  transition: color 0.2s ease;
+}
+
+.delete-chat-btn {
+  background: none;
+  border: none;
+  color: var(--text-color);
+  opacity: 0;
+  cursor: pointer;
+  padding: 6px;
+  border-radius: 6px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.2s;
+}
+
+.chat-list-item:hover .delete-chat-btn {
+  opacity: 0.4;
+}
+
+.delete-chat-btn:hover {
+  opacity: 1 !important;
+  background-color: rgba(255, 0, 0, 0.1);
+  color: #ff4d4d;
+}
+
+/* Messages */
+.messages-section {
+  flex: 1;
+  overflow-y: auto;
+  padding: 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.message {
+  display: flex;
+  flex-direction: column;
+  max-width: 85%;
+}
+
+.message.user {
+  align-self: flex-end;
+}
+
+.message.assistant {
+  align-self: flex-start;
+}
+
+.message-content {
+  padding: 10px 14px;
+  border-radius: 12px;
+  font-size: 13px;
+  line-height: 1.5;
+  white-space: pre-wrap;
+}
+
+.message.user .message-content {
+  background: var(--primary-color);
+  color: white;
+  border-bottom-right-radius: 4px;
+}
+
+.message.assistant .message-content {
+  background: var(--bg-darker);
+  color: var(--text-color);
+  border-bottom-left-radius: 4px;
+}
+
+.message.loading .message-content {
+  opacity: 0.6;
+  font-style: italic;
+}
+
+/* Chat Input */
+.chat-input-section {
+  display: flex;
+  gap: 8px;
+  padding: 12px;
+  border-top: 1px solid var(--border-color);
+  background: var(--bg-color);
+}
+
+.chat-input-section input {
+  flex: 1;
+  padding: 10px 12px;
+  border: 1px solid var(--border-color);
+  border-radius: 8px;
+  background: var(--bg-darker);
+  color: var(--text-color);
+  font-size: 13px;
+  outline: none;
+  transition: border-color 0.2s;
+}
+
+.chat-input-section input:focus {
+  border-color: var(--primary-color);
+}
+
+.chat-input-section button {
+  padding: 10px 16px;
+  background: var(--primary-color);
+  color: white;
+  border: none;
+  border-radius: 8px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.2s;
+}
+
+.chat-input-section button:hover:not(:disabled) {
+  background: var(--primary-hover);
+}
+
+.chat-input-section button:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+/* Scenes Section in Sidebar */
+.scene-category {
+  margin-bottom: 20px;
+}
+
+.scene-category-header {
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--text-color);
+  opacity: 0.7;
+  padding: 8px 4px;
+  border-bottom: 1px solid var(--border-color);
+  margin-bottom: 8px;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+.scene-list {
+  padding: 8px;
+}
+
+.scene-list-item {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 12px 14px;
+  border-radius: 8px;
+  cursor: pointer;
+  margin-bottom: 4px;
+  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+  border: 1px solid transparent;
+  font-size: 14px;
+  color: var(--text-color);
+}
+
+.scene-list-item:hover {
+  background-color: var(--hover-bg);
+  border-color: var(--border-color);
+}
+
+.scene-icon {
+  font-size: 18px;
+  flex-shrink: 0;
+}
+
+.scene-info {
+  flex: 1;
+  min-width: 0;
+}
+
+.scene-name {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--text-color);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.scene-category-label,
+.scene-objects {
+  font-size: 11px;
+  color: var(--text-color);
+  opacity: 0.6;
+  margin-top: 2px;
+}
+
+/* Mobile Optimization */
+@media (max-width: 768px) {
+  .unified-overlay-container.mobile {
+    width: 100vw !important;
+    height: calc(100vh - 44px) !important; /* Subtract status bar height */
+    border-radius: 0;
+    border: none;
+    max-height: calc(100vh - 44px);
+  }
+  .unified-overlay-main {
+    flex-direction: column;
+  }
+
+  .unified-overlay-sidebar {
+    width: 100%;
+    max-height: 45vh;
+    border-right: none;
+    border-bottom: 2px solid var(--border-color);
+    overflow-y: auto;
+  }
+  .unified-overlay-sidebar {
+    width: 100%;
+    max-height: 40vh;
+    border-right: none;
+    border-bottom: 1px solid var(--border-color);
+  }
+
+  .unified-overlay-main {
+    flex-direction: column;
+  }
+
+  .unified-overlay-header {
+    cursor: default;
+    -webkit-user-select: none;
+    user-select: none;
+    padding: 16px;
+    position: sticky;
+    top: 0;
+    z-index: 10;
+  }
+
+  .unified-overlay-controls button {
+    padding: 8px;
+    min-width: 44px;
+    min-height: 44px;
+  }
+
+  .tab-button {
+    flex: 1;
+    justify-content: center;
+    padding: 12px 8px;
+    font-size: 14px;
+  }
+
+  .unified-overlay-tabs {
+    position: sticky;
+    top: 57px;
+    z-index: 9;
+  }
+
+  .chat-list-section {
+    max-height: 35vh;
+  }
+
+  .chat-list-item,
+  .scene-list-item {
+    padding: 16px 14px;
+    min-height: 52px;
+    -webkit-tap-highlight-color: transparent;
+  }
+
+  .chat-input-section {
+    padding: 16px;
+    position: sticky;
+    bottom: 0;
+    background: var(--bg-color);
+    border-top: 2px solid var(--border-color);
+  }
+
+  .chat-input-section input {
+    font-size: 16px; /* Prevents zoom on iOS */
+    padding: 14px 16px;
+    border-radius: 10px;
+  }
+
+  .chat-input-section button {
+    padding: 14px 20px;
+    min-width: 64px;
+    border-radius: 10px;
+  }
+
+  .message-content {
+    font-size: 14px;
+    padding: 12px 16px;
+    border-radius: 16px;
+  }
+
+  .messages-section {
+    padding: 20px 16px;
+    padding-bottom: 80px; /* Space for input */
+  }
+
+  .scenes-section {
+    padding: 16px;
+  }
+
+  .scene-category {
+    margin-bottom: 24px;
+  }
+
+  .unified-overlay-minimized {
+    bottom: 20px;
+    right: 20px;
+    left: auto;
+    top: auto;
+    position: fixed;
+    padding: 14px 20px;
+    font-size: 15px;
+    box-shadow: 0 4px 16px rgba(0, 0, 0, 0.25);
+  }
+
+  /* Hide minimize button on mobile, use close instead */
+  .unified-overlay-controls button:first-child {
+    display: none;
+  }
+}
+
+/* Scrollbar Styling */
+.chat-list-section::-webkit-scrollbar,
+.messages-section::-webkit-scrollbar,
+.scenes-section::-webkit-scrollbar {
+  width: 6px;
+}
+
+.chat-list-section::-webkit-scrollbar-track,
+.messages-section::-webkit-scrollbar-track,
+.scenes-section::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.chat-list-section::-webkit-scrollbar-thumb,
+.messages-section::-webkit-scrollbar-thumb,
+.scenes-section::-webkit-scrollbar-thumb {
+  background: var(--border-color);
+  border-radius: 3px;
+}
+
+.chat-list-section::-webkit-scrollbar-thumb:hover,
+.messages-section::-webkit-scrollbar-thumb:hover,
+.scenes-section::-webkit-scrollbar-thumb:hover {
+  background: var(--text-color);
+  opacity: 0.5;
+}
+
+
+/* Integration Adjustments */
+.unified-overlay-container .chat-view-container {
+  height: auto !important;
+  flex: 1;
+}
+
+.unified-overlay-container .chat-sidebar {
+  width: 220px;
+}
+
+.unified-overlay-container .chat-sidebar.collapsed {
+  width: 0 !important;
+  min-width: 0 !important;
+  padding: 0 !important;
+  border: none !important;
+}
+
+
+
+/* Overlay Specific Component Overrides */
+
+/* Sidebar Adjustments */
+.unified-overlay-container .sidebar-header {
+  padding: 16px 12px;
+}
+
+.unified-overlay-container .new-chat-btn {
+  padding: 8px 12px;
+  font-size: 13px;
+  height: 36px;
+}
+
+.unified-overlay-container .sidebar-close-mobile {
+  display: flex !important;
+  width: 36px;
+  height: 36px;
+  padding: 0;
+  border-radius: 8px;
+}
+
+/* Welcome/Empty State Adjustments */
+.unified-overlay-container .chat-suggestions-grid {
+  grid-template-columns: 1fr;
+  gap: 10px;
+}
+
+.unified-overlay-container .suggestion-card {
+  padding: 12px;
+}
+
+.unified-overlay-container .suggestion-icon {
+  font-size: 20px;
+}
+
+.unified-overlay-container .suggestion-title {
+  font-size: 14px;
+}
+
+.unified-overlay-container .suggestion-description {
+  font-size: 12px;
+  line-height: 1.4;
+}
+
+.unified-overlay-container .chat-welcome-title {
+  font-size: 24px;
+}
+
+.unified-overlay-container .chat-welcome-subtitle {
+  font-size: 14px;
+}
+
+/* Chat content padding in overlay */
+.unified-overlay-container .chat-messages {
+  padding: 16px;
+}
+
+/* Make imported ChatView components transparent inside overlay */
+.unified-overlay-container .chat-view-container {
+  background-color: transparent;
+}
+
+.unified-overlay-container .chat-main {
+  background-color: transparent;
+}
+
+.unified-overlay-container .chat-sidebar {
+  background-color: transparent;
+}
+
+.unified-overlay-container .chat-header {
+  background-color: transparent;
+}
+
+.unified-overlay-container .chat-messages {
+  background-color: transparent;
+}
+
+.unified-overlay-container .chat-welcome {
+  background-color: transparent;
+}
+
+.unified-overlay-container .chat-input-container {
+  background-color: transparent;
+}
+
+.unified-overlay-container .sidebar-header {
+  background-color: transparent;
+}
+
+.unified-overlay-container .sidebar-content {
+  background-color: transparent;
+}
+
+.unified-overlay-container .sidebar-search input {
+  background-color: transparent;
+}
+
+.unified-overlay-container .chat-session-item {
+  background-color: transparent;
+}
+
+.unified-overlay-container .recent-chats-section {
+  background-color: transparent;
+}
+
+.unified-overlay-container .suggestion-card {
+  background-color: transparent;
+}
+
+.unified-overlay-container .chat-input-wrapper {
+  background-color: transparent;
+  border: 1px solid rgba(255, 255, 255, 0.15);
+}
+
+.unified-overlay-container .chat-send-button {
+  background-color: rgba(255, 255, 255, 0.2);
+}
+
+.unified-overlay-container .sidebar-toggle {
+  background-color: transparent;
+  background: transparent;
+  border-color: rgba(255, 255, 255, 0.15);
+}
+
+.unified-overlay-container .sidebar-toggle:hover {
+  background-color: rgba(255, 255, 255, 0.1);
+}
+
+.unified-overlay-container .chat-header-left {
+  background-color: transparent;
+}
+
+.unified-overlay-container .demo-button {
+  background: rgba(255, 255, 255, 0.15);
+}
+
+.unified-overlay-container .demo-button:hover {
+  background: rgba(255, 255, 255, 0.25);
+}
+
+.unified-overlay-container .new-chat-btn {
+  background-color: rgba(255, 255, 255, 0.15);
+  background: rgba(255, 255, 255, 0.15);
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  color: var(--text-color);
+}
+
+.unified-overlay-container .new-chat-btn svg {
+  color: var(--text-color);
+}
+
+.unified-overlay-container .new-chat-btn:hover {
+  background-color: rgba(255, 255, 255, 0.25);
+  background: rgba(255, 255, 255, 0.25);
+}
+
+/* Transparent scrollbar */
+.unified-overlay-container ::-webkit-scrollbar {
+  width: 6px;
+}
+
+.unified-overlay-container ::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.unified-overlay-container ::-webkit-scrollbar-thumb {
+  background: rgba(255, 255, 255, 0.2);
+  border-radius: 3px;
+}
+
+.unified-overlay-container ::-webkit-scrollbar-thumb:hover {
+  background: rgba(255, 255, 255, 0.3);
+}
+
+/* Remove borders that break transparency */
+.unified-overlay-container .chat-sidebar {
+  border-right: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.unified-overlay-container .chat-header {
+  border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.unified-overlay-container .sidebar-search input {
+  border: 1px solid rgba(255, 255, 255, 0.15);
+}
+
+.unified-overlay-container .chat-session-item {
+  border: none;
+}
+
+.unified-overlay-container .chat-input-footer {
+  background-color: transparent;
+}

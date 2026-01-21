@@ -43,6 +43,21 @@ export function PhysicsOverlay({ scene, isPlaying, simulationSpeed = 1, isOpen, 
     };
   });
 
+  // Calculate bounds for mobile to keep overlay above status bar
+  const getMobileBounds = () => {
+    const isMobile = window.innerWidth <= 768;
+    if (isMobile) {
+      const statusBarHeight = 44;
+      return {
+        left: 0,
+        top: 0,
+        right: window.innerWidth,
+        bottom: window.innerHeight - statusBarHeight
+      };
+    }
+    return 'window';
+  };
+
   const [size, setSize] = useState(() => {
     const isMobile = window.innerWidth <= 768;
     return { 
@@ -155,7 +170,7 @@ export function PhysicsOverlay({ scene, isPlaying, simulationSpeed = 1, isOpen, 
       }}
       minWidth={isMinimized ? 200 : 200}
       minHeight={isMinimized ? 28 : 100}
-      bounds="window"
+      bounds={getMobileBounds()}
       dragHandleClassName="engine-overlay-header"
       className={`engine-overlay ${isMinimized ? 'minimized' : ''} ${isFocused ? 'focused' : ''}`}
       onMouseDown={handleOverlayClick}

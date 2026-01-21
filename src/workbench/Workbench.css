@@ -617,7 +617,7 @@
 
 .engine-overlay-header {
   height: 28px;
-  background: var(--secondary-bg);
+  background: transparent;
   border-bottom: 1px solid var(--border-color);
   display: flex;
   align-items: center;

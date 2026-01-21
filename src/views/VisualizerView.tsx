@@ -4,6 +4,7 @@ import { faSpinner, faExclamationTriangle } from '@fortawesome/free-solid-svg-ic
 import Visualizer from '../ui-logic/visualizer/Visualizer';
 import { useDatabase, SceneData } from '../contexts/DatabaseContext';
 import { useWorkspace, useWorkspaceScene, useWorkspaceChat, useWorkspaceSettings } from '../contexts/WorkspaceContext';
+import { useSimulation } from '../contexts/SimulationContext';
 import './VisualizerView.css';
 
 interface AIMessage {

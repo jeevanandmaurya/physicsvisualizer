@@ -9,7 +9,7 @@
 
 .chat-overlay-container {
   position: absolute;
-  background: rgba(255, 255, 255, var(--chat-bg-opacity, 0.9));
+  background: rgba(255, 255, 255, var(--chat-bg-opacity, 0.5));
   border: 1px solid var(--border-color);
   border-radius: 8px;
   box-shadow: 0 4px 16px rgba(0, 0, 0, 0.15);
@@ -29,7 +29,7 @@
 }
 
 .dark .chat-overlay-container {
-  background: rgba(18, 18, 18, var(--chat-bg-opacity, 0.9));
+  background: rgba(18, 18, 18, var(--chat-bg-opacity, 0.5));
   border-color: rgba(255, 255, 255, 0.1);
 }
 
@@ -353,7 +353,7 @@
   align-items: center;
   justify-content: space-between;
   padding: 2px 6px;
-  background: rgba(26, 26, 26, 0.7);
+  background: transparent;
   border-bottom: 1px solid rgba(255,255,255,0.06);
   cursor: grab;
   user-select: none;
@@ -725,4 +725,21 @@
 
 .dark .message-text em {
   color: #bdc3c7;
+}
+
+/* Make inner elements transparent - only container has controlled bg */
+.chat-overlay-container .chat-overlay-content {
+  background: transparent;
+}
+
+.chat-overlay-container .chat-container {
+  background: transparent;
+}
+
+.chat-overlay-container .chat-messages {
+  background: transparent;
+}
+
+.chat-overlay-container .chat-input-wrapper {
+  background: transparent;
 }

@@ -3,13 +3,42 @@ import GeminiAIManager from '../../core/ai/gemini';
 import ScenePatcher from '../../core/scene/patcher';
 import { useWorkspace } from '../../contexts/WorkspaceContext';
 
-interface Message {
+export interface MediaContent {
+  type: 'simulation' | 'image' | 'video' | 'svg' | 'pdf' | 'iframe' | 'animation';
+  src?: string;
+  sceneId?: string;
+  title?: string;
+  description?: string;
+  autoPlay?: boolean;
+  thumbnail?: string;
+  metadata?: {
+    duration?: number;
+    objectCount?: number;
+    dimensions?: { width: number; height: number };
+    fileSize?: string;
+    [key: string]: any;
+  };
+}
+
+export interface Message {
   id: number;
   text: string;
   isUser: boolean;
   timestamp: Date;
   sceneId?: string;
   aiMetadata?: any;
+  mediaContent?: MediaContent;
+  sceneMetadata?: {
+    hasSceneGeneration: boolean;
+    sceneId: string;
+    sceneAction: 'create' | 'modify' | 'none';
+    sceneSummary: {
+      name: string;
+      objectCount: number;
+      objectTypes: string[];
+      thumbnailUrl?: string;
+    };
+  };
 }
 
 // Pure backend hook for chat functionality
@@ -39,22 +68,42 @@ export function useConversation({
   const [isLoading, setIsLoading] = useState(false);
   const aiManager = useRef(new GeminiAIManager());
   const scenePatcher = useRef(new ScenePatcher());
+  const abortControllerRef = useRef<AbortController | null>(null);
+
+  // Reset loading state and abort ongoing requests when chatId changes (switching between chats)
+  useEffect(() => {
+    // Abort any ongoing AI request from the previous chat
+    if (abortControllerRef.current) {
+      console.log('🛑 Chat switch - aborting request');
+      abortControllerRef.current.abort();
+      abortControllerRef.current = null;
+    }
+    setIsLoading(false);
+    
+    // Cleanup on unmount
+    return () => {
+      if (abortControllerRef.current) {
+        console.log('🛑 Unmounting - aborting request');
+        abortControllerRef.current.abort();
+        abortControllerRef.current = null;
+      }
+    };
+  }, [chatId]);
 
   // Sync with workspace messages whenever they change
+  const prevWorkspaceMessagesRef = useRef<Message[]>([]);
+  
   useEffect(() => {
+    // Only sync if workspaceMessages reference actually changed
+    if (workspaceMessages === prevWorkspaceMessagesRef.current) {
+      return;
+    }
+    prevWorkspaceMessagesRef.current = workspaceMessages;
+    
     if (workspaceMessages && workspaceMessages.length > 0) {
-      // Check if we need to update internal messages
-      // We use a simple length and last message ID check to avoid infinite loops
-      const lastWorkspaceMsg = workspaceMessages[workspaceMessages.length - 1];
-      const lastInternalMsg = messages[messages.length - 1];
-      
-      const needsUpdate = workspaceMessages.length !== messages.length || 
-                         (lastWorkspaceMsg && lastInternalMsg && lastWorkspaceMsg.id !== lastInternalMsg.id.toString());
-      
-      if (needsUpdate) {
-        console.log(`🔄 Syncing useConversation messages with workspace (${workspaceMessages.length} msgs)`);
-        // Convert workspace messages to internal format if needed
-        const formattedMessages = workspaceMessages.map(msg => ({
+      // Convert workspace messages to internal format if needed
+      const formattedMessages = workspaceMessages.map(msg => {
+        const baseMsg = {
           id: typeof msg.id === 'string' ? parseInt(msg.id) || Date.now() : msg.id,
           text: msg.content || (msg as any).text || '',
           isUser: !!msg.isUser,
@@ -62,14 +111,40 @@ export function useConversation({
           sceneId: msg.sceneId,
           aiMetadata: msg.aiMetadata,
           sceneMetadata: (msg as any).sceneMetadata
-        }));
-        setMessages(formattedMessages as any);
-      }
-    } else if (workspaceMessages.length === 0 && messages.length > 0) {
+        };
+
+        // Migrate old messages with raw JSON content
+        if (!baseMsg.sceneMetadata && !baseMsg.isUser) {
+          try {
+            const parsed = JSON.parse(baseMsg.text);
+            if (parsed.type === 'create_scene' && parsed.scene && parsed.scene.objects) {
+              const scene = parsed.scene;
+              baseMsg.text = parsed.message || baseMsg.text;
+              baseMsg.sceneMetadata = {
+                hasSceneGeneration: true,
+                sceneId: scene.id || 'unknown',
+                sceneAction: 'create',
+                sceneSummary: {
+                  name: scene.name || 'Untitled Scene',
+                  objectCount: (scene.objects || []).length,
+                  objectTypes: Array.from(new Set((scene.objects || []).map((obj: any) => obj.type).filter(Boolean)))
+                },
+                sceneData: scene // Include the scene data
+              };
+            }
+          } catch (e) {
+            // Not JSON, keep as-is
+          }
+        }
+
+        return baseMsg;
+      });
+      setMessages(formattedMessages as any);
+    } else if (workspaceMessages.length === 0) {
       // If workspace is cleared, clear internal state too
       setMessages([]);
     }
-  }, [workspaceMessages, messages.length]);
+  }, [workspaceMessages]);
 
   // REMOVED: Don't sync messages back - causes infinite loops
   // Parent components handle persistence through addMessage
@@ -171,7 +246,48 @@ export function useConversation({
 
       loadConversation().then(existingConversation => {
         if (existingConversation && existingConversation.length > 0) {
-          setMessages(existingConversation);
+          // Migrate old messages that have raw JSON in content instead of sceneMetadata
+          const migratedMessages = existingConversation.map(msg => {
+            // Skip if already has sceneMetadata or is user message
+            if ((msg as any).sceneMetadata || msg.isUser) {
+              return msg;
+            }
+
+            // Try to parse content as JSON to extract scene data
+            const content = (msg as any).content || (msg as any).text || '';
+            try {
+              const parsed = JSON.parse(content);
+              
+              // Check if this is a create_scene response
+              if (parsed.type === 'create_scene' && parsed.scene && parsed.scene.objects) {
+                const scene = parsed.scene;
+                const objectCount = (scene.objects || []).length;
+                
+                return {
+                  ...msg,
+                  text: parsed.message || content, // Use the message field, not the full JSON
+                  content: parsed.message || content,
+                  sceneMetadata: {
+                    hasSceneGeneration: true,
+                    sceneId: scene.id || 'unknown',
+                    sceneAction: 'create' as const,
+                    sceneSummary: {
+                      name: scene.name || 'Untitled Scene',
+                      objectCount: objectCount,
+                      objectTypes: Array.from(new Set((scene.objects || []).map((obj: any) => obj.type).filter(Boolean)))
+                    },
+                    sceneData: scene // Include the scene data
+                  }
+                };
+              }
+            } catch (e) {
+              // Not JSON or parse failed, return as-is
+            }
+            
+            return msg;
+          });
+
+          setMessages(migratedMessages);
           prevSceneIdRef.current = currentScene?.id;
           prevChatIdRef.current = chatId;
           return;
@@ -179,7 +295,7 @@ export function useConversation({
 
         // No existing conversation found in database, use workspace messages
         if (workspaceMessages && workspaceMessages.length > 0) {
-          console.log(`📚 Loaded ${workspaceMessages.length} existing messages from workspace for chatId ${chatId}`);
+          // Messages loaded from workspace
           setMessages(workspaceMessages);
           prevSceneIdRef.current = currentScene?.id;
           prevChatIdRef.current = chatId;
@@ -187,7 +303,6 @@ export function useConversation({
         }
 
         // No existing conversation found, start fresh
-        console.log(`🆕 Starting fresh conversation for chatId ${chatId}, scene ${currentScene?.id}`);
         const newMessages = initialMessage ? [{
           id: Date.now(),
           text: initialMessage,
@@ -211,10 +326,7 @@ export function useConversation({
     let currentChatId = chatId;
     if (currentScene && currentScene.id && !currentChatId && dataManager) {
       try {
-        console.log('🆕 First interaction with scene, creating chat...');
         currentChatId = await dataManager.getOrCreateChatForScene(currentScene.id, currentScene.name);
-        console.log('✅ Created new chat:', currentChatId);
-
         // Link the scene to the new chat
         linkSceneToChat(currentScene.id, currentChatId);
       } catch (error) {
@@ -245,6 +357,10 @@ export function useConversation({
     }
 
     setIsLoading(true);
+
+    // Create new AbortController for this request
+    abortControllerRef.current = new AbortController();
+    const signal = abortControllerRef.current.signal;
 
     try {
       const chatContext = {
@@ -282,14 +398,17 @@ export function useConversation({
         sceneContext
       );
 
+      // Check if request was aborted while waiting for AI response
+      if (signal.aborted) {
+        console.log('🛑 Request aborted');
+        return false;
+      }
+
         let sceneUpdateError = null;
         let generatedSceneId = null;
 
         // OPTION 1: Replace entire scene (updatedScene exists)
         if (aiResponse.updatedScene) {
-          console.log('🔄 New scene generated');
-          console.log('📊 Updated scene objects:', aiResponse.updatedScene.objects?.length || 0, 'objects');
-
           try {
             // Determine if this is truly a NEW scene or an update to existing
             const isNewScene = !currentScene || 
@@ -298,17 +417,13 @@ export function useConversation({
             
             if (isNewScene) {
               // ADD new scene to workspace
-              console.log('➕ Adding NEW scene to workspace:', aiResponse.updatedScene.name);
               addScene(aiResponse.updatedScene, shouldSwitchScene);
               generatedSceneId = aiResponse.updatedScene.id;
             } else {
               // UPDATE existing scene by ID (not necessarily current)
-              console.log('🔄 Updating scene by ID:', currentScene.id);
               updateSceneById(currentScene.id, aiResponse.updatedScene);
               generatedSceneId = currentScene.id;
             }
-            
-            console.log('✅ Scene operation completed successfully');
 
             // Link scene to chat if available
             if (chatId && generatedSceneId) {
@@ -322,21 +437,16 @@ export function useConversation({
         }
         // OPTION 2: Patch existing scene (sceneModifications array)
         else if (aiResponse.sceneModifications && aiResponse.sceneModifications.length > 0) {
-          console.log('🔧 AI Scene Modification Detected');
-          console.log('Applying', aiResponse.sceneModifications.length, 'modifications');
-
           generatedSceneId = currentScene?.id;
 
           if (chatId && generatedSceneId) {
             linkSceneToChat(generatedSceneId, chatId);
-            console.log(`🔗 Linked scene ${generatedSceneId} to chat ${chatId}`);
           }
 
           try {
             const patchResult = scenePatcher.current.applyPatches(currentScene, aiResponse.sceneModifications);
 
             if (patchResult.success) {
-              console.log(`✅ Successfully applied ${patchResult.appliedPatches}/${patchResult.totalPatches} patches`);
               if (currentScene?.id) {
                 updateSceneById(currentScene.id, patchResult.scene);
               } else {
@@ -350,8 +460,6 @@ export function useConversation({
             console.error('❌ Exception applying scene patches:', error);
             sceneUpdateError = `⚠️ I tried to modify the scene, but encountered an unexpected error.`;
           }
-        } else {
-          console.log('💬 No scene modifications detected in AI response');
         }
 
       // Determine if scene was generated/modified
@@ -405,11 +513,9 @@ export function useConversation({
               objectCount: estimatedObjectCount,
               objectTypes: objectTypes,
               thumbnailUrl: scene.thumbnailUrl || undefined
-            }
+            },
+            sceneData: scene // Include the full scene data to avoid async loading
           };
-          console.log('📋 Scene metadata created:', sceneMetadata);
-        } else {
-          console.log('⏭️ Skipping metadata creation for empty scene (0 objects)');
         }
         }
       }
@@ -421,6 +527,7 @@ export function useConversation({
         timestamp: new Date(),
         sceneId: currentScene?.id,
         aiMetadata: aiResponse.metadata,
+        tokenUsage: (aiResponse as any).usage,
         sceneMetadata
       };
 
@@ -436,12 +543,19 @@ export function useConversation({
           timestamp: aiMessage.timestamp?.getTime() || Date.now(),
           sceneId: aiMessage.sceneId,
           aiMetadata: aiMessage.aiMetadata,
+          tokenUsage: aiMessage.tokenUsage,
           sceneMetadata
         });
       }
 
       return true;
     } catch (error) {
+      // Check if error is due to abort
+      if (error instanceof Error && error.name === 'AbortError') {
+        // Silently handle abort
+        return false;
+      }
+      
       console.error('AI Error:', error);
 
       const fallbackMessage = {
@@ -469,6 +583,8 @@ export function useConversation({
       return false;
     } finally {
       setIsLoading(false);
+      // Clear abort controller after request completes
+      abortControllerRef.current = null;
     }
   };
 

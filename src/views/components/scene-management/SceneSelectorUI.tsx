@@ -2,7 +2,6 @@ import React, { useState, useEffect } from 'react';
 import { Rnd } from 'react-rnd';
 import { useDatabase } from '../../../contexts/DatabaseContext';
 import { useWorkspace } from '../../../contexts/WorkspaceContext';
-import { useTheme } from '../../../contexts/ThemeContext';
 import { useOverlay } from '../../../contexts/OverlayContext';
 import { useSceneSelector } from '../../../ui-logic/scene-management/useSceneSelector';
 import './SceneSelector.css';
@@ -33,7 +32,6 @@ function SceneSelectorUI({
     const dataManager = useDatabase();
     const GEMINI_API_KEY = import.meta.env.VITE_GEMINI_API_KEY;
     const { setCurrentScene: setWorkspaceCurrentScene } = useWorkspace(); // Get workspace scene switching function
-    const { overlayOpacity } = useTheme();
     const { 
         registerOverlay, 
         unregisterOverlay, 
@@ -329,7 +327,6 @@ function SceneSelectorUI({
                 dragHandleClassName="engine-overlay-header"
                 className={`engine-overlay ${isFocused ? 'focused' : ''} ${isMinimized ? 'minimized' : ''}`}
                 style={{
-                    '--overlay-opacity': overlayOpacity.sceneSelector,
                     zIndex: zIndex,
                     pointerEvents: 'auto'
                 } as React.CSSProperties}

@@ -5,7 +5,7 @@ import SceneSelectorUI from '../views/components/scene-management/SceneSelectorU
 import SceneDetailsUI from '../views/components/scene-management/SceneDetailsUI';
 
 const SidePanel = ({ showSceneDetails = false, onToggleSceneDetails, onClosePanel, onToggleMaximize, isMaximized = false }) => {
-  const { setCurrentView, workspaceScenes, clearScenes } = useWorkspace();
+  const { workspaceScenes, clearScenes } = useWorkspace();
   const { scene, replaceCurrentScene } = useWorkspaceScene();
   const { messages, addMessage } = useWorkspaceChat();
   const dataManager = useDatabase();

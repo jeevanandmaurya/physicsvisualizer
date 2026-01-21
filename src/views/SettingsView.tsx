@@ -1,6 +1,6 @@
 import { useTheme, OverlayOpacitySettings } from '../contexts/ThemeContext';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
-import { faSun, faMoon, faComments, faChartLine, faSliders, faList, faBars, faTachometerAlt } from '@fortawesome/free-solid-svg-icons';
+import { faSun, faMoon, faComments, faChartLine, faSliders, faTachometerAlt } from '@fortawesome/free-solid-svg-icons';
 import './SettingsView.css';
 
 function SettingsView() {
@@ -86,38 +86,6 @@ function SettingsView() {
                   }}
                 />
                 <span className="opacity-value">{Math.round(overlayOpacity.controller * 100)}%</span>
-              </div>
-
-              <div className="opacity-control">
-                <label><FontAwesomeIcon icon={faList} /> Scenes</label>
-                <input
-                  type="range"
-                  min="0"
-                  max="1"
-                  step="0.05"
-                  value={overlayOpacity.sceneSelector}
-                  onChange={(e) => handleOpacityChange('sceneSelector', e.target.value)}
-                  style={{
-                    background: `linear-gradient(to right, var(--primary-color) 0%, var(--primary-color) ${overlayOpacity.sceneSelector * 100}%, var(--border-color) ${overlayOpacity.sceneSelector * 100}%, var(--border-color) 100%)`
-                  }}
-                />
-                <span className="opacity-value">{Math.round(overlayOpacity.sceneSelector * 100)}%</span>
-              </div>
-
-              <div className="opacity-control">
-                <label><FontAwesomeIcon icon={faBars} /> Sidebar</label>
-                <input
-                  type="range"
-                  min="0"
-                  max="1"
-                  step="0.05"
-                  value={overlayOpacity.activityBar}
-                  onChange={(e) => handleOpacityChange('activityBar', e.target.value)}
-                  style={{
-                    background: `linear-gradient(to right, var(--primary-color) 0%, var(--primary-color) ${overlayOpacity.activityBar * 100}%, var(--border-color) ${overlayOpacity.activityBar * 100}%, var(--border-color) 100%)`
-                  }}
-                />
-                <span className="opacity-value">{Math.round(overlayOpacity.activityBar * 100)}%</span>
               </div>
 
               <div className="opacity-control">

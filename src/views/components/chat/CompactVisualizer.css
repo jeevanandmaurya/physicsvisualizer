@@ -1,0 +1,60 @@
+.compact-visualizer-wrapper {
+  position: relative;
+  width: 100%;
+  height: 200px;
+  overflow: hidden;
+  border-radius: 8px;
+  background: var(--card-bg);
+}
+
+.compact-visualizer-container {
+  width: 100%;
+  height: 100%;
+  position: relative;
+}
+
+/* Hide full-size controls in compact mode */
+.compact-visualizer-container .visualizer-controls-top-right {
+  display: none !important;
+}
+
+/* Hide scene details panel */
+.compact-visualizer-container .scene-details-panel {
+  display: none !important;
+}
+
+/* Make sure canvas fills compact container */
+.compact-visualizer-container .visualizer-container {
+  width: 100% !important;
+  height: 100% !important;
+}
+
+.compact-visualizer-container .main-content {
+  width: 100% !important;
+  height: 100% !important;
+}
+
+/* Hide graphs in compact mode */
+.compact-visualizer-container .overlay-graph {
+  display: none !important;
+}
+
+/* Hide stats in compact mode */
+.compact-visualizer-container .stats-panel {
+  display: none !important;
+}
+
+/* Error state */
+.compact-visualizer-error {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  height: 100%;
+  color: var(--text-color);
+  opacity: 0.6;
+}
+
+.compact-visualizer-error p {
+  margin: 0;
+  font-size: 13px;
+}
