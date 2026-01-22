@@ -1,66 +1,49 @@
 import { useState, useEffect, useCallback } from 'react';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
-import { faPlus, faFolderOpen, faCompass, faClockRotateLeft, faSpinner, faComments } from '@fortawesome/free-solid-svg-icons';
+import { faPlus, faCompass, faComments, faArrowRight } from '@fortawesome/free-solid-svg-icons';
 
 import logo from '../assets/physicsvisualizer.svg';
 
-import { useDatabase, SceneData } from '../contexts/DatabaseContext';
+import { useDatabase } from '../contexts/DatabaseContext';
 import { useWorkspace, useWorkspaceScene } from '../contexts/WorkspaceContext';
 import { useNavigation } from '../contexts/NavigationContext';
+import { useSceneCache } from '../contexts/SceneCacheContext';
+import { InfiniteSceneGrid } from './components/explore/InfiniteSceneGrid';
+import './DashboardView.css';
 
 function DashboardView() {
     const { setCurrentView } = useNavigation();
     const { updateScene } = useWorkspaceScene();
     const { addChatSession, setChatOverlayCurrentChat } = useWorkspace();
+    const { 
+        exampleScenes, userScenes, recentScenes, 
+        loadExampleScenes, loadUserScenes, loadRecentScenes,
+        loading,
+        dataLoaded,
+        exampleDisplayCount, userDisplayCount,
+        incrementExampleDisplayCount, incrementUserDisplayCount
+    } = useSceneCache();
     
     const dataManager = useDatabase();
-
-    const [recentScenes, setRecentScenes] = useState<SceneData[]>([]);
-    const [yourScenes, setYourScenes] = useState<SceneData[]>([]);
-    const [exampleScenes, setExampleScenes] = useState<SceneData[]>([]);
-    const [loading, setLoading] = useState(true); // Show loading while fetching scene data (now much faster!)
 
     // Helper to generate a default new scene
     const createNewScene = useCallback(() => ({
         id: `new-${Date.now()}`,
         name: 'New Scene',
         description: 'A new physics simulation.',
-        isTemporary: true, // Flag to indicate it's not saved yet
+        isTemporary: true,
         gravity: [0, -9.81, 0],
-        hasGround: true, // GroundPlane component handles ground rendering
+        hasGround: true,
         simulationScale: 'terrestrial',
         gravitationalPhysics: { enabled: false },
-        objects: [] // No default ground box - GroundPlane handles ground
+        objects: []
     }), []);
 
     useEffect(() => {
-        if (!dataManager) return;
-
-        const loadData = async () => {
-            try {
-                // Load recent scenes
-                const recentScenesData = dataManager.getRecentScenes();
-                setRecentScenes(recentScenesData || []);
-
-                // Load user scenes
-                const userScenesData = await dataManager.getScenes('user', {
-                    limitTo: 3,
-                    orderBy: { field: 'updatedAt', direction: 'desc' }
-                });
-                setYourScenes(userScenesData || []);
-
-                // Load example scenes
-                const exampleScenesData = await dataManager.getScenes('examples', { limitTo: 3 });
-                setExampleScenes(exampleScenesData || []);
-            } catch (error) {
-                console.error('Error loading dashboard data:', error);
-            } finally {
-                setLoading(false);
-            }
-        };
-
-        loadData();
-    }, [dataManager]);
+        loadRecentScenes();
+        loadUserScenes();
+        loadExampleScenes();
+    }, [loadRecentScenes, loadUserScenes, loadExampleScenes]);
 
     const handleCreateNewScene = useCallback(async () => {
         if (!dataManager) return;
@@ -68,14 +51,12 @@ function DashboardView() {
         try {
             const savedId = await dataManager.saveScene(newScene);
             newScene.id = savedId;
-            newScene.isTemporary = false; // Mark as saved
+            newScene.isTemporary = false;
 
             // Create a new chat session for this scene
             const newChat = addChatSession();
             if (newChat) {
-                // Link the chat to the scene in IndexedDB
                 await dataManager.getOrCreateChatForScene(savedId, newScene.name || 'New Scene');
-                // Set it as the current chat for the overlay (visualizer view)
                 setChatOverlayCurrentChat(newChat.id);
             }
 
@@ -83,7 +64,6 @@ function DashboardView() {
             setCurrentView('visualizer');
         } catch (error) {
             console.error('Error saving new scene:', error);
-            // Fallback to temporary scene
             updateScene(newScene);
             setCurrentView('visualizer');
         }
@@ -108,115 +88,84 @@ function DashboardView() {
         setCurrentView('collection');
     }, [setCurrentView]);
 
-    if (loading) {
-        return (
-            <div className="welcome-container">
-                <div className="welcome-loading">
-                    <FontAwesomeIcon icon={faSpinner} spin size="2x" />
-                    <p>Loading...</p>
-                </div>
-            </div>
-        );
-    }
+    const handleCardClick = (sceneId: string, isPublic: boolean) => {
+        handleOpenScene(sceneId);
+    };
 
     return (
-        <div className="welcome-container">
-            <div className="welcome-content">
-                <div className="welcome-header">
-                    <h3 className="welcome-title">Welcome to</h3>
-                    <div style={{ textAlign: 'center' }}>
-                        <img
-                            src={logo}
-                            alt="Physics Visualizer Logo"
-                            className="dashboard-logo"
-                        />
-                    </div>
-                    <p className="welcome-subtitle">Create, explore, and learn with interactive physics simulations</p>
+        <div className="dashboard-container">
+            {/* Hero Section */}
+            <section className="dashboard-hero">
+                <img src={logo} alt="Physics Visualizer" className="dashboard-logo" />
+                <p className="dashboard-subtitle">
+                    Build, simulate, and explore interactive physics worlds in real-time.
+                </p>
+                <div className="hero-actions">
+                    <button className="action-btn primary" onClick={handleCreateNewScene}>
+                        <FontAwesomeIcon icon={faPlus} />
+                        Create New Scene
+                    </button>
+                    <button className="action-btn secondary" onClick={() => setCurrentView('chat')}>
+                        <FontAwesomeIcon icon={faComments} />
+                        Physics AI Chat
+                    </button>
+                    <button className="action-btn secondary" onClick={handleViewCollection}>
+                        <FontAwesomeIcon icon={faCompass} />
+                        Explore Library
+                    </button>
                 </div>
+            </section>
 
-                <div className="welcome-actions">
-                    <div className="action-group full-width">
-                        <div className="action-cards">
-                            <div className="action-card" onClick={handleCreateNewScene}>
-                                <div className="action-card-content">
-                                    <h3>
-                                        <FontAwesomeIcon icon={faPlus} className="card-title-icon" />
-                                        New Scene
-                                    </h3>
-                                    <p>Create a blank physics simulation</p>
-                                </div>
-                            </div>
-                            
-                            <div className="action-card" onClick={() => setCurrentView('chat')}>
-                                <div className="action-card-content">
-                                    <h3>
-                                        <FontAwesomeIcon icon={faComments} className="card-title-icon" />
-                                        New Chat
-                                    </h3>
-                                    <p>Interact with Physics AI Agent</p>
-                                </div>
-                            </div>
-
-                            <div className="action-card" onClick={handleViewCollection}>
-                                <div className="action-card-content">
-                                    <h3>
-                                        <FontAwesomeIcon icon={faCompass} className="card-title-icon" />
-                                        Explore Examples
-                                    </h3>
-                                    <p>Browse pre-built simulations</p>
-                                </div>
-                            </div>
+            {/* Recent / Your Scenes */}
+            <section className="dashboard-section">
+                <div className="section-header">
+                    <h2 className="section-title">Your Recent Scenes</h2>
+                    <div className="view-all-link" onClick={handleViewCollection}>
+                        View All <FontAwesomeIcon icon={faArrowRight} />
+                    </div>
+                </div>
+                
+                <InfiniteSceneGrid
+                    scenes={userScenes}
+                    loading={loading.user}
+                    dataLoaded={dataLoaded.user}
+                    displayCount={userDisplayCount}
+                    onLoadMore={incrementUserDisplayCount}
+                    isPublic={false}
+                    onSceneClick={handleCardClick}
+                    emptyMessage={
+                        <div className="empty-state" style={{ gridColumn: '1 / -1', textAlign: 'center', padding: '2rem' }}>
+                            <p>You haven't created any scenes yet.</p>
+                            <button className="action-btn secondary" onClick={handleCreateNewScene} style={{ marginTop: '10px' }}>
+                                Start Creating
+                            </button>
                         </div>
-                    </div>
+                    }
+                    skeletonsCount={4}
+                />
+            </section>
 
-                    <div className="welcome-secondary-actions">
-                        {recentScenes.length > 0 && (
-                            <div className="action-group">
-                                <h2 className="action-group-title">Recent</h2>
-                                <div className="recent-list">
-                                    {recentScenes.slice(0, 5).map(scene => (
-                                        <div
-                                            key={scene.id}
-                                            className="recent-item"
-                                            onClick={() => scene.id && handleOpenScene(scene.id)}
-                                        >
-                                            <FontAwesomeIcon icon={faClockRotateLeft} className="recent-icon" />
-                                            <span className="recent-name">{scene.name || 'Untitled Scene'}</span>
-                                        </div>
-                                    ))}
-                                </div>
-                            </div>
-                        )}
-
-                        {yourScenes.length > 0 && (
-                            <div className="action-group">
-                                <h2 className="action-group-title">Your Scenes</h2>
-                                <div className="recent-list">
-                                    {yourScenes.map(scene => (
-                                        <div
-                                            key={scene.id}
-                                            className="recent-item"
-                                            onClick={() => scene.id && handleOpenScene(scene.id)}
-                                        >
-                                            <FontAwesomeIcon icon={faFolderOpen} className="recent-icon" />
-                                            <span className="recent-name">{scene.name || 'Untitled Scene'}</span>
-                                            <span className="recent-date">
-                                                {new Date(scene.updatedAt || 0).toLocaleDateString()}
-                                            </span>
-                                        </div>
-                                    ))}
-                                    {yourScenes.length >= 3 && (
-                                        <div className="recent-item more" onClick={handleViewCollection}>
-                                            <FontAwesomeIcon icon={faCompass} className="recent-icon" />
-                                            <span className="recent-name">View all scenes...</span>
-                                        </div>
-                                    )}
-                                </div>
-                            </div>
-                        )}
+            {/* Featured Examples */}
+            <section className="dashboard-section">
+                <div className="section-header">
+                    <h2 className="section-title">Featured Examples</h2>
+                    <div className="view-all-link" onClick={handleViewCollection}>
+                        Explore All <FontAwesomeIcon icon={faArrowRight} />
                     </div>
                 </div>
-            </div>
+
+                <InfiniteSceneGrid
+                    scenes={exampleScenes}
+                    loading={loading.examples}
+                    dataLoaded={dataLoaded.examples}
+                    displayCount={exampleDisplayCount}
+                    onLoadMore={incrementExampleDisplayCount}
+                    isPublic={true}
+                    onSceneClick={handleCardClick}
+                    emptyMessage="No examples available at the moment."
+                    skeletonsCount={4}
+                />
+            </section>
         </div>
     );
 }

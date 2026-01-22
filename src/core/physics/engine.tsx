@@ -220,6 +220,17 @@ export function PhysicsWorld({ scene, isPlaying, onPhysicsDataCalculated, resetT
     // Patch scene: ensure bodies referenced by joints/constraints exist
     // Only patch once per scene objects array to avoid re-patching every render
     const patchedScenes = React.useRef(new WeakSet());
+    
+    // Clear patchedScenes when scene ID changes to handle scene switches properly
+    const prevSceneId = React.useRef(scene?.id);
+    React.useEffect(() => {
+        if (scene?.id !== prevSceneId.current) {
+            console.log('PhysicsWorld: Scene changed from', prevSceneId.current, 'to', scene?.id);
+            patchedScenes.current = new WeakSet();
+            prevSceneId.current = scene?.id;
+        }
+    }, [scene?.id]);
+    
     React.useEffect(() => {
         if (!scene) return;
         scene.objects = scene.objects || [];
@@ -291,6 +302,13 @@ export function PhysicsWorld({ scene, isPlaying, onPhysicsDataCalculated, resetT
             bodyRefs.current = {}; // Clear body refs on physics reset
         }
     }, [resetTrigger]);
+
+    // Also reset physics when scene ID changes (handles scene switches)
+    React.useEffect(() => {
+        console.log('PhysicsWorld: Scene ID changed to', scene?.id, '- resetting physics');
+        setPhysicsResetKey(prev => prev + 1);
+        bodyRefs.current = {}; // Clear body refs on scene change
+    }, [scene?.id]);
 
     const effectiveGravity = scene?.gravity || [0, -9.81, 0];
 

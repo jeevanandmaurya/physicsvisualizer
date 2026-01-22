@@ -60,11 +60,9 @@ const SidePanel = ({ showSceneDetails = false, onToggleSceneDetails, onClosePane
   const handleSceneChange = useCallback((newScene) => {
     console.log('Changing scene to:', newScene);
 
-    // If this is a new scene (not from saved scenes), clear workspace scenes
-    if (newScene.id.startsWith('new-scene-')) {
-      clearScenes(); // Clear all workspace scenes
-      console.log('Cleared workspace scenes for new scene');
-    }
+    // ALWAYS clear existing scenes before loading a new one to prevent scene mixing
+    clearScenes();
+    console.log('Cleared workspace scenes before loading new scene');
 
     replaceCurrentScene(newScene);
   }, [replaceCurrentScene, clearScenes]);

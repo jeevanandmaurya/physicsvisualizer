@@ -53,7 +53,8 @@ function VisualizerView() {
     createWorkspace: _createWorkspace, 
     loadWorkspace: _loadWorkspace, 
     saveWorkspace: _saveWorkspace, 
-    updateWorkspace: _updateWorkspace
+    updateWorkspace: _updateWorkspace,
+    clearScenes
   } = useWorkspace();
   const { scene: workspaceScene, updateScene: updateWorkspaceScene, scenes: _workspaceScenes } = useWorkspaceScene();
   const { messages: workspaceMessages, addMessage: addWorkspaceMessage } = useWorkspaceChat();
@@ -80,9 +81,12 @@ function VisualizerView() {
   }, [updateWorkspaceScene]);
 
   const handleSceneChange = useCallback((newScene) => {
+    // Clear existing scenes before loading new one to prevent scene mixing
+    clearScenes();
+    console.log('VisualizerView: Cleared scenes before loading new scene');
     // Update workspace with new scene
     updateWorkspaceScene(newScene);
-  }, [updateWorkspaceScene]);
+  }, [updateWorkspaceScene, clearScenes]);
 
   const handleSaveScene = useCallback(async (sceneToSave: SceneData | null = null) => {
     const targetScene = sceneToSave || scene;

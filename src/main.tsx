@@ -7,6 +7,7 @@ import { SimulationProvider } from './contexts/SimulationContext';
 import { NavigationProvider } from './contexts/NavigationContext';
 import { ThemeProvider } from './contexts/ThemeContext';
 import { OverlayProvider } from './contexts/OverlayContext';
+import { SceneCacheProvider } from './contexts/SceneCacheContext';
 import App from './App.tsx';
 
 createRoot(document.getElementById('root')).render(
@@ -17,7 +18,9 @@ createRoot(document.getElementById('root')).render(
           <WorkspaceProvider>
             <SimulationProvider>
               <NavigationProvider>
-                <App />
+                <SceneCacheProvider>
+                  <App />
+                </SceneCacheProvider>
               </NavigationProvider>
             </SimulationProvider>
           </WorkspaceProvider>

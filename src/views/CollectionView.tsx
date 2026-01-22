@@ -1,67 +1,13 @@
-import React, { useState, useEffect, useCallback, useMemo } from 'react';
+import React, { useState, useEffect, useCallback, useMemo, useRef } from 'react';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { faUserCircle, faSignInAlt, faSignOutAlt, faSpinner, faSearch, faSort, faSortAlphaDown, faSortAlphaUp, faCalendarAlt, faCalendar } from '@fortawesome/free-solid-svg-icons';
 
 import { useDatabase } from '../contexts/DatabaseContext';
 import { useWorkspaceScene } from '../contexts/WorkspaceContext';
 import { useNavigation } from '../contexts/NavigationContext';
+import { useSceneCache } from '../contexts/SceneCacheContext';
+import { InfiniteSceneGrid } from './components/explore/InfiniteSceneGrid';
 import './CollectionView.css';
-
-// --- Reusable UI Components ---
-
-function SceneSkeleton() {
-  return (
-    <div className="scene-card skeleton">
-      <div className="scene-thumbnail-container">
-        <div className="scene-thumbnail skeleton-shimmer" />
-      </div>
-      <div className="scene-card-content">
-        <div className="skeleton-title skeleton-shimmer" />
-        <div className="skeleton-line skeleton-shimmer" />
-        <div className="skeleton-line skeleton-shimmer" style={{ width: '60%' }} />
-      </div>
-      <div className="scene-actions">
-        <div className="skeleton-button skeleton-shimmer" />
-      </div>
-    </div>
-  );
-}
-
-function SceneCard({ scene, isPublic = false, onSceneClick }) {
-  const [imageLoaded, setImageLoaded] = useState(false);
-  const [imageError, setImageError] = useState(false);
-  
-  const sceneName = scene.name || scene.title || 'Untitled Scene';
-
-  const handleSceneClick = () => {
-    onSceneClick(scene.id, isPublic);
-  };
-
-  return (
-    <div className="scene-card" onClick={handleSceneClick}>
-      <div className="scene-thumbnail-container">
-        {!imageLoaded && <div className="scene-thumbnail skeleton-shimmer" />}
-        <img
-          src={imageError ? 'https://placehold.co/400x225/2c2c2c/ffffff?text=Scene' : (scene.thumbnailUrl || 'https://placehold.co/400x225/2c2c2c/ffffff?text=Scene')}
-          alt={sceneName}
-          className="scene-thumbnail"
-          onLoad={() => setImageLoaded(true)}
-          onError={() => { setImageError(true); setImageLoaded(true); }}
-          style={{ display: imageLoaded ? 'block' : 'none' }}
-        />
-      </div>
-      <div className="scene-card-content">
-        <h3 className="scene-title" title={sceneName}>{sceneName}</h3>
-        <p className="scene-description">{scene.description || 'No description available.'}</p>
-        {!isPublic && scene.updatedAt && (
-          <div className="scene-meta">
-            <span>{new Date(scene.updatedAt).toLocaleDateString()}</span>
-          </div>
-        )}
-      </div>
-    </div>
-  );
-}
 
 // --- Main CollectionView Component ---
 
@@ -69,119 +15,45 @@ function CollectionView() {
   const { setCurrentView } = useNavigation();
   const { updateScene } = useWorkspaceScene();
   const dataManager = useDatabase();
+  const { 
+    exampleScenes, userScenes, 
+    loadExampleScenes, loadUserScenes,
+    exampleDisplayCount, userDisplayCount,
+    incrementExampleDisplayCount, incrementUserDisplayCount, 
+    loading,
+    dataLoaded
+  } = useSceneCache();
 
-  const [publicScenes, setPublicScenes] = useState([]);
-  const [userScenes, setUserScenes] = useState([]);
-  const [loadingPublic, setLoadingPublic] = useState(true);
-  const [loadingUser, setLoadingUser] = useState(true);
+  // const [publicScenes, setPublicScenes] = useState([]); // Moved to Context
+  // const [userScenes, setUserScenes] = useState([]); // Moved to Context
+  // const [loadingPublic, setLoadingPublic] = useState(true); // Moved to Context
+  // const [loadingUser, setLoadingUser] = useState(true); // Moved to Context
   const [error, setError] = useState(null);
 
   const [activeTab, setActiveTab] = useState('publicScenes');
   const [searchTerm, setSearchTerm] = useState('');
   const [sortBy, setSortBy] = useState('name'); // 'name', 'date', 'name-desc', 'date-desc'
-
-  // --- Effect to fetch example scenes and load thumbnails when collection view opens ---
+  
+  // --- Effect to fetch data using Context ---
   useEffect(() => {
-    let isMounted = true;
-    if (!dataManager) return;
-
-    setLoadingPublic(true);
-    setError(null);
-    
-    const loadScenesAndThumbnails = async () => {
-      try {
-        // Get scenes (JSON only, no thumbnails yet)
-        const scenes = await dataManager.getScenes('examples');
-        
-        if (isMounted) {
-          // Transform scenes into chat-like objects for display
-          const exampleChats = scenes.map(scene => ({
-            id: `chat-${scene.id}`,
-            name: scene.name,
-            description: scene.description,
-            thumbnailUrl: scene.thumbnailUrl,
-            sceneId: scene.id,
-            isExample: true
-          }));
-          setPublicScenes(exampleChats);
-        }
-
-        // Now load thumbnails in the background (they'll update when ready)
-        // Import SceneLoader to load thumbnails
-        const { SceneLoader } = await import('../core/scene/SceneLoader');
-        await SceneLoader.loadAllThumbnails();
-        
-        // Refresh scenes with thumbnails
-        if (isMounted) {
-          const scenesWithThumbnails = await dataManager.getScenes('examples');
-          const updatedChats = scenesWithThumbnails.map(scene => ({
-            id: `chat-${scene.id}`,
-            name: scene.name,
-            description: scene.description,
-            thumbnailUrl: scene.thumbnailUrl,
-            sceneId: scene.id,
-            isExample: true
-          }));
-          setPublicScenes(updatedChats);
-        }
-      } catch (err) {
-        console.error("Error fetching example scenes:", err);
-        if (isMounted) setError("Failed to load example scenes.");
-      } finally {
-        if (isMounted) setLoadingPublic(false);
-      }
-    };
-
-    loadScenesAndThumbnails();
-
-    return () => { isMounted = false; };
-  }, [dataManager]);
-
-  // --- MODIFIED: Effect to fetch user scenes using DataManager ---
-  useEffect(() => {
-    let isMounted = true;
-    if (!dataManager) return;
-
-    const fetchUserScenes = async () => {
-      setLoadingUser(true);
-      setError(null);
-      try {
-        const scenes = await dataManager.getScenes('user', { orderBy: { field: 'updatedAt', direction: 'desc' } });
-        if (isMounted) {
-          setUserScenes(scenes);
-          console.log('📚 Fetched user scenes:', scenes.length);
-          scenes.forEach(scene => {
-            if (scene.thumbnailUrl) {
-              console.log(`🖼️ Scene "${scene.name}" has thumbnail:`, scene.thumbnailUrl.substring(0, 50) + '...');
-            }
-          });
-        }
-      } catch (err) {
-        console.error("Error fetching user scenes:", err);
-        if (isMounted) setError("Failed to load your scenes.");
-      } finally {
-        if (isMounted) setLoadingUser(false);
-      }
-    };
-
-    fetchUserScenes();
-
-    return () => { isMounted = false; };
-  }, [dataManager]);
+    loadExampleScenes();
+    loadUserScenes();
+  }, [loadExampleScenes, loadUserScenes]);
 
   const handleSceneClick = useCallback(async (chatId, isPublic) => {
     try {
       console.log('🎯 Loading chat/scene:', chatId, 'isPublic:', isPublic);
 
       // Find the chat/scene in the appropriate array
-      const scenesArray = isPublic ? publicScenes : userScenes;
+      const scenesArray = isPublic ? exampleScenes : userScenes;
       const chatItem = scenesArray.find(s => s.id === chatId);
 
       if (!chatItem) {
         console.error('❌ Chat/scene not found:', chatId);
         return;
       }
-
+      
+      // ... same logic ...
       console.log('✅ Found chat/scene:', chatItem.name);
 
       let actualScene;
@@ -215,11 +87,11 @@ function CollectionView() {
     } catch (error) {
       console.error('❌ Error loading scene:', error);
     }
-  }, [setCurrentView, updateScene, publicScenes, userScenes, dataManager]);
+  }, [setCurrentView, updateScene, exampleScenes, userScenes, dataManager]);
 
   // Filter and sort scenes based on search term and sort option
   const filteredAndSortedScenes = useMemo(() => {
-    const scenes = activeTab === 'publicScenes' ? publicScenes : userScenes;
+    const scenes = activeTab === 'publicScenes' ? exampleScenes : userScenes;
 
     // Filter by search term
     const filtered = scenes.filter(scene => {
@@ -247,41 +119,48 @@ function CollectionView() {
     });
 
     return sorted;
-  }, [activeTab, publicScenes, userScenes, searchTerm, sortBy]);
+  }, [activeTab, exampleScenes, userScenes, searchTerm, sortBy]);
 
   const handleSortChange = (newSortBy) => {
     setSortBy(newSortBy);
   };
 
-  // Renders the scene grid with appropriate loading, empty, and error states
-  const renderSceneGrid = (isLoading, isUserTab = false) => {
-    if (isLoading) {
+  // Renders the scene grid using the reusable InfiniteSceneGrid component
+  const renderInfiniteGrid = (isUserTab = false) => {
+      const currentScenes = filteredAndSortedScenes;
+      const isLoading = isUserTab ? loading.user : loading.examples;
+      const isLoaded = isUserTab ? dataLoaded?.user : dataLoaded?.examples;
+      const currentDisplayCount = isUserTab ? userDisplayCount : exampleDisplayCount;
+      const loadMoreAction = isUserTab ? incrementUserDisplayCount : incrementExampleDisplayCount;
+
+      let emptyMsg = "No scenes found.";
+      if (filteredAndSortedScenes.length === 0) {
+        if (searchTerm) {
+             emptyMsg = "No scenes match your search. Try different keywords.";
+        } else if (isUserTab) {
+             emptyMsg = "You haven't created any scenes yet. Go create one! 🚀";
+        } else {
+             emptyMsg = "No public scenes are available at the moment. 🌌";
+        }
+      }
+
+      if (error && activeTab === (isUserTab ? 'myScenes' : 'publicScenes')) {
+          return <p className="error-state-message">{error}</p>;
+      }
+
       return (
-        <div className="scene-grid">
-          {Array.from({ length: 6 }).map((_, i) => <SceneSkeleton key={i} />)}
-        </div>
+          <InfiniteSceneGrid
+              scenes={currentScenes}
+              loading={isLoading}
+              dataLoaded={isLoaded}
+              displayCount={currentDisplayCount}
+              onLoadMore={loadMoreAction}
+              emptyMessage={emptyMsg}
+              onSceneClick={handleSceneClick}
+              isPublic={!isUserTab}
+              skeletonsCount={8}
+          />
       );
-    }
-
-    if (error && activeTab === (isUserTab ? 'myScenes' : 'publicScenes')) {
-        return <p className="error-state-message">{error}</p>;
-    }
-
-    if (filteredAndSortedScenes.length === 0) {
-      if (searchTerm) {
-        return <p className="empty-state-message">No scenes match your search. Try different keywords.</p>;
-      }
-      if (isUserTab) {
-        return <p className="empty-state-message">You haven't created any scenes yet. Go create one! 🚀</p>;
-      }
-      return <p className="empty-state-message">No public scenes are available at the moment. 🌌</p>;
-    }
-
-    return (
-      <div className="scene-grid">
-        {filteredAndSortedScenes.map(scene => <SceneCard key={scene.id} scene={scene} isPublic={!isUserTab} onSceneClick={handleSceneClick} />)}
-      </div>
-    );
   };
 
   return (
@@ -332,7 +211,7 @@ function CollectionView() {
               </div>
             </div>
 
-            {renderSceneGrid(loadingPublic)}
+            {renderInfiniteGrid(false)}
           </section>
         )}
         {activeTab === 'myScenes' && (
@@ -371,7 +250,7 @@ function CollectionView() {
               </div>
             </div>
 
-            {renderSceneGrid(loadingUser, true)}
+            {renderInfiniteGrid(true)}
           </section>
         )}
       </main>

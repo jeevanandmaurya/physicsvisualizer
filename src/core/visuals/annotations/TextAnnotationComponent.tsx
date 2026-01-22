@@ -8,7 +8,7 @@ import { useFrame } from '@react-three/fiber';
 import * as THREE from 'three';
 import { TextAnnotation, PhysicsData } from '../types';
 import { CanvasSpriteRenderer, PhysicsFormatter } from '../renderers/CanvasSpriteRenderer';
-import { calculateWorldPosition, getObjectSize, calculateDistanceScale, calculateDistanceOpacity } from '../utils/CoordinateUtils';
+import { calculateWorldPosition, getObjectSize, calculateDistanceOpacity } from '../utils/CoordinateUtils';
 
 interface TextAnnotationProps {
   annotation: TextAnnotation;
@@ -112,22 +112,20 @@ export function TextAnnotationComponent({
       lastUpdateTime.current = now;
     }
 
-    // Calculate distance-based scaling
+    // Calculate screen-constant scale
+    // Scale the sprite based on camera distance to maintain constant screen size
     const cameraPos = camera.position;
-    const distanceScale = calculateDistanceScale(
-      worldPos,
-      cameraPos,
-      annotation.minScale || 0.4,
-      annotation.maxScale || 2.5,
-      5,  // minDistance
-      60  // maxDistance
-    );
+    const distance = worldPos.distanceTo(cameraPos);
+    
+    // Reference distance at which the base scale looks correct
+    const referenceDistance = 75;
+    // Scale factor to keep annotation same size on screen regardless of zoom
+    const screenConstantScale = distance / referenceDistance;
     
     // Smooth scale interpolation (prevents jittery resizing)
-    // We lerp towards (baseScale * distanceScale) for ultra-smooth transitions
-    const scaleSmooth = annotation.smoothness || 0.1; // Slower lerp for "not noticeable" transitions
-    sprite.scale.x = THREE.MathUtils.lerp(sprite.scale.x, baseScale.current.x * distanceScale, scaleSmooth);
-    sprite.scale.y = THREE.MathUtils.lerp(sprite.scale.y, baseScale.current.y * distanceScale, scaleSmooth);
+    const scaleSmooth = annotation.smoothness || 0.1;
+    sprite.scale.x = THREE.MathUtils.lerp(sprite.scale.x, baseScale.current.x * screenConstantScale, scaleSmooth);
+    sprite.scale.y = THREE.MathUtils.lerp(sprite.scale.y, baseScale.current.y * screenConstantScale, scaleSmooth);
     sprite.scale.z = 1;
 
     // Distance-based opacity (fade effect)

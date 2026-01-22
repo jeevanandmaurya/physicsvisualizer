@@ -41,7 +41,6 @@ export interface LoadedScene {
   settings?: any;
   camera?: any;
   context?: SceneContext;
-  thumbnail?: string; // URL or data URI for the thumbnail
   folderName?: string;
 }
 
@@ -103,37 +102,6 @@ class SceneLoaderClass {
     return this.sceneMap.get(sceneId) || null;
   }
 
-  /**
-   * Load thumbnails for all scenes (call this separately when needed)
-   */
-  async loadAllThumbnails(): Promise<void> {
-    if (!this.cachedScenes) {
-      await this.getAllScenes();
-    }
-
-    if (!this.cachedScenes) return;
-
-    // Load thumbnails in parallel for all scenes that don't have one
-    const thumbnailPromises = this.cachedScenes
-      .filter(scene => !scene.thumbnail)
-      .map(async (scene) => {
-        if (scene.folderName) {
-          scene.thumbnail = await this.loadThumbnail(scene.folderName);
-        }
-      });
-
-    await Promise.all(thumbnailPromises);
-  }
-
-  /**
-   * Load thumbnail for a specific scene
-   */
-  async loadSceneThumbnail(sceneId: string): Promise<void> {
-    const scene = this.sceneMap.get(sceneId);
-    if (scene && scene.folderName && !scene.thumbnail) {
-      scene.thumbnail = await this.loadThumbnail(scene.folderName);
-    }
-  }
 
   /**
    * Get list of scene folders from the scenes directory
@@ -162,13 +130,12 @@ class SceneLoaderClass {
   /**
    * Load a scene from its folder
    */
-  private async loadScene(folderName: string, loadThumbnails: boolean = false): Promise<LoadedScene | null> {
+  private async loadScene(folderName: string): Promise<LoadedScene | null> {
     try {
       // Load core files and context in parallel for significantly faster loading
-      const [sceneData, context, thumbnail] = await Promise.all([
+      const [sceneData, context] = await Promise.all([
         this.loadSceneJSON(folderName),
-        this.loadContext(folderName),
-        loadThumbnails ? this.loadThumbnail(folderName) : Promise.resolve(undefined)
+        this.loadContext(folderName)
       ]);
 
       if (!sceneData) {
@@ -180,7 +147,6 @@ class SceneLoaderClass {
       const loadedScene: LoadedScene = {
         ...sceneData,
         context,
-        thumbnail,
         folderName,
         id: sceneData.id || folderName,
         name: sceneData.name || this.formatName(folderName),
@@ -259,48 +225,6 @@ class SceneLoaderClass {
     }
 
     return context;
-  }
-
-  /**
-   * Load the thumbnail.svg file
-   */
-  private async loadThumbnail(folderName: string): Promise<string | undefined> {
-    try {
-      // Try to load the SVG file
-      const response = await fetch(`/scenes/${folderName}/thumbnail.svg`);
-      if (response.ok) {
-        return `/scenes/${folderName}/thumbnail.svg`;
-      }
-      
-      // If no thumbnail exists, generate a default one
-      return this.generateDefaultThumbnail(folderName);
-    } catch (error) {
-      console.warn(`Could not load thumbnail for ${folderName}:`, error);
-      return this.generateDefaultThumbnail(folderName);
-    }
-  }
-
-  /**
-   * Generate a default SVG thumbnail
-   */
-  private generateDefaultThumbnail(folderName: string): string {
-    const name = this.formatName(folderName);
-    const initials = name
-      .split(' ')
-      .map(word => word[0])
-      .join('')
-      .toUpperCase()
-      .slice(0, 2);
-
-    const svg = `
-      <svg width="200" height="150" xmlns="http://www.w3.org/2000/svg">
-        <rect width="200" height="150" fill="#4a5568"/>
-        <text x="50%" y="50%" text-anchor="middle" dy=".3em" fill="#fff" font-size="48" font-family="Arial">${initials}</text>
-        <text x="50%" y="85%" text-anchor="middle" fill="#e2e8f0" font-size="12" font-family="Arial">${name}</text>
-      </svg>
-    `;
-
-    return `data:image/svg+xml;base64,${btoa(svg)}`;
   }
 
   /**

@@ -1,0 +1,79 @@
+/* InfiniteSceneGrid.css */
+
+.scene-grid-container {
+    display: flex;
+    flex-direction: column;
+    width: 100%;
+}
+
+.scene-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+    column-gap: 16px;
+    row-gap: 40px;
+}
+
+@media (max-width: 600px) {
+    .scene-grid {
+        grid-template-columns: 1fr;
+        row-gap: 24px;
+    }
+}
+
+.load-more-container {
+    display: flex;
+    justify-content: center;
+    padding: 24px 0 12px;
+    width: 100%;
+    min-height: 60px; /* Ensure target has height to be intersected */
+}
+  
+.loading-bar {
+    opacity: 0.8;
+}
+
+.loading-dots {
+    display: flex;
+    gap: 8px;
+    align-items: center;
+}
+
+.loading-dots span {
+    width: 10px;
+    height: 10px;
+    background-color: var(--text-color);
+    border-radius: 50%;
+    animation: bounce 1.4s infinite ease-in-out both;
+}
+
+.loading-dots span:nth-child(1) {
+    animation-delay: -0.32s;
+}
+
+.loading-dots span:nth-child(2) {
+    animation-delay: -0.16s;
+}
+
+@keyframes bounce {
+    0%, 80%, 100% { 
+        transform: scale(0);
+        opacity: 0.5;
+    } 40% { 
+        transform: scale(1.0);
+        opacity: 1;
+    }
+}
+
+.empty-state-container {
+    text-align: center;
+    padding: 40px;
+    background-color: var(--card-bg); /* Optional */
+    border-radius: 12px;
+    border: 1px dashed var(--border-color);
+    margin-top: 20px;
+}
+
+.empty-state-message {
+    color: var(--text-secondary);
+    font-size: 1.1rem;
+}

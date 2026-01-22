@@ -5,6 +5,7 @@
 
 import React, { useRef, useEffect, useState, useCallback } from 'react';
 import * as THREE from 'three';
+import { functionCallSystem } from '../../../core/tools/FunctionCallSystem';
 import './ScenePreviewRenderer.css';
 
 interface ScenePreviewRendererProps {
@@ -25,8 +26,54 @@ const CAMERA_POSITIONS = [
   { angle: (7 * Math.PI) / 4, height: 1.1 },
 ];
 
-const CAMERA_RADIUS = 15;
-const CAMERA_UPDATE_INTERVAL = 400; // ms between camera position updates (very low fps ~2.5)
+const CAMERA_UPDATE_INTERVAL = 800; // ms between camera position updates (slower rotation)
+
+// --- Active Context Manager ---
+// Limits the number of active WebGL contexts to prevent browser crashes
+const MAX_ACTIVE_CONTEXTS = 8; // Conservative limit (browsers usually allow ~16)
+
+class ContextScheduler {
+  private activeIds = new Set<string>();
+  private queue: Array<{ id: string, resolve: () => void }> = [];
+
+  requestAccess(id: string): Promise<void> {
+    return new Promise((resolve) => {
+      if (this.activeIds.has(id)) {
+        resolve();
+        return;
+      }
+
+      if (this.activeIds.size < MAX_ACTIVE_CONTEXTS) {
+        this.activeIds.add(id);
+        resolve();
+      } else {
+        // Queue the request
+        this.queue.push({ id, resolve });
+      }
+    });
+  }
+
+  releaseAccess(id: string) {
+    if (this.activeIds.delete(id)) {
+      // Slot freed, let next in queue enter
+      if (this.queue.length > 0) {
+        const next = this.queue.shift();
+        if (next) {
+          this.activeIds.add(next.id);
+          next.resolve();
+        }
+      }
+    } else {
+      // Remove from queue if it was waiting
+      this.queue = this.queue.filter(item => item.id !== id);
+    }
+  }
+}
+
+// --- Global Snapshot Cache ---
+// Stores an array of data URLs (frames) for each scene
+const snapshotCache = new Map<string, string[]>();
+const contextScheduler = new ContextScheduler();
 
 export const ScenePreviewRenderer: React.FC<ScenePreviewRendererProps> = ({
   sceneId,
@@ -34,6 +81,12 @@ export const ScenePreviewRenderer: React.FC<ScenePreviewRendererProps> = ({
   isHovered = false,
 }) => {
   const containerRef = useRef<HTMLDivElement>(null);
+  // Unique instance ID for the scheduler
+  const instanceIdRef = useRef(`preview-${Math.random().toString(36).substr(2, 9)}`);
+  const [shouldRender, setShouldRender] = useState(false);
+  const [snapshots, setSnapshots] = useState<string[] | null>(snapshotCache.get(sceneId) || null);
+  const [currentFrame, setCurrentFrame] = useState(0);
+  
   const sceneRef = useRef<THREE.Scene | null>(null);
   const rendererRef = useRef<THREE.WebGLRenderer | null>(null);
   const cameraRef = useRef<THREE.PerspectiveCamera | null>(null);
@@ -44,7 +97,66 @@ export const ScenePreviewRenderer: React.FC<ScenePreviewRendererProps> = ({
   const isInitializedRef = useRef(false);
   
   const [error, setError] = useState<string | null>(null);
-  const [isLoading, setIsLoading] = useState(true);
+  const [isLoading, setIsLoading] = useState(!snapshots); // Not loading if we have snapshots
+
+  // Manage WebGL context availability based on visibility (only for generation)
+  useEffect(() => {
+    const el = containerRef.current;
+    if (!el) return;
+
+    let isMounted = true;
+    const id = instanceIdRef.current;
+
+    const updateContextRequest = () => {
+        // We need a context ONLY if we don't have snapshots yet AND we are visible
+        // Hovering doesn't require context anymore (we loop images)
+        const needsGeneration = !snapshots && isVisibleRef.current;
+
+        if (needsGeneration) {
+            contextScheduler.requestAccess(id).then(() => {
+                if (isMounted) setShouldRender(true);
+            });
+        } else {
+            // Context not needed
+            setShouldRender(false);
+            contextScheduler.releaseAccess(id);
+        }
+    };
+
+    // Track visibility internally to avoid re-running effect on every scroll
+    const isVisibleRef = { current: false };
+
+    const observer = new IntersectionObserver((entries) => {
+        const entry = entries[0];
+        isVisibleRef.current = entry.isIntersecting;
+        updateContextRequest();
+    }, { rootMargin: '100px' });
+
+    observer.observe(el);
+
+    // Also update request when snapshot state changes
+    updateContextRequest();
+
+    return () => {
+        isMounted = false;
+        observer.disconnect();
+        setShouldRender(false);
+        contextScheduler.releaseAccess(id);
+    };
+  }, [snapshots]); // Re-run only when we get snapshots (to release context)
+
+  // Handle Image Cycling on Hover
+  useEffect(() => {
+    if (isHovered && snapshots && snapshots.length > 0) {
+        const interval = setInterval(() => {
+            setCurrentFrame(prev => (prev + 1) % snapshots.length);
+        }, CAMERA_UPDATE_INTERVAL);
+        return () => clearInterval(interval);
+    } else if (!isHovered) {
+        // Reset to first frame when not hovered
+        setCurrentFrame(0);
+    }
+  }, [isHovered, snapshots]);
 
   // Calculate scene bounds and center
   const calculateSceneBounds = useCallback((objects: any[]) => {
@@ -198,18 +310,63 @@ export const ScenePreviewRenderer: React.FC<ScenePreviewRendererProps> = ({
     try {
       let sceneData = initialSceneData;
 
-      // If no initial data, try to load from file
+      // If no initial data provided, try to load from file (example scenes only)
       if (!sceneData && sceneId) {
-        const folderName = sceneId.replace(/_v\d+\.\d+$/, '');
-        const response = await fetch(`/scenes/${folderName}/${sceneId}.json`);
-        if (!response.ok) {
-          throw new Error('Scene not found');
+        // Extract folder name by removing version suffix and converting hyphens to underscores
+        // e.g., "projectile-motion" -> "projectile_motion"
+        // e.g., "projectile_motion_v1.0" -> "projectile_motion"
+        const folderName = sceneId
+          .replace(/_v\d+\.\d+$/, '')  // Remove version suffix
+          .replace(/-/g, '_');          // Convert hyphens to underscores
+        
+        // Try multiple possible paths for the scene file
+        const possiblePaths = [
+          `/scenes/${folderName}/${folderName}_v1.0.json`,
+          `/scenes/${folderName}/${sceneId}.json`,
+          `/scenes/${folderName}/${folderName}.json`,
+        ];
+
+        let loadedData = null;
+        for (const path of possiblePaths) {
+          try {
+            const response = await fetch(path);
+            if (response.ok) {
+              const contentType = response.headers.get('content-type');
+              // Make sure we got JSON, not HTML
+              if (contentType && contentType.includes('application/json')) {
+                loadedData = await response.json();
+                break;
+              }
+              // Try to parse anyway if content-type is missing
+              const text = await response.text();
+              if (text.trim().startsWith('{')) {
+                loadedData = JSON.parse(text);
+                break;
+              }
+            }
+          } catch (e) {
+            // Try next path
+            continue;
+          }
         }
-        sceneData = await response.json();
+        
+        sceneData = loadedData;
       }
 
       if (!sceneData) {
-        throw new Error('No scene data available');
+        // If we still can't find data, create a simple default scene instead of erring
+        sceneData = { objects: [] };
+        console.warn(`Scene data unavailable for ${sceneId}, showing empty scene`);
+      }
+
+      // Process procedural functions if any (e.g. "functionCalls" property)
+      if (sceneData) {
+        try {
+            // Process named functions and inline code to generate objects
+            sceneData = functionCallSystem.processSceneFunctions(sceneData);
+        } catch (e) {
+            console.warn(`Failed to process scene functions for ${sceneId}`, e);
+        }
       }
 
       sceneDataRef.current = sceneData;
@@ -263,9 +420,43 @@ export const ScenePreviewRenderer: React.FC<ScenePreviewRendererProps> = ({
         cameraRef.current.lookAt(center);
       }
 
-      // Render once
+      // Render generation sequence
       if (rendererRef.current && sceneRef.current && cameraRef.current) {
-        rendererRef.current.render(sceneRef.current, cameraRef.current);
+        // If we don't have snapshots yet, generate them all now
+        if (!snapshots) {
+            try {
+                const frames: string[] = [];
+                const objects = sceneData.objects || [];
+                const { center, radius } = calculateSceneBounds(objects);
+                const cameraRadius = radius * 1.5;
+
+                // Capture all defined camera positions
+                for (const pos of CAMERA_POSITIONS) {
+                    cameraRef.current.position.set(
+                        center.x + Math.cos(pos.angle) * cameraRadius,
+                        center.y + pos.height * radius,
+                        center.z + Math.sin(pos.angle) * cameraRadius
+                    );
+                    cameraRef.current.lookAt(center);
+                    
+                    // Force render
+                    rendererRef.current.render(sceneRef.current, cameraRef.current);
+                    
+                    // Capture
+                    frames.push(rendererRef.current.domElement.toDataURL('image/jpeg', 0.8));
+                }
+
+                // Debug info about cache size
+                const totalChars = frames.reduce((acc, f) => acc + f.length, 0);
+                console.log(`📸 [${sceneId}] Cached 8 frames. ~${Math.round(totalChars * 0.75 / 1024)}KB total.`);
+
+                snapshotCache.set(sceneId, frames);
+                setSnapshots(frames);
+                // The useEffect hook will see the new snapshots state and automatically release the context
+            } catch (e) {
+                console.warn('Failed to capture snapshots for scene', sceneId, e);
+            }
+        }
       }
 
       setIsLoading(false);
@@ -277,11 +468,27 @@ export const ScenePreviewRenderer: React.FC<ScenePreviewRendererProps> = ({
     }
   }, [sceneId, initialSceneData, createObjectMesh, calculateSceneBounds]);
 
+  // Create a stable placeholder color based on sceneId
+  const placeholderColor = React.useMemo(() => {
+    let hash = 0;
+    const str = sceneId || 'default';
+    for (let i = 0; i < str.length; i++) {
+      hash = str.charCodeAt(i) + ((hash << 5) - hash);
+    }
+    const hue = Math.abs(hash % 360);
+    return `hsl(${hue}, 70%, 20%)`;
+  }, [sceneId]);
+
   // Initialize THREE.js scene
   useEffect(() => {
-    if (!containerRef.current || isInitializedRef.current) return;
+    // Only initialize if scheduler allowed it (shouldRender is true) and container exists
+    if (!shouldRender || !containerRef.current) return;
+    
+    // If already initialized
+    if (isInitializedRef.current) return;
 
     isInitializedRef.current = true;
+    setIsLoading(true);
 
     // Setup scene
     const scene = new THREE.Scene();
@@ -301,8 +508,9 @@ export const ScenePreviewRenderer: React.FC<ScenePreviewRendererProps> = ({
 
     // Setup renderer with minimal settings for performance
     const renderer = new THREE.WebGLRenderer({
-      antialias: false, // Disable for performance
+      antialias: true, // Enable for better snapshot quality
       alpha: false,
+      preserveDrawingBuffer: true, // REQUIRED strictly for toDataURL() support
       powerPreference: 'low-power',
     });
     renderer.setSize(containerRef.current.clientWidth, containerRef.current.clientHeight);
@@ -322,76 +530,39 @@ export const ScenePreviewRenderer: React.FC<ScenePreviewRendererProps> = ({
 
     // Cleanup
     return () => {
-      if (animationIntervalRef.current) {
-        clearInterval(animationIntervalRef.current);
-      }
-      if (rendererRef.current) {
-        rendererRef.current.dispose();
-        if (containerRef.current?.contains(rendererRef.current.domElement)) {
-          containerRef.current.removeChild(rendererRef.current.domElement);
-        }
-      }
-      isInitializedRef.current = false;
-    };
-  }, [loadAndRenderScene]);
-
-  // Handle camera animation on hover
-  useEffect(() => {
-    if (isHovered && sceneRef.current && cameraRef.current && rendererRef.current && !error) {
-      // Start camera animation at low FPS
-      animationIntervalRef.current = setInterval(() => {
-        cameraPositionIndexRef.current = (cameraPositionIndexRef.current + 1) % CAMERA_POSITIONS.length;
-        const pos = CAMERA_POSITIONS[cameraPositionIndexRef.current];
-        
-        const objects = sceneDataRef.current?.objects || [];
-        const { center, radius } = calculateSceneBounds(objects);
-        const cameraRadius = radius * 1.5;
-
-        if (cameraRef.current) {
-          cameraRef.current.position.set(
-            center.x + Math.cos(pos.angle) * cameraRadius,
-            center.y + pos.height * radius,
-            center.z + Math.sin(pos.angle) * cameraRadius
-          );
-          cameraRef.current.lookAt(center);
-        }
-
-        // Render frame
-        if (rendererRef.current && sceneRef.current && cameraRef.current) {
-          rendererRef.current.render(sceneRef.current, cameraRef.current);
-        }
-      }, CAMERA_UPDATE_INTERVAL);
-    } else {
-      // Stop animation when not hovered
+      // Clear interval
       if (animationIntervalRef.current) {
         clearInterval(animationIntervalRef.current);
         animationIntervalRef.current = null;
       }
       
-      // Reset to initial position and render once
-      if (cameraRef.current && sceneRef.current && rendererRef.current && !error) {
-        cameraPositionIndexRef.current = 0;
-        const pos = CAMERA_POSITIONS[0];
-        const objects = sceneDataRef.current?.objects || [];
-        const { center, radius } = calculateSceneBounds(objects);
-        const cameraRadius = radius * 1.5;
-
-        cameraRef.current.position.set(
-          center.x + Math.cos(pos.angle) * cameraRadius,
-          center.y + pos.height * radius,
-          center.z + Math.sin(pos.angle) * cameraRadius
-        );
-        cameraRef.current.lookAt(center);
-        rendererRef.current.render(sceneRef.current, cameraRef.current);
+      // Dispose renderer
+      if (rendererRef.current) {
+        rendererRef.current.dispose();
+        if (containerRef.current && containerRef.current.contains(rendererRef.current.domElement)) {
+          containerRef.current.removeChild(rendererRef.current.domElement);
+        }
+        rendererRef.current = null;
       }
-    }
-
-    return () => {
-      if (animationIntervalRef.current) {
-        clearInterval(animationIntervalRef.current);
-      }
+      
+      // Clear refs
+      sceneRef.current = null;
+      cameraRef.current = null;
+      isInitializedRef.current = false;
     };
-  }, [isHovered, error, calculateSceneBounds]);
+  }, [shouldRender, loadAndRenderScene]);
+
+  // Reload scene when sceneId or sceneData changes after initial mount
+  useEffect(() => {
+    if (isInitializedRef.current && sceneRef.current) {
+      loadAndRenderScene();
+    }
+  }, [sceneId, initialSceneData, loadAndRenderScene]);
+
+  // Handle camera animation (REMOVED - now handled by image cycling)
+  /* 
+  useEffect(() => { ... })  <- Old WebGL animation effect logic removed
+  */
 
   // Handle resize
   useEffect(() => {
@@ -420,13 +591,40 @@ export const ScenePreviewRenderer: React.FC<ScenePreviewRendererProps> = ({
   }, []);
 
   return (
-    <div className="scene-preview-renderer" ref={containerRef}>
-      {isLoading && (
+    <div className="scene-preview-renderer" ref={containerRef} style={{ position: 'relative', overflow: 'hidden' }}>
+      {!shouldRender && snapshots && snapshots.length > 0 && (
+        <div className="scene-preview-snapshot" style={{
+            width: '100%', 
+            height: '100%', 
+            backgroundImage: `url(${snapshots[currentFrame]})`,
+            backgroundSize: 'cover',
+            backgroundPosition: 'center',
+            transition: 'background-image 0.1s step-end' // Snappy frame transition
+        }} />
+      )}
+
+      {/* Show placeholder if no snapshot and no render context yet */}
+      {!shouldRender && !snapshots && (
+        <div className="scene-preview-placeholder" style={{
+            width: '100%', 
+            height: '100%', 
+            display: 'flex', 
+            alignItems: 'center', 
+            justifyContent: 'center',
+            color: 'rgba(255,255,255,0.3)',
+            fontSize: '24px',
+            background: `linear-gradient(135deg, ${placeholderColor} 0%, #1a1a1a 100%)`
+        }}>
+           {/* <div style={{ transform: 'scale(1.5)', opacity: 0.5 }}>⚛️</div> */}
+        </div>
+      )}
+      
+      {shouldRender && isLoading && (
         <div className="scene-preview-loading">
           <div className="scene-preview-spinner" />
         </div>
       )}
-      {error && (
+      {error && shouldRender && (
         <div className="scene-preview-error">
           <span>{error}</span>
         </div>

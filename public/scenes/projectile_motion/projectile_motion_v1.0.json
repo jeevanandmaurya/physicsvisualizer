@@ -1,89 +1,247 @@
 {
   "id": "projectile-motion",
-  "name": "Projectile Motion",
-  "description": "Demonstrates parabolic trajectory of a projectile launched at an angle, showing the effects of gravity on motion.",
-  "version": "1.0",
+  "name": "Projectile Motion - Kinematics",
+  "description": "Comprehensive demonstration of 2D projectile motion. Observe the parabolic trajectory, independence of horizontal and vertical motion, and the effects of launch angle, initial velocity, and gravity. Key equations: x = v₀ₓt, y = v₀ᵧt - ½gt², Range = v₀²sin(2θ)/g",
+  "version": "1.1",
   "objects": [
     {
       "id": "projectile",
       "type": "Sphere",
       "mass": 1,
-      "radius": 0.2,
-      "position": [0, 1, 0],
-      "velocity": [8, 8, 0],
-      "color": "#FF4500"
-    },
-    {
-      "id": "launcher",
-      "type": "Box",
-      "mass": 0,
-      "dimensions": [2, 0.5, 2],
-      "position": [0, 0.25, 0],
-      "color": "#8B4513",
-      "isStatic": true
+      "radius": 0.4,
+      "position": [-12, 3, 0],
+      "velocity": [10, 12, 0],
+      "color": "#FF4500",
+      "friction": 0.3,
+      "restitution": 0.5
     },
     {
       "id": "ground",
       "type": "Box",
       "mass": 0,
-      "dimensions": [50, 0.1, 50],
+      "dimensions": [60, 0.2, 30],
       "position": [0, 0, 0],
-      "color": "#666666",
+      "color": "#3D3D3D",
+      "isStatic": true,
+      "friction": 0.6,
+      "restitution": 0.3
+    },
+    {
+      "id": "target_ring",
+      "type": "Cylinder",
+      "mass": 0,
+      "radius": 1.5,
+      "height": 0.1,
+      "position": [15, 0.15, 0],
+      "color": "#FF0000",
       "isStatic": true
     },
     {
-      "id": "target",
+      "id": "target_center",
       "type": "Cylinder",
       "mass": 0,
       "radius": 0.5,
-      "height": 2,
-      "position": [20, 1, 0],
-      "color": "#32CD32",
+      "height": 0.15,
+      "position": [15, 0.2, 0],
+      "color": "#FFFFFF",
       "isStatic": true
+    },
+    {
+      "id": "height_marker_5m",
+      "type": "Box",
+      "mass": 0,
+      "dimensions": [0.1, 0.1, 2],
+      "position": [-15, 5, 0],
+      "color": "#FFD700",
+      "isStatic": true,
+      "nonPhysics": true
+    },
+    {
+      "id": "height_marker_10m",
+      "type": "Box",
+      "mass": 0,
+      "dimensions": [0.1, 0.1, 2],
+      "position": [-15, 10, 0],
+      "color": "#FFD700",
+      "isStatic": true,
+      "nonPhysics": true
+    },
+    {
+      "id": "range_marker_10m",
+      "type": "Box",
+      "mass": 0,
+      "dimensions": [0.1, 0.1, 2],
+      "position": [10, 0.15, 0],
+      "color": "#00CED1",
+      "isStatic": true,
+      "nonPhysics": true
+    },
+    {
+      "id": "range_marker_20m",
+      "type": "Box",
+      "mass": 0,
+      "dimensions": [0.1, 0.1, 2],
+      "position": [20, 0.15, 0],
+      "color": "#00CED1",
+      "isStatic": true,
+      "nonPhysics": true
     }
   ],
   "gravity": [0, -9.81, 0],
   "hasGround": true,
   "contactMaterial": {
-    "friction": 0.3,
-    "restitution": 0.6
+    "friction": 0.5,
+    "restitution": 0.4
   },
   "gravitationalPhysics": {
     "enabled": false
   },
   "simulationScale": "terrestrial",
+  "visualAnnotations": [
+    {
+      "id": "speed-label",
+      "type": "text",
+      "attachedToObjectId": "projectile",
+      "contentType": "speed",
+      "prefix": "Speed: ",
+      "suffix": " m/s",
+      "precision": 1,
+      "offset": [0, 3.5, 0],
+      "anchor": "top",
+      "fontSize": 48,
+      "color": "#ffffff",
+      "backgroundColor": "rgba(255, 69, 0, 0.85)",
+      "padding": 12,
+      "borderRadius": 6,
+      "visible": true,
+      "minSpeed": 0.5
+    },
+    {
+      "id": "velocity-vector",
+      "type": "vector",
+      "attachedToObjectId": "projectile",
+      "vectorType": "velocity",
+      "scale": 0.25,
+      "color": "#00BFFF",
+      "showMagnitude": true,
+      "offset": [0, 0, 0],
+      "anchor": "center",
+      "visible": true,
+      "shaftRadius": 0.04,
+      "headLength": 0.25,
+      "headRadius": 0.12
+    },
+    {
+      "id": "height-label",
+      "type": "text",
+      "attachedToObjectId": "projectile",
+      "contentType": "position",
+      "prefix": "Pos: ",
+      "precision": 1,
+      "offset": [-4, 0, 0],
+      "anchor": "left",
+      "fontSize": 36,
+      "color": "#FFD700",
+      "backgroundColor": "rgba(0, 0, 0, 0.7)",
+      "padding": 10,
+      "visible": true
+    },
+    {
+      "id": "ke-label",
+      "type": "text",
+      "attachedToObjectId": "projectile",
+      "contentType": "kineticEnergy",
+      "prefix": "KE: ",
+      "suffix": " J",
+      "precision": 1,
+      "offset": [4, 0, 0],
+      "anchor": "right",
+      "fontSize": 36,
+      "color": "#FF69B4",
+      "backgroundColor": "rgba(0, 0, 0, 0.7)",
+      "padding": 10,
+      "visible": true
+    },
+    {
+      "id": "position-label",
+      "type": "text",
+      "attachedToObjectId": "projectile",
+      "contentType": "position",
+      "prefix": "Pos: ",
+      "precision": 1,
+      "offset": [0, -3, 0],
+      "anchor": "bottom",
+      "fontSize": 32,
+      "color": "#98FB98",
+      "backgroundColor": "rgba(0, 0, 0, 0.6)",
+      "padding": 10,
+      "visible": true
+    }
+  ],
   "controllers": [
     {
-      "id": "launch_velocity_x",
-      "label": "Horizontal Velocity",
+      "id": "launch_vx",
+      "label": "Horizontal Velocity (v₀ₓ)",
       "type": "slider",
       "min": 0,
-      "max": 15,
+      "max": 20,
       "step": 0.5,
-      "value": 8,
+      "value": 10,
       "objectId": "projectile",
       "property": "velocity[0]"
     },
     {
-      "id": "launch_velocity_y",
-      "label": "Vertical Velocity",
+      "id": "launch_vy",
+      "label": "Vertical Velocity (v₀ᵧ)",
       "type": "slider",
       "min": 0,
-      "max": 15,
+      "max": 20,
       "step": 0.5,
-      "value": 8,
+      "value": 12,
       "objectId": "projectile",
       "property": "velocity[1]"
     },
     {
       "id": "gravity_strength",
-      "label": "Gravity",
+      "label": "Gravity (g)",
       "type": "slider",
       "min": -20,
       "max": -1,
-      "step": 0.5,
+      "step": 0.1,
       "value": -9.81,
       "propertyPath": "gravity[1]"
+    },
+    {
+      "id": "projectile_mass",
+      "label": "Projectile Mass (kg)",
+      "type": "slider",
+      "min": 0.1,
+      "max": 5,
+      "step": 0.1,
+      "value": 1,
+      "objectId": "projectile",
+      "property": "mass"
+    },
+    {
+      "id": "launch_height",
+      "label": "Launch Height (m)",
+      "type": "slider",
+      "min": 0.5,
+      "max": 10,
+      "step": 0.5,
+      "value": 1.5,
+      "objectId": "projectile",
+      "property": "position[1]"
+    },
+    {
+      "id": "restitution",
+      "label": "Bounciness",
+      "type": "slider",
+      "min": 0,
+      "max": 1,
+      "step": 0.1,
+      "value": 0.4,
+      "propertyPath": "contactMaterial.restitution"
     }
   ]
 }

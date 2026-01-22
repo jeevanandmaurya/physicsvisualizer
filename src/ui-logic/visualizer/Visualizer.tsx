@@ -52,19 +52,7 @@ function FpsCounter({ updateFps }) {
 function SimpleGrid({ show }) { 
   if (!show) return null; 
   return (
-    <Grid 
-      position={[0, -0.001, 0]} 
-      args={[100, 100]} 
-      cellSize={1} 
-      cellThickness={1} 
-      cellColor="#6f6f6f" 
-      sectionSize={10} 
-      sectionThickness={1.5} 
-      sectionColor="#9d9d9d" 
-      fadeDistance={200} 
-      fadeStrength={5} 
-      infiniteGrid 
-    />
+    <gridHelper args={[30, 30, 0x333333, 0x1a1a1a]} position={[0, -0.01, 0]} />
   ); 
 }
 function LabeledAxesHelper({ size = 5, visible = true }) { 
@@ -161,6 +149,11 @@ function Arrow({ vec, color }) {
 // Example: { "type": "vector", "vectorType": "velocity", ... }
 
 function Skybox({ texturePath, backgroundType = 'normal' }) {
+  if (backgroundType === 'normal') {
+    // Default Clean Dark Theme (matches ScenePreviewRenderer)
+    return <color attach="background" args={['#0d0d0d']} />;
+  }
+
   if (backgroundType === 'black') {
     return (
       <mesh key="skybox-black">
@@ -179,7 +172,7 @@ function Skybox({ texturePath, backgroundType = 'normal' }) {
     );
   }
 
-  // For 'normal' and 'space' use textures
+  // For 'space' use texture
   const texturePathToUse = backgroundType === 'space' ? spaceTexture :
                            texturePath ? texturePath : backgroundTexture;
 
@@ -412,8 +405,8 @@ function Visualizer({ scene, showSceneDetails, onToggleSceneDetails }) {
                         }}
                     >
                         <TimeUpdater isPlaying={isPlaying} updateSimulationTime={updateSimulationTime} />
-                        <ambientLight intensity={0.6} />
-                        <directionalLight position={[8, 10, 5]} intensity={1.0} castShadow shadow-mapSize-width={1024} shadow-mapSize-height={1024} />
+                        <ambientLight intensity={1.0} />
+                        <directionalLight position={[5, 10, 5]} intensity={1.2} castShadow shadow-mapSize-width={1024} shadow-mapSize-height={1024} />
                         <PhysicsWorld
                             scene={activeScene}
                             isPlaying={isPlaying}

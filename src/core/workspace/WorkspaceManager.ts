@@ -146,14 +146,20 @@ class Workspace {
 
   // Replace current scene with new scene data (for loading examples or external scenes)
   replaceCurrentScene(newScene: any) {
-    if (this.currentSceneIndex >= 0 && this.currentSceneIndex < this.scenes.length) {
-      this.scenes[this.currentSceneIndex] = { 
-        ...newScene,
-        _version: 0,
-        _updatedAt: Date.now()
-      };
-      this.metadata.updatedAt = new Date().toISOString();
+    const sceneWithMetadata = { 
+      ...newScene,
+      _version: 0,
+      _updatedAt: Date.now()
+    };
+    
+    // If scenes array is empty or index is invalid, add the scene as the only scene
+    if (this.scenes.length === 0 || this.currentSceneIndex < 0 || this.currentSceneIndex >= this.scenes.length) {
+      this.scenes = [sceneWithMetadata];
+      this.currentSceneIndex = 0;
+    } else {
+      this.scenes[this.currentSceneIndex] = sceneWithMetadata;
     }
+    this.metadata.updatedAt = new Date().toISOString();
     return this;
   }
 

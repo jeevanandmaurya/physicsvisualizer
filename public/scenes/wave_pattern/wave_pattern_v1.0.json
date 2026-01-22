@@ -1,11 +1,12 @@
 {
-  "id": "wave_pattern",
-  "name": "Wave Pattern Animation",
-  "description": "20 spheres creating a beautiful sine wave pattern using NonPhysics animation",
+  "id": "wave-pattern",
+  "name": "Wave Motion - Transverse Waves",
+  "description": "Demonstrates transverse wave motion with 25 spheres oscillating in a sine wave pattern. Observe wave properties: Amplitude (A), Wavelength (λ), Frequency (f), and Wave Speed (v = fλ). Each particle oscillates perpendicular to wave propagation direction - classic simple harmonic motion.",
+  "version": "1.1",
   "objects": [],
   "functionCalls": [
     {
-      "code": "const objects = []; for(let i=0; i<20; i++) { const id = `wave_${i}`; objects.push({ id, type: 'Sphere', position: [i*2 - 20, 5, 0], radius: 0.4, color: `hsl(${i*18}, 70%, 50%)`, nonPhysics: true }); globalNonPhysicsEngine.animateObject(id, { code: `mesh.position.y = 5 + Math.sin(time * 2 + ${i * 0.5}) * 3;` }); } return objects;"
+      "code": "const objects = []; const numParticles = 25; const spacing = 1.8; const startX = -numParticles * spacing / 2; for(let i = 0; i < numParticles; i++) { const hue = (i / numParticles) * 240; const id = `wave_particle_${i}`; objects.push({ id, type: 'Sphere', position: [startX + i * spacing, 6, 0], radius: 0.45, color: `hsl(${hue}, 80%, 55%)`, nonPhysics: true }); const phaseOffset = i * 0.4; globalNonPhysicsEngine.animateObject(id, { code: `const amplitude = 3.5; const frequency = 1.5; mesh.position.y = 6 + amplitude * Math.sin(time * frequency * Math.PI * 2 + ${phaseOffset});` }); } const groundObj = { id: 'ground_plane', type: 'Box', dimensions: [60, 0.2, 20], position: [0, 0, 0], color: '#2C3E50', isStatic: true, nonPhysics: true }; objects.push(groundObj); const refLineTop = { id: 'ref_line_top', type: 'Box', dimensions: [50, 0.05, 0.05], position: [0, 9.5, 0], color: '#E74C3C', isStatic: true, nonPhysics: true, opacity: 0.6 }; objects.push(refLineTop); const refLineBottom = { id: 'ref_line_bottom', type: 'Box', dimensions: [50, 0.05, 0.05], position: [0, 2.5, 0], color: '#E74C3C', isStatic: true, nonPhysics: true, opacity: 0.6 }; objects.push(refLineBottom); const refLineCenter = { id: 'ref_line_center', type: 'Box', dimensions: [50, 0.08, 0.08], position: [0, 6, 0], color: '#3498DB', isStatic: true, nonPhysics: true, opacity: 0.8 }; objects.push(refLineCenter); return objects;"
     }
   ],
   "gravity": [0, -9.81, 0],
@@ -18,5 +19,37 @@
     "enabled": false
   },
   "simulationScale": "terrestrial",
+  "visualAnnotations": [
+    {
+      "id": "wave-title",
+      "type": "text",
+      "attachedToObjectId": "wave_particle_12",
+      "contentType": "custom",
+      "customText": "Transverse Wave Motion",
+      "offset": [0, 8, 0],
+      "anchor": "top",
+      "fontSize": 48,
+      "color": "#ffffff",
+      "backgroundColor": "rgba(52, 73, 94, 0.9)",
+      "padding": 14,
+      "borderRadius": 6,
+      "visible": true
+    },
+    {
+      "id": "particle-position",
+      "type": "text",
+      "attachedToObjectId": "wave_particle_12",
+      "contentType": "position",
+      "prefix": "Pos: ",
+      "precision": 2,
+      "offset": [0, 3, 0],
+      "anchor": "top",
+      "fontSize": 36,
+      "color": "#00FF00",
+      "backgroundColor": "rgba(0, 0, 0, 0.7)",
+      "padding": 10,
+      "visible": true
+    }
+  ],
   "controllers": []
 }

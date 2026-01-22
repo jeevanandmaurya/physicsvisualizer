@@ -20,7 +20,8 @@ interface VectorAnnotationProps {
 export function VectorAnnotationComponent({ 
   annotation, 
   physicsData, 
-  objectConfig
+  objectConfig,
+  camera
 }: VectorAnnotationProps) {
   const groupRef = useRef<THREE.Group>(null);
   const shaftRef = useRef<THREE.Mesh>(null);
@@ -133,11 +134,17 @@ export function VectorAnnotationComponent({
     quaternion.setFromUnitVectors(up, dir);
     group.quaternion.copy(quaternion);
 
-    // Size arrow components based on smoothed length
-    const headLength = Math.max(length * (annotation.headLength || 0.25), 0.1);
-    const headRadius = Math.max(length * (annotation.headRadius || 0.08), 0.03);
-    const shaftRadius = Math.max(length * (annotation.shaftRadius || 0.02), 0.01);
-    const shaftLength = Math.max(length - headLength, 0.05);
+    // Calculate screen-constant scale based on camera distance
+    const cameraPos = camera.position;
+    const distance = worldPos.distanceTo(cameraPos);
+    const referenceDistance = 75;
+    const screenConstantScale = distance / referenceDistance;
+
+    // Size arrow components based on smoothed length, scaled for constant screen size
+    const headLength = Math.max(length * (annotation.headLength || 0.25), 0.1) * screenConstantScale;
+    const headRadius = Math.max(length * (annotation.headRadius || 0.08), 0.03) * screenConstantScale;
+    const shaftRadius = Math.max(length * (annotation.shaftRadius || 0.02), 0.01) * screenConstantScale;
+    const shaftLength = Math.max(length - headLength / screenConstantScale, 0.05) * screenConstantScale;
 
     // Apply scales and positions
     shaft.scale.set(shaftRadius, shaftLength, shaftRadius);
