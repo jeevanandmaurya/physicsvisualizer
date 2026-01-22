@@ -1,7 +1,7 @@
 import { useState, useEffect, useCallback } from 'react';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { faPlus, faCompass, faComments, faArrowRight } from '@fortawesome/free-solid-svg-icons';
-
+import HeroAnimation from './components/HeroAnimation';
 import logo from '../assets/physicsvisualizer.svg';
 
 import { useDatabase } from '../contexts/DatabaseContext';
@@ -103,6 +103,7 @@ function DashboardView() {
         <div className="dashboard-container">
             {/* Hero Section */}
             <section className="dashboard-hero">
+                <HeroAnimation className="hero-background" />
                 <img src={logo} alt="Physics Visualizer" className="dashboard-logo" />
                 <p className="dashboard-subtitle">
                     Build, simulate, and explore interactive physics worlds in real-time.
