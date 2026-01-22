@@ -13,8 +13,8 @@ import './DashboardView.css';
 
 function DashboardView() {
     const { setCurrentView } = useNavigation();
-    const { updateScene } = useWorkspaceScene();
-    const { addChatSession, setChatOverlayCurrentChat } = useWorkspace();
+    const { replaceCurrentScene } = useWorkspaceScene();
+    const { addChatSession, setChatOverlayCurrentChat, clearScenes } = useWorkspace();
     const { 
         exampleScenes, userScenes, recentScenes, 
         loadExampleScenes, loadUserScenes, loadRecentScenes,
@@ -55,26 +55,33 @@ function DashboardView() {
 
             // Create a new chat session for this scene
             const newChat = addChatSession();
+            
+            // Clear and load the new scene first
+            clearScenes();
+            replaceCurrentScene(newScene);
+            
             if (newChat) {
                 await dataManager.getOrCreateChatForScene(savedId, newScene.name || 'New Scene');
-                setChatOverlayCurrentChat(newChat.id);
+                // Skip scene reload since we just loaded it
+                setChatOverlayCurrentChat(newChat.id, true);
             }
 
-            updateScene(newScene);
             setCurrentView('visualizer');
         } catch (error) {
             console.error('Error saving new scene:', error);
-            updateScene(newScene);
+            clearScenes();
+            replaceCurrentScene(newScene);
             setCurrentView('visualizer');
         }
-    }, [createNewScene, updateScene, setCurrentView, dataManager, addChatSession, setChatOverlayCurrentChat]);
+    }, [createNewScene, clearScenes, replaceCurrentScene, setCurrentView, dataManager, addChatSession, setChatOverlayCurrentChat]);
 
     const handleOpenScene = useCallback(async (sceneId: string) => {
         if (!dataManager) return;
         try {
             const sceneData = await dataManager.getSceneById(sceneId);
             if (sceneData) {
-                updateScene(sceneData);
+                clearScenes();
+                replaceCurrentScene(sceneData);
                 setCurrentView('visualizer');
             } else {
                 console.error('Scene not found:', sceneId);
@@ -82,7 +89,7 @@ function DashboardView() {
         } catch (error) {
             console.error('Error loading scene:', error);
         }
-    }, [dataManager, updateScene, setCurrentView]);
+    }, [dataManager, clearScenes, replaceCurrentScene, setCurrentView]);
 
     const handleViewCollection = useCallback(() => {
         setCurrentView('collection');

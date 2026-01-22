@@ -467,7 +467,6 @@ export function registerBuiltInTools(): void {
     }
   });
 
-  console.log('✅ Registered all built-in tools');
 }
 
 export default registerBuiltInTools;

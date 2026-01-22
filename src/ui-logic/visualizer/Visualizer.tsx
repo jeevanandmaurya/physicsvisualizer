@@ -119,17 +119,24 @@ function Arrow({ vec, color }) {
     quaternion.setFromUnitVectors(up, dir);
     group.quaternion.copy(quaternion);
 
-    // Determine sizes relative to vector length
-    const headHeight = Math.max(length * 0.25, 0.1);
-    const headRadius = Math.max(length * 0.08, 0.03);
-    const shaftRadius = Math.max(length * 0.02, 0.01);
-    const shaftLength = Math.max(length - headHeight, 0.05);
+    // Smaller default multipliers and minimum caps for more compact vectors
+    const headHeight = Math.max(length * 0.18, 0.06);
+    const headRadius = Math.max(length * 0.06, 0.02);
+    const shaftRadius = Math.max(length * 0.012, 0.005);
+    const shaftLength = Math.max(length - headHeight, 0.03);
+
+    // Clamp radii so arrows never become excessively thick
+    // Reduced maximum radii to keep arrows slimmer
+    const maxHeadRadius = Math.max(0.06, length * 0.3);
+    const maxShaftRadius = Math.max(0.03, length * 0.15);
+    const finalHeadRadius = Math.min(headRadius, maxHeadRadius);
+    const finalShaftRadius = Math.min(shaftRadius, maxShaftRadius);
 
     // Apply scales and positions
-    shaft.scale.set(shaftRadius, shaftLength, shaftRadius);
+    shaft.scale.set(finalShaftRadius, shaftLength, finalShaftRadius);
     shaft.position.set(0, shaftLength / 2, 0);
 
-    cone.scale.set(headRadius, headHeight, headRadius);
+    cone.scale.set(finalHeadRadius, headHeight, finalHeadRadius);
     cone.position.set(0, shaftLength + headHeight / 2, 0);
   });
 

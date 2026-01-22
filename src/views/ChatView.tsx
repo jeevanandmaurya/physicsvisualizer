@@ -58,7 +58,8 @@ function ChatInstance({ chatId, onViewChange: _onViewChange, isOverlayMode = fal
     addMessage,
     getScenesForChat,
     addScene,
-    clearScenes
+    clearScenes,
+    replaceCurrentScene
   } = useWorkspace();
   const dataManager = useDatabase();
 
@@ -123,9 +124,9 @@ function ChatInstance({ chatId, onViewChange: _onViewChange, isOverlayMode = fal
       // Set chat name to example scene name
       updateChatName(newChat.id, exampleData.scene.name);
 
-      // Add the scene
-      clearScenes(); // Clear any existing scenes first
-      addScene(exampleData.sceneData, true);
+      // Clear and load the example scene
+      clearScenes();
+      replaceCurrentScene(exampleData.sceneData);
 
       // Add example messages to chat
       exampleData.messages.forEach(msg => {
@@ -135,8 +136,8 @@ function ChatInstance({ chatId, onViewChange: _onViewChange, isOverlayMode = fal
         });
       });
 
-      // Switch to the new chat
-      setChatViewCurrentChat(newChat.id);
+      // Switch to the new chat (without reloading scenes)
+      setChatViewCurrentChat(newChat.id, true);
       
       // Close sidebar on mobile
       if (window.innerWidth <= 768) setSidebarCollapsed(true);
@@ -156,7 +157,8 @@ function ChatInstance({ chatId, onViewChange: _onViewChange, isOverlayMode = fal
   const handleNewChat = () => {
     const newChat = addChatSession();
     if (newChat) {
-      setChatViewCurrentChat(newChat.id);
+      // Skip scene reload since addChatSession already creates a default scene
+      setChatViewCurrentChat(newChat.id, true);
       setCurrentView('chat'); // Navigate to chat view
     }
     // On mobile, close sidebar after creating new chat

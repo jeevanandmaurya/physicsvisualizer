@@ -63,7 +63,7 @@ export function useConversation({
   addMessageToWorkspace?: (message: any) => void;
   shouldSwitchScene?: boolean;
 }) {
-  const { linkSceneToChat, updateCurrentScene, updateSceneById, updateWorkspace, addScene } = useWorkspace();
+  const { linkSceneToChat, updateCurrentScene, updateSceneById, updateWorkspace, addScene, clearScenes, replaceCurrentScene } = useWorkspace();
   const [messages, setMessages] = useState<Message[]>([]); // Don't initialize with messages here - handled by parent components
   const [isLoading, setIsLoading] = useState(false);
   const aiManager = useRef(new GeminiAIManager());
@@ -415,9 +415,14 @@ export function useConversation({
                                aiResponse.updatedScene.id !== currentScene.id ||
                                aiResponse.updatedScene.name !== currentScene.name;
             
-            if (isNewScene) {
-              // ADD new scene to workspace
-              addScene(aiResponse.updatedScene, shouldSwitchScene);
+            if (isNewScene && shouldSwitchScene) {
+              // For ChatOverlay: Clear and replace to prevent scene mixing
+              clearScenes();
+              replaceCurrentScene(aiResponse.updatedScene);
+              generatedSceneId = aiResponse.updatedScene.id;
+            } else if (isNewScene) {
+              // For ChatView: Add new scene without switching (chat-specific scene)
+              addScene(aiResponse.updatedScene, false);
               generatedSceneId = aiResponse.updatedScene.id;
             } else {
               // UPDATE existing scene by ID (not necessarily current)

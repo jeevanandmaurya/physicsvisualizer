@@ -315,39 +315,67 @@ export const ScenePreviewRenderer: React.FC<ScenePreviewRendererProps> = ({
         // Extract folder name by removing version suffix and converting hyphens to underscores
         // e.g., "projectile-motion" -> "projectile_motion"
         // e.g., "projectile_motion_v1.0" -> "projectile_motion"
-        const folderName = sceneId
+        let baseFolder = sceneId
           .replace(/_v\d+\.\d+$/, '')  // Remove version suffix
-          .replace(/-/g, '_');          // Convert hyphens to underscores
-        
-        // Try multiple possible paths for the scene file
-        const possiblePaths = [
-          `/scenes/${folderName}/${folderName}_v1.0.json`,
-          `/scenes/${folderName}/${sceneId}.json`,
-          `/scenes/${folderName}/${folderName}.json`,
-        ];
+          .replace(/-/g, '_');            // Convert hyphens to underscores
 
-        let loadedData = null;
-        for (const path of possiblePaths) {
-          try {
-            const response = await fetch(path);
-            if (response.ok) {
-              const contentType = response.headers.get('content-type');
-              // Make sure we got JSON, not HTML
-              if (contentType && contentType.includes('application/json')) {
-                loadedData = await response.json();
-                break;
-              }
-              // Try to parse anyway if content-type is missing
-              const text = await response.text();
-              if (text.trim().startsWith('{')) {
-                loadedData = JSON.parse(text);
-                break;
-              }
+        // Try to consult a scenes manifest for an authoritative folder mapping
+        try {
+          const manifestResp = await fetch('/scenes/manifest.json');
+          if (manifestResp.ok) {
+            const manifest = await manifestResp.json();
+            const match = (manifest.scenes || []).find((s: any) => (
+              s.id === sceneId || s.folderName === baseFolder || (s.id && s.id.replace(/-/g, '_') === baseFolder)
+            ));
+            if (match && match.folderName) {
+              baseFolder = match.folderName;
             }
-          } catch (e) {
-            // Try next path
-            continue;
           }
+        } catch (e) {
+          // ignore manifest lookup errors and fall back to heuristic
+        }
+
+        // Build candidate folder names by progressively removing trailing segments
+        const folderCandidates = [baseFolder];
+        let truncated = baseFolder;
+        while (truncated.includes('_')) {
+          truncated = truncated.replace(/_[^_]+$/, '');
+          if (!folderCandidates.includes(truncated)) folderCandidates.push(truncated);
+        }
+
+        let loadedData: any = null;
+        // Try multiple possible paths for each candidate folder until we find JSON
+        for (const folder of folderCandidates) {
+          const possiblePaths = [
+            `/scenes/${folder}/${folder}_v1.0.json`,
+            `/scenes/${folder}/${sceneId}.json`,
+            `/scenes/${folder}/${folder}.json`,
+          ];
+
+          for (const path of possiblePaths) {
+            try {
+              const response = await fetch(path);
+              if (response.ok) {
+                const contentType = response.headers.get('content-type');
+                // Make sure we got JSON, not HTML
+                if (contentType && contentType.includes('application/json')) {
+                  loadedData = await response.json();
+                  break;
+                }
+                // Try to parse anyway if content-type is missing
+                const text = await response.text();
+                if (text.trim().startsWith('{')) {
+                  loadedData = JSON.parse(text);
+                  break;
+                }
+              }
+            } catch (e) {
+              // Try next path
+              continue;
+            }
+          }
+
+          if (loadedData) break;
         }
         
         sceneData = loadedData;
@@ -370,6 +398,12 @@ export const ScenePreviewRenderer: React.FC<ScenePreviewRendererProps> = ({
       }
 
       sceneDataRef.current = sceneData;
+
+      // If the component was unmounted or the scene disposed while we were
+      // awaiting fetches, bail out to avoid dereferencing null refs.
+      if (!sceneRef.current) {
+        return;
+      }
 
       // Clear existing objects (keep lights)
       const objectsToRemove: THREE.Object3D[] = [];
@@ -445,10 +479,6 @@ export const ScenePreviewRenderer: React.FC<ScenePreviewRendererProps> = ({
                     // Capture
                     frames.push(rendererRef.current.domElement.toDataURL('image/jpeg', 0.8));
                 }
-
-                // Debug info about cache size
-                const totalChars = frames.reduce((acc, f) => acc + f.length, 0);
-                console.log(`📸 [${sceneId}] Cached 8 frames. ~${Math.round(totalChars * 0.75 / 1024)}KB total.`);
 
                 snapshotCache.set(sceneId, frames);
                 setSnapshots(frames);

@@ -126,7 +126,6 @@ export class FunctionCallSystem {
    * @returns {Array|Object} Generated objects
    */
   executeInlineCode(code, parameters = {}, scene = null) {
-    console.log(`🚀 Executing inline JavaScript code...`);
     
     try {
       // Create a safe execution environment with utilities
@@ -221,16 +220,12 @@ export class FunctionCallSystem {
       );
       
       // Execute the code
-      console.log('📝 Executing inline code:', code.substring(0, 200) + '...');
       const result = func(helpers);
-      console.log('📊 Inline code result:', result);
       
       // Validate and return
       if (Array.isArray(result)) {
-        console.log(`✅ Returning ${result.length} objects from inline code`);
         return result.map(obj => this.validateGeneratedObject(obj, { code }));
       } else if (result && typeof result === 'object' && result.id) {
-        console.log('✅ Returning single object from inline code');
         return this.validateGeneratedObject(result, { code });
       }
       
@@ -260,17 +255,14 @@ export class FunctionCallSystem {
 
     // Process functionCalls array
     if (processedScene.functionCalls && Array.isArray(processedScene.functionCalls)) {
-      console.log(`🎯 Processing ${processedScene.functionCalls.length} function calls for scene "${processedScene.id}"`);
 
       for (const functionCall of processedScene.functionCalls) {
         try {
           const objects = this.executeObjectGenerator(functionCall, processedScene);
 
           if (Array.isArray(objects)) {
-            console.log(`✅ Generated ${objects.length} objects from inline function`);
             processedScene.objects.push(...objects);
           } else if (objects) {
-            console.log(`✅ Generated 1 object from inline function`);
             processedScene.objects.push(objects);
           } else {
             console.warn(`⚠️ Function returned no objects`);
@@ -298,7 +290,6 @@ export class FunctionCallSystem {
   executeObjectGenerator(functionCall, scene) {
     // NEW: Support inline code directly in JSON
     if (functionCall.code && typeof functionCall.code === 'string') {
-      console.log(`🔧 Executing inline JavaScript code...`);
       return this.executeInlineCode(functionCall.code, functionCall.parameters || {}, scene);
     }
 

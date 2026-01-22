@@ -116,9 +116,9 @@ export interface WorkspaceContextType {
   
   // View-specific current chat methods
   getChatViewCurrentChat: () => WorkspaceChat | null;
-  setChatViewCurrentChat: (chatId: string) => boolean;
+  setChatViewCurrentChat: (chatId: string, skipSceneReload?: boolean) => boolean;
   getChatOverlayCurrentChat: () => WorkspaceChat | null;
-  setChatOverlayCurrentChat: (chatId: string) => boolean;
+  setChatOverlayCurrentChat: (chatId: string, skipSceneReload?: boolean) => boolean;
   
   // Scene-chat linking
   linkSceneToChat: (sceneId: string, chatId: string) => void;
@@ -371,6 +371,18 @@ export function WorkspaceProvider({ children }: { children: React.ReactNode }) {
 
   // UI mode functionality removed - not needed
 
+  // Helper to create a default empty scene for new chats
+  const createDefaultScene = useCallback(() => ({
+    id: `scene-${Date.now()}`,
+    name: 'New Scene',
+    description: 'A new physics simulation.',
+    gravity: [0, -9.81, 0],
+    hasGround: true,
+    simulationScale: 'terrestrial',
+    gravitationalPhysics: { enabled: false },
+    objects: []
+  }), []);
+
   // Chat session management - clean and direct
   const addChatSession = useCallback(() => {
     const workspace = workspaceManager.getCurrentWorkspace();
@@ -385,6 +397,15 @@ export function WorkspaceProvider({ children }: { children: React.ReactNode }) {
     // Switch to the new chat
     workspace.setCurrentChat(newChat.id);
     
+    // Clear scenes and create a default empty scene for the new chat
+    workspace.scenes = [];
+    workspace.currentSceneIndex = -1;
+    const defaultScene = createDefaultScene();
+    workspace.addScene(defaultScene, true);
+    
+    // Link the new scene to this chat
+    workspace.linkSceneToChat(defaultScene.id, newChat.id);
+    
     // Update React state to trigger re-render
     setCurrentWorkspace({...workspace});
     
@@ -394,7 +415,7 @@ export function WorkspaceProvider({ children }: { children: React.ReactNode }) {
     });
     
     return newChat;
-  }, [workspaceManager]);
+  }, [workspaceManager, createDefaultScene]);
 
   const deleteChatSession = useCallback((chatId: string) => {
     const workspace = workspaceManager.getCurrentWorkspace();
@@ -491,19 +512,41 @@ export function WorkspaceProvider({ children }: { children: React.ReactNode }) {
   }, [workspaceManager, currentWorkspace]);
 
   // Set current chat for ChatView
-  const setChatViewCurrentChat = useCallback((chatId: string) => {
+  const setChatViewCurrentChat = useCallback((chatId: string, skipSceneReload: boolean = false) => {
     const workspace = workspaceManager.getCurrentWorkspace();
     if (!workspace) return false;
     
     const success = workspace.setChatViewCurrentChat(chatId);
     if (success) {
+      // Skip scene reload if caller already loaded the scene (e.g., example scene selection)
+      if (!skipSceneReload) {
+        // Get scenes linked to this chat BEFORE clearing
+        const linkedScenes = workspace.getScenesForChat(chatId);
+        
+        // Clear current scenes 
+        workspace.scenes = [];
+        workspace.currentSceneIndex = -1;
+        
+        if (linkedScenes && linkedScenes.length > 0) {
+          // Load the most recent scene for this chat (make a copy to avoid reference issues)
+          const latestScene = { ...linkedScenes[linkedScenes.length - 1] };
+          workspace.addScene(latestScene, true);
+          console.log('ChatView: Loaded scene for chat:', latestScene.name || latestScene.id);
+        } else {
+          // No linked scene, create a default empty scene
+          const defaultScene = createDefaultScene();
+          workspace.addScene(defaultScene, true);
+          console.log('ChatView: Created new default scene for chat');
+        }
+      }
+      
       setCurrentWorkspace({...workspace});
       workspaceManager.saveCurrentWorkspace().catch(err => {
         console.error('Failed to save workspace:', err);
       });
     }
     return success;
-  }, [workspaceManager]);
+  }, [workspaceManager, createDefaultScene]);
 
   // Get current chat for ChatOverlay (from shared history)
   const getChatOverlayCurrentChat = useCallback(() => {
@@ -513,19 +556,41 @@ export function WorkspaceProvider({ children }: { children: React.ReactNode }) {
   }, [workspaceManager, currentWorkspace]);
 
   // Set current chat for ChatOverlay
-  const setChatOverlayCurrentChat = useCallback((chatId: string) => {
+  const setChatOverlayCurrentChat = useCallback((chatId: string, skipSceneReload: boolean = false) => {
     const workspace = workspaceManager.getCurrentWorkspace();
     if (!workspace) return false;
     
     const success = workspace.setChatOverlayCurrentChat(chatId);
     if (success) {
+      // Skip scene reload if caller already loaded the scene (e.g., example scene selection)
+      if (!skipSceneReload) {
+        // Get scenes linked to this chat BEFORE clearing
+        const linkedScenes = workspace.getScenesForChat(chatId);
+        
+        // Clear current scenes
+        workspace.scenes = [];
+        workspace.currentSceneIndex = -1;
+        
+        if (linkedScenes && linkedScenes.length > 0) {
+          // Load the most recent scene for this chat (make a copy to avoid reference issues)
+          const latestScene = { ...linkedScenes[linkedScenes.length - 1] };
+          workspace.addScene(latestScene, true);
+          console.log('ChatOverlay: Loaded scene for chat:', latestScene.name || latestScene.id);
+        } else {
+          // No linked scene, create a default empty scene
+          const defaultScene = createDefaultScene();
+          workspace.addScene(defaultScene, true);
+          console.log('ChatOverlay: Created new default scene for chat');
+        }
+      }
+      
       setCurrentWorkspace({...workspace});
       workspaceManager.saveCurrentWorkspace().catch(err => {
         console.error('Failed to save workspace:', err);
       });
     }
     return success;
-  }, [workspaceManager]);
+  }, [workspaceManager, createDefaultScene]);
 
   // Scene-chat linking methods
   const linkSceneToChat = useCallback((sceneId: string, chatId: string) => {

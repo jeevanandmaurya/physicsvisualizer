@@ -3,7 +3,7 @@ import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { faUserCircle, faSignInAlt, faSignOutAlt, faSpinner, faSearch, faSort, faSortAlphaDown, faSortAlphaUp, faCalendarAlt, faCalendar } from '@fortawesome/free-solid-svg-icons';
 
 import { useDatabase } from '../contexts/DatabaseContext';
-import { useWorkspaceScene } from '../contexts/WorkspaceContext';
+import { useWorkspace, useWorkspaceScene } from '../contexts/WorkspaceContext';
 import { useNavigation } from '../contexts/NavigationContext';
 import { useSceneCache } from '../contexts/SceneCacheContext';
 import { InfiniteSceneGrid } from './components/explore/InfiniteSceneGrid';
@@ -13,7 +13,8 @@ import './CollectionView.css';
 
 function CollectionView() {
   const { setCurrentView } = useNavigation();
-  const { updateScene } = useWorkspaceScene();
+  const { replaceCurrentScene } = useWorkspaceScene();
+  const { clearScenes } = useWorkspace();
   const dataManager = useDatabase();
   const { 
     exampleScenes, userScenes, 
@@ -77,8 +78,9 @@ function CollectionView() {
       const actualChatId = await dataManager.getOrCreateChatForScene(sceneId, actualScene.name);
       console.log('💬 Chat ready:', actualChatId);
 
-      // Load scene into workspace
-      updateScene(actualScene);
+      // Load scene into workspace - clear first to prevent scene mixing
+      clearScenes();
+      replaceCurrentScene(actualScene);
 
       // Switch to visualizer view
       setCurrentView('visualizer');
@@ -87,7 +89,7 @@ function CollectionView() {
     } catch (error) {
       console.error('❌ Error loading scene:', error);
     }
-  }, [setCurrentView, updateScene, exampleScenes, userScenes, dataManager]);
+  }, [setCurrentView, clearScenes, replaceCurrentScene, exampleScenes, userScenes, dataManager]);
 
   // Filter and sort scenes based on search term and sort option
   const filteredAndSortedScenes = useMemo(() => {

@@ -141,16 +141,24 @@ export function VectorAnnotationComponent({
     const screenConstantScale = distance / referenceDistance;
 
     // Size arrow components based on smoothed length, scaled for constant screen size
-    const headLength = Math.max(length * (annotation.headLength || 0.25), 0.1) * screenConstantScale;
-    const headRadius = Math.max(length * (annotation.headRadius || 0.08), 0.03) * screenConstantScale;
-    const shaftRadius = Math.max(length * (annotation.shaftRadius || 0.02), 0.01) * screenConstantScale;
-    const shaftLength = Math.max(length - headLength / screenConstantScale, 0.05) * screenConstantScale;
+    // Smaller default multipliers and minimum caps for more compact vectors
+    const headLength = Math.max(length * (annotation.headLength || 0.18), 0.06) * screenConstantScale;
+    const headRadius = Math.max(length * (annotation.headRadius || 0.06), 0.02) * screenConstantScale;
+    const shaftRadius = Math.max(length * (annotation.shaftRadius || 0.012), 0.005) * screenConstantScale;
+    const shaftLength = Math.max(length - headLength / screenConstantScale, 0.03) * screenConstantScale;
+
+    // Clamp radii so arrows never become excessively thick
+    // Reduced maximum radii to keep arrows slim
+    const maxHeadRadius = Math.max(0.06 * screenConstantScale, length * 0.3 * screenConstantScale);
+    const maxShaftRadius = Math.max(0.03 * screenConstantScale, length * 0.15 * screenConstantScale);
+    const finalHeadRadius = Math.min(headRadius, maxHeadRadius);
+    const finalShaftRadius = Math.min(shaftRadius, maxShaftRadius);
 
     // Apply scales and positions
-    shaft.scale.set(shaftRadius, shaftLength, shaftRadius);
+    shaft.scale.set(finalShaftRadius, shaftLength, finalShaftRadius);
     shaft.position.set(0, shaftLength / 2, 0);
 
-    cone.scale.set(headRadius, headLength, headRadius);
+    cone.scale.set(finalHeadRadius, headLength, finalHeadRadius);
     cone.position.set(0, shaftLength + headLength / 2, 0);
 
     // Apply visibility based on speed

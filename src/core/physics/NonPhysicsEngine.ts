@@ -81,13 +81,11 @@ export class NonPhysicsEngine {
         
         // If object doesn't exist yet, create a placeholder
         if (!obj) {
-            console.log(`⏳ Animation set for "${objectId}" before object exists, creating placeholder`);
             obj = { id: objectId, position: [0, 0, 0] };
             this.objects.set(objectId, obj);
         }
 
         obj.animation = animationConfig;
-        console.log(`✨ Animation set for "${objectId}":`, animationConfig.type || 'custom code');
         return true;
     }
 

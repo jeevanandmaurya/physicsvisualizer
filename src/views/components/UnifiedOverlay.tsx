@@ -48,7 +48,8 @@ export const UnifiedOverlay: React.FC<UnifiedOverlayProps> = ({
     addMessage,
     addScene,
     clearScenes,
-    getScenesForChat
+    getScenesForChat,
+    replaceCurrentScene
   } = useWorkspace();
   const dataManager = useDatabase();
 
@@ -159,9 +160,9 @@ export const UnifiedOverlay: React.FC<UnifiedOverlayProps> = ({
       // Set chat name to example scene name
       updateChatName(newChat.id, exampleData.scene.name);
 
-      // Add the scene
-      clearScenes(); // Clear any existing scenes first
-      addScene(exampleData.sceneData, true);
+      // Clear and load the example scene
+      clearScenes();
+      replaceCurrentScene(exampleData.sceneData);
 
       // Add example messages to chat
       exampleData.messages.forEach((msg: any) => {
@@ -171,8 +172,8 @@ export const UnifiedOverlay: React.FC<UnifiedOverlayProps> = ({
         });
       });
 
-      // Switch to the new chat
-      setChatOverlayCurrentChat(newChat.id);
+      // Switch to the new chat (without reloading scenes)
+      setChatOverlayCurrentChat(newChat.id, true);
       
       // Close sidebar on mobile
       if (window.innerWidth <= 768) setSidebarCollapsed(true);
@@ -197,7 +198,8 @@ export const UnifiedOverlay: React.FC<UnifiedOverlayProps> = ({
   const handleNewChat = () => {
     const newChat = addChatSession();
     if (newChat) {
-      setChatOverlayCurrentChat(newChat.id);
+      // Skip scene reload since addChatSession already creates a default scene
+      setChatOverlayCurrentChat(newChat.id, true);
     }
     if (window.innerWidth <= 768) setSidebarCollapsed(true);
   };
