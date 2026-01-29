@@ -34,6 +34,7 @@ export interface BaseAnnotation {
   // Visibility and behavior
   visible?: boolean;
   fadeDistance?: number;        // Distance from camera where annotation fades
+  maxDistance?: number;         // Maximum distance from camera where annotation is visible (default: 100)
   minScale?: number;            // Minimum scale when far
   maxScale?: number;            // Maximum scale when close
   updateFrequency?: number;     // Update rate in Hz (default: 60)

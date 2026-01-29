@@ -312,6 +312,18 @@ export function PhysicsWorld({ scene, isPlaying, onPhysicsDataCalculated, resetT
 
     const effectiveGravity = scene?.gravity || [0, -9.81, 0];
 
+    // Check if scene has custom ground objects defined
+    const hasCustomGround = () => {
+        if (!scene?.objects) return false;
+        
+        // Check for objects explicitly marked as ground
+        return scene.objects.some(obj => 
+            obj.id === 'ground' || 
+            obj.isGround === true || 
+            (obj.isStatic && obj.position && obj.position[1] <= 0.1 && obj.mass === 0)
+        );
+    };
+
     // Use paused prop to control physics simulation - when paused, rigid bodies maintain their state
     // timeStep controls simulation speed (default: 1/60, multiply by simulationSpeed for slow-mo)
     return (
@@ -336,8 +348,8 @@ export function PhysicsWorld({ scene, isPlaying, onPhysicsDataCalculated, resetT
             />
             {renderObjects()}
             
-            {/* Ground plane for physics collision when hasGround is true */}
-            {scene?.hasGround && (
+            {/* Default ground plane only when hasGround is true AND no custom ground objects exist */}
+            {scene?.hasGround && !hasCustomGround() && (
                 <RigidBody type="fixed" position={[0, -0.1, 0]}>
                     <CuboidCollider args={[500, 0.1, 500]} />
                 </RigidBody>
@@ -454,17 +466,22 @@ function PhysicsObject({ config, isPlaying, physicsResetKey, bodyRefs, onPhysics
         }
     }, [bodyRef.current, config.id]);
 
-    // --- Handle initial velocity when simulation starts ---
+    // --- Handle initial velocity when simulation starts OR when object is newly added ---
     // This fixes Rapier's aggressive sleeping algorithm that ignores linvel when unpausing
+    // Also ensures newly added objects (like shot objects) get proper initial velocity
     React.useEffect(() => {
-        if (isPlaying && bodyRef.current) {
+        if (bodyRef.current) {
             const velocity = config.velocity || [0, 0, 0];
-            // Imperatively set velocity and wake the body
+            // Always set initial velocity when object is created or config changes
             bodyRef.current.setLinvel({ x: velocity[0], y: velocity[1], z: velocity[2] });
             bodyRef.current.setAngvel({ x: 0, y: 0, z: 0 });
-            bodyRef.current.wakeUp();
+
+            // Only wake up if simulation is playing
+            if (isPlaying) {
+                bodyRef.current.wakeUp();
+            }
         }
-    }, [isPlaying, config.velocity, physicsResetKey]); // Dependencies ensure this runs when simulation starts
+    }, [config.velocity, physicsResetKey]); // Run when velocity changes or physics resets, regardless of isPlaying
 
     // Get collider based on shape type with proper friction and restitution
     const createCollider = () => {
@@ -540,7 +557,6 @@ function PhysicsObject({ config, isPlaying, physicsResetKey, bodyRefs, onPhysics
             type={config.isStatic ? "fixed" : "dynamic"}
             position={config.position || [0, 0, 0]}
             rotation={config.rotation || [0, 0, 0]}
-            linvel={config.velocity || [0, 0, 0]}
         >
             {createCollider()}
             <mesh castShadow>

@@ -111,8 +111,16 @@ export function VectorAnnotationComponent({
 
     const length = smoothVector.current.length();
 
+    // Limit maximum vector length to prevent overly long arrows
+    const maxLength = annotation.maxLength || 5.0; // Default max length of 5 units
+    if (length > maxLength) {
+      smoothVector.current.normalize().multiplyScalar(maxLength);
+    }
+
+    const finalLength = smoothVector.current.length();
+
     // Hide if vector is too small
-    if (length < 0.01) {
+    if (finalLength < 0.01) {
       group.visible = false;
       return;
     }
@@ -142,15 +150,15 @@ export function VectorAnnotationComponent({
 
     // Size arrow components based on smoothed length, scaled for constant screen size
     // Smaller default multipliers and minimum caps for more compact vectors
-    const headLength = Math.max(length * (annotation.headLength || 0.18), 0.06) * screenConstantScale;
-    const headRadius = Math.max(length * (annotation.headRadius || 0.06), 0.02) * screenConstantScale;
-    const shaftRadius = Math.max(length * (annotation.shaftRadius || 0.012), 0.005) * screenConstantScale;
-    const shaftLength = Math.max(length - headLength / screenConstantScale, 0.03) * screenConstantScale;
+    const headLength = Math.max(finalLength * (annotation.headLength || 0.18), 0.06) * screenConstantScale;
+    const headRadius = Math.max(finalLength * (annotation.headRadius || 0.06), 0.02) * screenConstantScale;
+    const shaftRadius = Math.max(finalLength * (annotation.shaftRadius || 0.012), 0.005) * screenConstantScale;
+    const shaftLength = Math.max(finalLength - headLength / screenConstantScale, 0.03) * screenConstantScale;
 
     // Clamp radii so arrows never become excessively thick
-    // Reduced maximum radii to keep arrows slim
-    const maxHeadRadius = Math.max(0.06 * screenConstantScale, length * 0.3 * screenConstantScale);
-    const maxShaftRadius = Math.max(0.03 * screenConstantScale, length * 0.15 * screenConstantScale);
+    // Reduced maximum radii to keep arrows slim and added configurable limits
+    const maxHeadRadius = Math.min(annotation.maxHeadRadius || 0.5, Math.max(0.06 * screenConstantScale, finalLength * 0.3 * screenConstantScale));
+    const maxShaftRadius = Math.min(annotation.maxShaftRadius || 0.2, Math.max(0.03 * screenConstantScale, finalLength * 0.15 * screenConstantScale));
     const finalHeadRadius = Math.min(headRadius, maxHeadRadius);
     const finalShaftRadius = Math.min(shaftRadius, maxShaftRadius);
 
@@ -166,6 +174,11 @@ export function VectorAnnotationComponent({
       const speed = PhysicsFormatter.magnitude(physicsData.velocity);
       group.visible = speed >= annotation.minSpeed;
     }
+
+    // Apply visibility based on distance (default max distance of 100 units)
+    const maxDistance = annotation.maxDistance ?? 100;
+    const cameraDistance = worldPos.distanceTo(cameraPos);
+    group.visible = group.visible && (cameraDistance <= maxDistance);
   });
 
   return (

@@ -44,7 +44,7 @@ export function TextAnnotationComponent({
     const result = rendererRef.current.renderText({
       text,
       fontSize: annotation.fontSize || 13,
-      fontFamily: annotation.fontFamily || 'Inter, -apple-system, BlinkMacSystemFont, Segoe UI, sans-serif',
+      fontFamily: annotation.fontFamily || 'monospace',
       color: annotation.color || '#f8fafc',
       backgroundColor: annotation.backgroundColor || 'rgba(15, 23, 42, 0.88)',
       padding: annotation.padding || 6,
@@ -89,7 +89,7 @@ export function TextAnnotationComponent({
       const result = rendererRef.current.renderText({
         text,
         fontSize: annotation.fontSize || 13,
-        fontFamily: annotation.fontFamily || "Inter, -apple-system, BlinkMacSystemFont, Segoe UI, sans-serif",
+        fontFamily: annotation.fontFamily || "monospace",
         color: annotation.color || '#f8fafc',
         backgroundColor: annotation.backgroundColor || 'rgba(15, 23, 42, 0.88)',
         padding: annotation.padding || 6,
@@ -144,6 +144,11 @@ export function TextAnnotationComponent({
       const speed = PhysicsFormatter.magnitude(physicsData.velocity);
       sprite.visible = speed >= annotation.minSpeed;
     }
+
+    // Visibility based on distance (default max distance of 100 units)
+    const maxDistance = annotation.maxDistance ?? 100;
+    const cameraDistance = worldPos.distanceTo(cameraPos);
+    sprite.visible = sprite.visible && (cameraDistance <= maxDistance);
   });
 
   // Cleanup

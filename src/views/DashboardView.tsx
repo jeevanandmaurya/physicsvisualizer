@@ -142,9 +142,9 @@ function DashboardView() {
                     isPublic={false}
                     onSceneClick={handleCardClick}
                     emptyMessage={
-                        <div className="empty-state" style={{ gridColumn: '1 / -1', textAlign: 'center', padding: '2rem' }}>
+                        <div className="empty-state flex flex-col items-center justify-center" style={{ gridColumn: '1 / -1', textAlign: 'center', padding: '2rem' }}>
                             <p>You haven't created any scenes yet.</p>
-                            <button className="action-btn secondary" onClick={handleCreateNewScene} style={{ marginTop: '10px' }}>
+                            <button className="action-btn secondary" onClick={handleCreateNewScene} style={{ margin: 'auto' }}>
                                 Start Creating
                             </button>
                         </div>

@@ -36,11 +36,38 @@ function TimeUpdater({ isPlaying, updateSimulationTime }) {
 }
 
 function ShootingHandler({ onShoot }) {
-  const { camera } = useThree();
+  const { camera, gl } = useThree();
   const [fKeyHeld, setFKeyHeld] = useState(false);
+  const [isCanvasFocused, setIsCanvasFocused] = useState(false);
+
+  useEffect(() => {
+    const canvas = gl.domElement;
+
+    const handleFocus = () => setIsCanvasFocused(true);
+    const handleBlur = () => setIsCanvasFocused(false);
+    const handleMouseEnter = () => setIsCanvasFocused(true);
+    const handleMouseLeave = () => setIsCanvasFocused(false);
+
+    canvas.addEventListener('focus', handleFocus);
+    canvas.addEventListener('blur', handleBlur);
+    canvas.addEventListener('mouseenter', handleMouseEnter);
+    canvas.addEventListener('mouseleave', handleMouseLeave);
+
+    return () => {
+      canvas.removeEventListener('focus', handleFocus);
+      canvas.removeEventListener('blur', handleBlur);
+      canvas.removeEventListener('mouseenter', handleMouseEnter);
+      canvas.removeEventListener('mouseleave', handleMouseLeave);
+    };
+  }, [gl]);
 
   useEffect(() => {
     const handleKeyDown = (event) => {
+      // Only handle shooting if canvas is focused or mouse is over it
+      if (!isCanvasFocused && document.activeElement !== gl.domElement) {
+        return;
+      }
+
       if (event.key === 'f' || event.key === 'F') {
         setFKeyHeld(true);
         // If 'f' is pressed alone (not held), shoot default sphere
@@ -63,6 +90,11 @@ function ShootingHandler({ onShoot }) {
     };
 
     const handleKeyUp = (event) => {
+      // Only handle key up if canvas is focused or mouse is over it
+      if (!isCanvasFocused && document.activeElement !== gl.domElement) {
+        return;
+      }
+
       if (event.key === 'f' || event.key === 'F') {
         setFKeyHeld(false);
       }
@@ -87,7 +119,7 @@ function ShootingHandler({ onShoot }) {
       window.removeEventListener('keydown', handleKeyDown);
       window.removeEventListener('keyup', handleKeyUp);
     };
-  }, [camera, onShoot, fKeyHeld]);
+  }, [camera, onShoot, fKeyHeld, isCanvasFocused, gl]);
 
   return null;
 }
@@ -295,6 +327,7 @@ function Visualizer({ scene, showSceneDetails, onToggleSceneDetails, onSceneUpda
     const r3fCanvasRef = useRef(null);
     const [processedScene, setProcessedScene] = useState(null);
     const physicsUpdateCountRef = useRef(0); // Batch updates
+    const shotTimersRef = useRef({}); // Track removal timers for shot objects
 
     // Process scene function calls when scene changes - MEMOIZED to prevent re-processing
     // Use scene._version to force re-processing when scene is updated via patches
@@ -374,6 +407,12 @@ function Visualizer({ scene, showSceneDetails, onToggleSceneDetails, onSceneUpda
             if (onSceneUpdate) {
               onSceneUpdate(sceneWithoutObject);
             }
+
+            // Clear the timeout for this shot since it's being removed by boundary
+            if (shotTimersRef.current[id]) {
+              clearTimeout(shotTimersRef.current[id]);
+              delete shotTimersRef.current[id];
+            }
           }
         }
       }
@@ -381,7 +420,7 @@ function Visualizer({ scene, showSceneDetails, onToggleSceneDetails, onSceneUpda
     
     // No more React state updates here! 
     // Subscribers (graphs, UI) get updates via event system at their own rate
-  }, [onSceneUpdate, activeScene]);
+  }, [onSceneUpdate, scene]);
 
   const handleShoot = useCallback((shotData) => {
     if (!onSceneUpdate) return;
@@ -528,21 +567,28 @@ function Visualizer({ scene, showSceneDetails, onToggleSceneDetails, onSceneUpda
     onSceneUpdate(updatedScene);
 
     // Remove the object after 8 seconds (longer than before for more fun)
-    setTimeout(() => {
+    // Capture the current scene state for this specific shot
+    const sceneSnapshot = { ...scene };
+    const timerId = setTimeout(() => {
       if (onSceneUpdate) {
-        // Get current original scene state at timeout execution time
-        const currentScene = scene;
+        // Use the captured scene snapshot instead of the current scene
         const sceneWithoutObject = {
-          ...currentScene,
-          objects: (currentScene.objects || [])
+          ...sceneSnapshot,
+          objects: (sceneSnapshot.objects || [])
             .filter(obj => obj.id !== shotId)
             .map(obj => ({ ...obj })), // Deep copy remaining objects
           _isShootingUpdate: true, // Flag to indicate this update is from shooting cleanup
-          _version: (currentScene._version || 0) + 1 // Increment version for proper memoization
+          _version: (sceneSnapshot._version || 0) + 1 // Increment version for proper memoization
         };
         onSceneUpdate(sceneWithoutObject);
+        
+        // Clean up the timer reference
+        delete shotTimersRef.current[shotId];
       }
     }, 8000);
+    
+    // Store the timer reference for this shot
+    shotTimersRef.current[shotId] = timerId;
   }, [onSceneUpdate, scene]);
 
     useEffect(() => {
@@ -572,6 +618,17 @@ function Visualizer({ scene, showSceneDetails, onToggleSceneDetails, onSceneUpda
             setPhysicsData({ velocities: {}, positions: {} });
         }
     }, [resetTrigger, setObjectHistory]);
+
+    // Clean up shot timers when scene changes (not shooting updates)
+    useEffect(() => {
+        if (!scene?._isShootingUpdate) {
+            // Clear all active shot timers when scene changes
+            Object.values(shotTimersRef.current).forEach(timerId => {
+                clearTimeout(timerId);
+            });
+            shotTimersRef.current = {};
+        }
+    }, [scene]);
 
     useEffect(() => {
         const i = setInterval(() => {
@@ -605,6 +662,16 @@ function Visualizer({ scene, showSceneDetails, onToggleSceneDetails, onSceneUpda
             }
         }
     }, [loopMode, isPlaying, simulationTime, loopReset]);
+
+    // Clean up shot timers on unmount
+    useEffect(() => {
+        return () => {
+            Object.values(shotTimersRef.current).forEach(timerId => {
+                clearTimeout(timerId);
+            });
+            shotTimersRef.current = {};
+        };
+    }, []);
 
     return (
         <div className="visualizer-container">
