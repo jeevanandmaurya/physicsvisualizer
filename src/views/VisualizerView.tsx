@@ -244,6 +244,7 @@ function VisualizerView() {
         scene={scene}
         showSceneDetails={showSceneDetails}
         onToggleSceneDetails={handleToggleSceneDetails}
+        onSceneUpdate={handleSceneUpdate}
       />
       {sceneSwitching && (
         <div className="scene-loading-overlay">

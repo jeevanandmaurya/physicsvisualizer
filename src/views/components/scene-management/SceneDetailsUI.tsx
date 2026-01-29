@@ -1,18 +1,34 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { faExclamationTriangle, faList, faCode } from '@fortawesome/free-solid-svg-icons';
-import { useSceneDetails } from '../../../ui-logic/scene-management/useSceneDetails';
 import './SceneDetails.css';
 
 function SceneDetailsUI({ scene, onToggleSceneDetails }) {
-    const {
+    const [expandedObjects, setExpandedObjects] = useState({});
+    const [activeTab, setActiveTab] = useState('list');
+
+    const toggleObjectDetails = (objectId) => {
+        setExpandedObjects(prev => ({ ...prev, [objectId]: !prev[objectId] }));
+    };
+
+    // Helper to format array values for display
+    const formatArray = (arr) => `[${arr?.map(v => v.toFixed(2)).join(', ') ?? ''}]`;
+
+    // Helper to copy JSON to clipboard
+    const copyJsonToClipboard = async () => {
+        if (scene) {
+            await navigator.clipboard.writeText(JSON.stringify(scene, null, 2));
+        }
+    };
+
+    // Get scene data for rendering
+    const sceneData = {
+        hasScene: !!scene,
+        scene,
+        formatArray,
         expandedObjects,
-        activeTab,
-        setActiveTab,
-        sceneData,
-        toggleObjectDetails,
-        copyJsonToClipboard
-    } = useSceneDetails(scene);
+        activeTab
+    };
 
     if (!sceneData.hasScene) {
         return (
@@ -21,8 +37,6 @@ function SceneDetailsUI({ scene, onToggleSceneDetails }) {
             </div>
         );
     }
-
-    const { formatArray } = sceneData;
 
     return (
         <div className="scene-details-container">

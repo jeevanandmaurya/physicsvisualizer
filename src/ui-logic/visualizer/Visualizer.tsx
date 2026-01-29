@@ -1,5 +1,5 @@
 import React, { useRef, useEffect, useCallback, useState, useMemo } from 'react';
-import { Canvas, useFrame } from '@react-three/fiber';
+import { Canvas, useFrame, useThree } from '@react-three/fiber';
 import { OrbitControls, Grid, Text, useTexture } from '@react-three/drei';
 import * as THREE from 'three';
 
@@ -32,6 +32,63 @@ function TimeUpdater({ isPlaying, updateSimulationTime }) {
       updateSimulationTime(prevTime => prevTime + delta);
     }
   });
+  return null;
+}
+
+function ShootingHandler({ onShoot }) {
+  const { camera } = useThree();
+  const [fKeyHeld, setFKeyHeld] = useState(false);
+
+  useEffect(() => {
+    const handleKeyDown = (event) => {
+      if (event.key === 'f' || event.key === 'F') {
+        setFKeyHeld(true);
+        // If 'f' is pressed alone (not held), shoot default sphere
+        setTimeout(() => {
+          if (fKeyHeld) return; // Don't shoot if still held (waiting for number)
+          shootObject('Sphere');
+        }, 200); // Small delay to detect if number key follows
+      } else if (fKeyHeld && ['1', '2', '3', '4', '5'].includes(event.key)) {
+        // Shoot different geometry based on number key
+        const geometryTypes = {
+          '1': 'Sphere',
+          '2': 'Box', 
+          '3': 'Cylinder',
+          '4': 'Cone',
+          '5': 'Capsule'
+        };
+        shootObject(geometryTypes[event.key]);
+        setFKeyHeld(false);
+      }
+    };
+
+    const handleKeyUp = (event) => {
+      if (event.key === 'f' || event.key === 'F') {
+        setFKeyHeld(false);
+      }
+    };
+
+    const shootObject = (type) => {
+      // Calculate direction from camera
+      const direction = new THREE.Vector3(0, 0, -1).applyQuaternion(camera.quaternion);
+      const position = camera.position.clone().add(direction.clone().multiplyScalar(2));
+      const velocity = direction.clone().multiplyScalar(20);
+      
+      onShoot({
+        position: position.toArray(),
+        velocity: velocity.toArray(),
+        type: type
+      });
+    };
+
+    window.addEventListener('keydown', handleKeyDown);
+    window.addEventListener('keyup', handleKeyUp);
+    return () => {
+      window.removeEventListener('keydown', handleKeyDown);
+      window.removeEventListener('keyup', handleKeyUp);
+    };
+  }, [camera, onShoot, fKeyHeld]);
+
   return null;
 }
 function FpsCounter({ updateFps }) { 
@@ -192,7 +249,7 @@ function Skybox({ texturePath, backgroundType = 'normal' }) {
   );
 }
 
-function Visualizer({ scene, showSceneDetails, onToggleSceneDetails }) {
+function Visualizer({ scene, showSceneDetails, onToggleSceneDetails, onSceneUpdate }) {
     // Simulation state from SimulationContext
     const { 
         isPlaying, 
@@ -244,16 +301,22 @@ function Visualizer({ scene, showSceneDetails, onToggleSceneDetails }) {
     const processedSceneMemo = useMemo(() => {
         if (scene) {
             console.log('🎬 Visualizer: Processing scene functions for:', scene.id, 'version:', scene._version || 0);
+            console.log('🎬 Scene before processing:', { objects: scene.objects?.length || 0, functionCalls: scene.functionCalls?.length || 0 });
             const processed = functionCallSystem.processSceneFunctions(scene);
 
             // Log any errors that occurred during processing
             if (processed.errors && processed.errors.length > 0) {
-                console.warn('⚠️ Scene processing errors:', processed.errors);
+                console.error('❌ Scene processing errors:', processed.errors);
+                console.error('❌ Failed scene details:', { id: scene.id, functionCalls: scene.functionCalls });
+            } else {
+                console.log('✅ Scene processed successfully');
             }
 
             console.log(`✅ Scene processed: ${scene.objects?.length || 0} → ${processed.objects?.length || 0} objects`);
+            console.log('✅ Processed scene details:', { objects: processed.objects?.length || 0, joints: processed.joints?.length || 0, errors: processed.errors?.length || 0 });
             return processed;
         }
+        console.log('🎬 No scene to process');
         return null;
     }, [scene, scene?._version]);
 
@@ -284,22 +347,219 @@ function Visualizer({ scene, showSceneDetails, onToggleSceneDetails }) {
           info.position,
           info.time
         );
+
+        // Check boundary for shot objects
+        if (id.startsWith('__physics_visualizer_shot_')) {
+          const distance = Math.sqrt(
+            info.position[0] * info.position[0] + 
+            info.position[1] * info.position[1] + 
+            info.position[2] * info.position[2]
+          );
+          
+          // Remove shot objects that exceed boundary (50 units from origin)
+          if (distance > 50) {
+            console.log(`🗑️ Removing shot object ${id} - exceeded boundary (distance: ${distance.toFixed(2)})`);
+            
+            // Remove from scene immediately - use original scene state
+            const currentScene = scene;
+            const sceneWithoutObject = {
+              ...currentScene,
+              objects: (currentScene.objects || [])
+                .filter(obj => obj.id !== id)
+                .map(obj => ({ ...obj })), // Deep copy remaining objects
+              _isShootingUpdate: true,
+              _version: (currentScene._version || 0) + 1
+            };
+            
+            if (onSceneUpdate) {
+              onSceneUpdate(sceneWithoutObject);
+            }
+          }
+        }
       }
     });
     
     // No more React state updates here! 
     // Subscribers (graphs, UI) get updates via event system at their own rate
-  }, []);
+  }, [onSceneUpdate, activeScene]);
+
+  const handleShoot = useCallback((shotData) => {
+    if (!onSceneUpdate) return;
+
+    // Create a unique ID for the shot object - make it extremely unique to avoid collisions
+    const shotId = `__physics_visualizer_shot_${Date.now()}_${Math.random().toString(36).substring(2, 15)}_${Math.random().toString(36).substring(2, 15)}`;
+    
+    // Default to sphere if no type specified
+    const objectType = shotData.type || 'Sphere';
+    
+    // Create object based on type using existing geometry definitions
+    let ballObject;
+    
+    switch (objectType) {
+      case 'Sphere':
+        ballObject = {
+          id: shotId,
+          type: 'Sphere',
+          position: shotData.position,
+          velocity: shotData.velocity,
+          radius: 0.2,
+          mass: 0.2,
+          material: {
+            color: '#ff4444',
+            friction: 0.5,
+            restitution: 0.8
+          },
+          physics: {
+            type: 'dynamic'
+          }
+        };
+        break;
+        
+      case 'Box':
+        ballObject = {
+          id: shotId,
+          type: 'Box',
+          position: shotData.position,
+          velocity: shotData.velocity,
+          dimensions: [0.4, 0.4, 0.4],
+          mass: 0.3,
+          material: {
+            color: '#44ff44',
+            friction: 0.6,
+            restitution: 0.6
+          },
+          physics: {
+            type: 'dynamic'
+          }
+        };
+        break;
+        
+      case 'Cylinder':
+        ballObject = {
+          id: shotId,
+          type: 'Cylinder',
+          position: shotData.position,
+          velocity: shotData.velocity,
+          radius: 0.2,
+          height: 0.6,
+          mass: 0.25,
+          material: {
+            color: '#4444ff',
+            friction: 0.5,
+            restitution: 0.7
+          },
+          physics: {
+            type: 'dynamic'
+          }
+        };
+        break;
+        
+      case 'Cone':
+        ballObject = {
+          id: shotId,
+          type: 'Cone',
+          position: shotData.position,
+          velocity: shotData.velocity,
+          radius: 0.2,
+          height: 0.6,
+          mass: 0.2,
+          material: {
+            color: '#ff44ff',
+            friction: 0.5,
+            restitution: 0.8
+          },
+          physics: {
+            type: 'dynamic'
+          }
+        };
+        break;
+        
+      case 'Capsule':
+        ballObject = {
+          id: shotId,
+          type: 'Capsule',
+          position: shotData.position,
+          velocity: shotData.velocity,
+          radius: 0.15,
+          height: 0.6,
+          mass: 0.25,
+          material: {
+            color: '#ffff44',
+            friction: 0.5,
+            restitution: 0.7
+          },
+          physics: {
+            type: 'dynamic'
+          }
+        };
+        break;
+        
+      default:
+        // Default to sphere
+        ballObject = {
+          id: shotId,
+          type: 'Sphere',
+          position: shotData.position,
+          velocity: shotData.velocity,
+          radius: 0.2,
+          mass: 0.2,
+          material: {
+            color: '#ff4444',
+            friction: 0.5,
+            restitution: 0.8
+          },
+          physics: {
+            type: 'dynamic'
+          }
+        };
+    }
+
+    // Add the object to the scene - update the original scene, not the processed one
+    const updatedScene = {
+      ...scene, // Use original scene, not activeScene (processed)
+      objects: [
+        ...(scene.objects || []).map(obj => ({ ...obj })), // Deep copy original scene objects
+        { ...ballObject } // Fresh copy of new object
+      ],
+      _isShootingUpdate: true, // Flag to indicate this update is from shooting
+      _version: (scene._version || 0) + 1 // Increment version for proper memoization
+    };
+
+    onSceneUpdate(updatedScene);
+
+    // Remove the object after 8 seconds (longer than before for more fun)
+    setTimeout(() => {
+      if (onSceneUpdate) {
+        // Get current original scene state at timeout execution time
+        const currentScene = scene;
+        const sceneWithoutObject = {
+          ...currentScene,
+          objects: (currentScene.objects || [])
+            .filter(obj => obj.id !== shotId)
+            .map(obj => ({ ...obj })), // Deep copy remaining objects
+          _isShootingUpdate: true, // Flag to indicate this update is from shooting cleanup
+          _version: (currentScene._version || 0) + 1 // Increment version for proper memoization
+        };
+        onSceneUpdate(sceneWithoutObject);
+      }
+    }, 8000);
+  }, [onSceneUpdate, scene]);
 
     useEffect(() => {
         // Clear PhysicsDataStore on scene change
-        physicsDataStore.clear();
-        physicsDataStore.setUpdateRates(100, 500, dataTimeStep);
-        historyRef.current = {};
-        lastRecordTimeRef.current = {};
-        setObjectHistory({});
-        setPhysicsData({ velocities: {}, positions: {} });
-        setIsPlaying(false);
+        // Don't pause simulation if this is a shooting update
+        if (!scene?._isShootingUpdate) {
+            physicsDataStore.clear();
+            physicsDataStore.setUpdateRates(100, 500, dataTimeStep);
+            historyRef.current = {};
+            lastRecordTimeRef.current = {};
+            setObjectHistory({});
+            setPhysicsData({ velocities: {}, positions: {} });
+            setIsPlaying(false);
+        } else {
+            // For shooting updates, just update the data rates
+            physicsDataStore.setUpdateRates(100, 500, dataTimeStep);
+        }
     }, [scene, setIsPlaying, dataTimeStep]);
 
     // Reset data when reset button is pressed (resetTrigger changes)
@@ -412,6 +672,7 @@ function Visualizer({ scene, showSceneDetails, onToggleSceneDetails }) {
                         }}
                     >
                         <TimeUpdater isPlaying={isPlaying} updateSimulationTime={updateSimulationTime} />
+                        <ShootingHandler onShoot={handleShoot} />
                         <ambientLight intensity={1.0} />
                         <directionalLight position={[5, 10, 5]} intensity={1.2} castShadow shadow-mapSize-width={1024} shadow-mapSize-height={1024} />
                         <PhysicsWorld

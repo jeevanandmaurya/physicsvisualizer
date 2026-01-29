@@ -650,6 +650,7 @@ export function useConversation({
         // OPTION 1: Replace entire scene (updatedScene exists)
         if (aiResponse.updatedScene) {
           console.log('🔄 Replacing entire scene (regeneration)');
+          console.log('🔄 New scene details:', { id: aiResponse.updatedScene.id, objects: aiResponse.updatedScene.objects?.length || 0, functionCalls: aiResponse.updatedScene.functionCalls?.length || 0 });
 
           try {
             if (currentScene?.id) {

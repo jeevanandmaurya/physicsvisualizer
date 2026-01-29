@@ -119,6 +119,7 @@ class GeminiAIManager {
   // Try to extract and parse a top-level JSON object from noisy text
   recoverJSONFromText(text: string): any | null {
     if (!text) return null;
+    console.log('🔍 Recovering JSON from text, length:', text.length, 'preview:', text.substring(0, 100));
     // Remove common HTML tags (e.g., <em>, </em>) and control characters
     let cleaned = text.replace(/<[^>]+>/g, '');
     cleaned = cleaned.replace(/[\u0000-\u001F\u007F-\u009F]/g, '');
@@ -132,14 +133,21 @@ class GeminiAIManager {
     // backtick delimited code: "code": `...` -> "code":"..."
     cleaned = cleaned.replace(/"code"\s*:\s*`([\s\S]*?)`/g, (_m, code) => `"code":"${escapeForJson(code)}"`);
 
+    console.log('🧹 Cleaned text length:', cleaned.length, 'type index:', cleaned.indexOf('"type"'));
     // Look for the '"type"' marker and find the nearest leading '{'
     const typeIndex = cleaned.indexOf('"type"');
     const startSearchIndex = typeIndex > 0 ? typeIndex : cleaned.indexOf('{');
-    if (startSearchIndex === -1) return null;
+    if (startSearchIndex === -1) {
+      console.log('❌ No { found');
+      return null;
+    }
 
     // Find the start brace before the type key
     const braceStart = cleaned.lastIndexOf('{', startSearchIndex);
-    if (braceStart === -1) return null;
+    if (braceStart === -1) {
+      console.log('❌ No start brace found');
+      return null;
+    }
 
     // Walk forward to balance braces
     let depth = 0;
@@ -157,6 +165,7 @@ class GeminiAIManager {
     }
 
     let candidate = endIndex > braceStart ? cleaned.slice(braceStart, endIndex + 1) : cleaned.slice(braceStart);
+    console.log('🎯 Candidate JSON length:', candidate.length, 'starts with:', candidate.substring(0, 50));
 
     // If braces not balanced, append closing braces up to a small limit
     if (candidate) {
@@ -166,14 +175,21 @@ class GeminiAIManager {
     }
 
     try {
-      return JSON.parse(candidate);
+      const parsed = JSON.parse(candidate);
+      console.log('✅ Recovered JSON successfully, type:', parsed?.type, 'scene objects:', parsed?.scene?.objects?.length || 0);
+      return parsed;
     } catch (e) {
+      console.error('❌ JSON parse failed:', e.message);
+      console.error('❌ Failed candidate preview:', candidate.substring(0, 200));
       // As a last resort, try to find a JSON-looking substring via regex
       const jsonMatch = cleaned.match(/\{[\s\S]*\"type\"[\s\S]*\}/);
       if (jsonMatch) {
         try {
-          return JSON.parse(jsonMatch[0]);
+          const parsed = JSON.parse(jsonMatch[0]);
+          console.log('✅ Recovered via regex, type:', parsed?.type);
+          return parsed;
         } catch (e2) {
+          console.error('❌ Regex recovery failed:', e2.message);
           return null;
         }
       }
@@ -372,11 +388,14 @@ class GeminiAIManager {
   // Parse AI response (simplified)
   async parseAIResponse(response: any, sceneContext: any) {
     const text = typeof response === 'string' ? response.trim() : JSON.stringify(response);
+    console.log('🤖 Parsing AI response, length:', text.length);
     // Try parse as JSON first
     let parsed: any = null;
     try {
       parsed = JSON.parse(text);
+      console.log('✅ AI response parsed as JSON, type:', parsed?.type);
     } catch (e) {
+      console.log('❌ AI response not valid JSON, treating as chat');
       // Not JSON — return chat fallback
       return {
         type: 'chat',
@@ -418,6 +437,7 @@ class GeminiAIManager {
       }
 
       if (parsed.type === 'create_scene') {
+        console.log('🎨 Creating new scene:', parsed.scene?.id, 'objects:', parsed.scene?.objects?.length || 0, 'functionCalls:', parsed.scene?.functionCalls?.length || 0);
         // AI is creating a new scene
         if (parsed.scene && parsed.scene.objects) {
           return {

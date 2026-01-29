@@ -128,6 +128,8 @@ export class FunctionCallSystem {
   executeInlineCode(code, parameters = {}, scene = null) {
     
     try {
+      console.log('🔧 Executing inline code:', code.substring(0, 200) + (code.length > 200 ? '...' : ''));
+      
       // Create a safe execution environment with utilities
       const helpers = {
         // Math utilities
@@ -222,10 +224,27 @@ export class FunctionCallSystem {
       // Execute the code
       const result = func(helpers);
       
+      console.log('🔧 Function executed, result type:', typeof result, 'isArray:', Array.isArray(result));
+      if (result && typeof result === 'object') {
+        console.log('🔧 Result keys:', Object.keys(result));
+        if (result.objects) console.log('🔧 Objects count:', result.objects.length);
+        if (result.joints) console.log('🔧 Joints count:', result.joints.length);
+      }
+      
       // Validate and return
       if (Array.isArray(result)) {
+        console.log('✅ Returned array of objects, count:', result.length);
         return result.map(obj => this.validateGeneratedObject(obj, { code }));
+      } else if (result && typeof result === 'object' && result.objects && Array.isArray(result.objects)) {
+        console.log('✅ Returned object with objects array, count:', result.objects.length, 'joints:', result.joints?.length || 0);
+        // Merge joints into scene if present
+        if (result.joints && Array.isArray(result.joints)) {
+          if (!scene.joints) scene.joints = [];
+          scene.joints.push(...result.joints);
+        }
+        return result.objects.map(obj => this.validateGeneratedObject(obj, { code }));
       } else if (result && typeof result === 'object' && result.id) {
+        console.log('✅ Returned single object');
         return this.validateGeneratedObject(result, { code });
       }
       
@@ -235,6 +254,8 @@ export class FunctionCallSystem {
       
     } catch (error) {
       console.error('❌ Error executing inline code:', error);
+      console.error('❌ Code that failed:', code);
+      console.error('❌ Parameters:', parameters);
       throw new Error(`Inline code execution failed: ${error.message}`);
     }
   }
@@ -248,6 +269,8 @@ export class FunctionCallSystem {
   processSceneFunctions(scene) {
     if (!scene) return scene;
 
+    console.log('🔧 Processing scene functions for scene:', scene.id || 'unknown');
+
     // Clone the scene to avoid modifying the original
     const processedScene = JSON.parse(JSON.stringify(scene));
     processedScene.objects = processedScene.objects || [];
@@ -255,14 +278,18 @@ export class FunctionCallSystem {
 
     // Process functionCalls array
     if (processedScene.functionCalls && Array.isArray(processedScene.functionCalls)) {
+      console.log(`🔧 Found ${processedScene.functionCalls.length} function calls to process`);
 
       for (const functionCall of processedScene.functionCalls) {
         try {
+          console.log('🔧 Executing function call:', functionCall);
           const objects = this.executeObjectGenerator(functionCall, processedScene);
 
           if (Array.isArray(objects)) {
+            console.log(`✅ Generated ${objects.length} objects`);
             processedScene.objects.push(...objects);
           } else if (objects) {
+            console.log(`✅ Generated 1 object`);
             processedScene.objects.push(objects);
           } else {
             console.warn(`⚠️ Function returned no objects`);
@@ -270,14 +297,18 @@ export class FunctionCallSystem {
         } catch (error) {
           const errorMsg = `Failed to execute function: ${error.message}`;
           console.error(`❌ ${errorMsg}`);
+          console.error(`❌ Function call that failed:`, functionCall);
           processedScene.errors.push(errorMsg);
         }
       }
 
       // Remove the processed functionCalls from the final scene
       delete processedScene.functionCalls;
+    } else {
+      console.log('🔧 No function calls found in scene');
     }
 
+    console.log(`🔧 Scene processing complete. Total objects: ${processedScene.objects.length}, Errors: ${processedScene.errors.length}`);
     return processedScene;
   }
 
