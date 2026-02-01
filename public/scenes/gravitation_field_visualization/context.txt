@@ -1,0 +1,18 @@
+# Gravitational Field
+
+A **gravitational field** is a model used to explain the influence that a massive body extends into the space around itself, producing a force on another massive body.
+
+## Key Concepts
+
+*   **Field Definition**: The gravitational field **g** at a point in space is defined as the gravitational force **F** experienced by a small test mass **m** placed at that point, divided by the mass:
+    $$g = \frac{F}{m}$$
+
+*   **Magnitude**: For a point mass *M*, the magnitude of the gravitational field at a distance *r* is given by:
+    $$g = \frac{GM}{r^2}$$
+    where $G$ is the gravitational constant ($6.674 \times 10^{-11} N \cdot m^2/kg^2$).
+
+*   **Direction**: The field is a vector quantity. It always points towards the center of mass of the body creating the field (an attractive field).
+
+*   **Inverse Square Law**: The field strength decreases rapidly as distance increases. If you double the distance, the field strength drops to one-fourth.
+
+In this simulation, the lines represent the gravitational field vectors. Note how they are longer (stronger field) near the central mass and shorter (weaker field) further away.

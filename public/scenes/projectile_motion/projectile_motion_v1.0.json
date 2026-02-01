@@ -9,8 +9,16 @@
       "type": "Sphere",
       "mass": 1,
       "radius": 0.4,
-      "position": [-12, 3, 0],
-      "velocity": [10, 12, 0],
+      "position": [
+        -12,
+        3,
+        0
+      ],
+      "velocity": [
+        10,
+        12,
+        0
+      ],
       "color": "#FF4500",
       "friction": 0.3,
       "restitution": 0.5
@@ -19,8 +27,16 @@
       "id": "ground",
       "type": "Box",
       "mass": 0,
-      "dimensions": [60, 0.2, 30],
-      "position": [0, 0, 0],
+      "dimensions": [
+        60,
+        0.2,
+        30
+      ],
+      "position": [
+        0,
+        0,
+        0
+      ],
       "color": "#3D3D3D",
       "isStatic": true,
       "friction": 0.6,
@@ -32,7 +48,11 @@
       "mass": 0,
       "radius": 1.5,
       "height": 0.1,
-      "position": [15, 0.15, 0],
+      "position": [
+        15,
+        0.15,
+        0
+      ],
       "color": "#FF0000",
       "isStatic": true
     },
@@ -42,7 +62,11 @@
       "mass": 0,
       "radius": 0.5,
       "height": 0.15,
-      "position": [15, 0.2, 0],
+      "position": [
+        15,
+        0.2,
+        0
+      ],
       "color": "#FFFFFF",
       "isStatic": true
     },
@@ -50,8 +74,16 @@
       "id": "height_marker_5m",
       "type": "Box",
       "mass": 0,
-      "dimensions": [0.1, 0.1, 2],
-      "position": [-15, 5, 0],
+      "dimensions": [
+        0.1,
+        0.1,
+        2
+      ],
+      "position": [
+        -15,
+        5,
+        0
+      ],
       "color": "#FFD700",
       "isStatic": true,
       "nonPhysics": true
@@ -60,8 +92,16 @@
       "id": "height_marker_10m",
       "type": "Box",
       "mass": 0,
-      "dimensions": [0.1, 0.1, 2],
-      "position": [-15, 10, 0],
+      "dimensions": [
+        0.1,
+        0.1,
+        2
+      ],
+      "position": [
+        -15,
+        10,
+        0
+      ],
       "color": "#FFD700",
       "isStatic": true,
       "nonPhysics": true
@@ -70,8 +110,16 @@
       "id": "range_marker_10m",
       "type": "Box",
       "mass": 0,
-      "dimensions": [0.1, 0.1, 2],
-      "position": [10, 0.15, 0],
+      "dimensions": [
+        0.1,
+        0.1,
+        2
+      ],
+      "position": [
+        10,
+        0.15,
+        0
+      ],
       "color": "#00CED1",
       "isStatic": true,
       "nonPhysics": true
@@ -80,14 +128,26 @@
       "id": "range_marker_20m",
       "type": "Box",
       "mass": 0,
-      "dimensions": [0.1, 0.1, 2],
-      "position": [20, 0.15, 0],
+      "dimensions": [
+        0.1,
+        0.1,
+        2
+      ],
+      "position": [
+        20,
+        0.15,
+        0
+      ],
       "color": "#00CED1",
       "isStatic": true,
       "nonPhysics": true
     }
   ],
-  "gravity": [0, -9.81, 0],
+  "gravity": [
+    0,
+    -9.81,
+    0
+  ],
   "hasGround": true,
   "contactMaterial": {
     "friction": 0.5,
@@ -106,7 +166,11 @@
       "prefix": "Speed: ",
       "suffix": " m/s",
       "precision": 1,
-      "offset": [0, 3.5, 0],
+      "offset": [
+        0,
+        3.5,
+        0
+      ],
       "anchor": "top",
       "fontSize": 48,
       "color": "#ffffff",
@@ -124,7 +188,11 @@
       "scale": 0.25,
       "color": "#00BFFF",
       "showMagnitude": true,
-      "offset": [0, 0, 0],
+      "offset": [
+        0,
+        0,
+        0
+      ],
       "anchor": "center",
       "visible": true,
       "shaftRadius": 0.04,
@@ -138,7 +206,11 @@
       "contentType": "position",
       "prefix": "Pos: ",
       "precision": 1,
-      "offset": [-4, 0, 0],
+      "offset": [
+        -4,
+        0,
+        0
+      ],
       "anchor": "left",
       "fontSize": 36,
       "color": "#FFD700",
@@ -154,7 +226,11 @@
       "prefix": "KE: ",
       "suffix": " J",
       "precision": 1,
-      "offset": [4, 0, 0],
+      "offset": [
+        4,
+        0,
+        0
+      ],
       "anchor": "right",
       "fontSize": 36,
       "color": "#FF69B4",
@@ -169,22 +245,70 @@
       "contentType": "position",
       "prefix": "Pos: ",
       "precision": 1,
-      "offset": [0, -3, 0],
+      "offset": [
+        0,
+        -3,
+        0
+      ],
       "anchor": "bottom",
       "fontSize": 32,
       "color": "#98FB98",
       "backgroundColor": "rgba(0, 0, 0, 0.6)",
       "padding": 10,
       "visible": true
+    },
+    {
+      "id": "velocity-vector-x",
+      "type": "vector",
+      "attachedToObjectId": "projectile",
+      "vectorType": "velocity",
+      "scale": 0.25,
+      "color": "#00FF00",
+      "showMagnitude": true,
+      "offset": [
+        0,
+        0,
+        0
+      ],
+      "anchor": "center",
+      "visible": true,
+      "components": [
+        1,
+        0,
+        0
+      ],
+      "prefix": "v_x: "
+    },
+    {
+      "id": "velocity-vector-y",
+      "type": "vector",
+      "attachedToObjectId": "projectile",
+      "vectorType": "velocity",
+      "scale": 0.25,
+      "color": "#FF00FF",
+      "showMagnitude": true,
+      "offset": [
+        0,
+        0,
+        0
+      ],
+      "anchor": "center",
+      "visible": true,
+      "components": [
+        0,
+        1,
+        0
+      ],
+      "prefix": "v_y: "
     }
   ],
   "controllers": [
     {
       "id": "launch_vx",
-      "label": "Horizontal Velocity (v₀ₓ)",
+      "label": "v₀ₓ (m/s)",
       "type": "slider",
       "min": 0,
-      "max": 20,
+      "max": 25,
       "step": 0.5,
       "value": 10,
       "objectId": "projectile",
@@ -192,28 +316,18 @@
     },
     {
       "id": "launch_vy",
-      "label": "Vertical Velocity (v₀ᵧ)",
+      "label": "v₀ᵧ (m/s)",
       "type": "slider",
       "min": 0,
-      "max": 20,
+      "max": 25,
       "step": 0.5,
       "value": 12,
       "objectId": "projectile",
       "property": "velocity[1]"
     },
     {
-      "id": "gravity_strength",
-      "label": "Gravity (g)",
-      "type": "slider",
-      "min": -20,
-      "max": -1,
-      "step": 0.1,
-      "value": -9.81,
-      "propertyPath": "gravity[1]"
-    },
-    {
       "id": "projectile_mass",
-      "label": "Projectile Mass (kg)",
+      "label": "Mass (kg)",
       "type": "slider",
       "min": 0.1,
       "max": 5,
@@ -221,27 +335,6 @@
       "value": 1,
       "objectId": "projectile",
       "property": "mass"
-    },
-    {
-      "id": "launch_height",
-      "label": "Launch Height (m)",
-      "type": "slider",
-      "min": 0.5,
-      "max": 10,
-      "step": 0.5,
-      "value": 1.5,
-      "objectId": "projectile",
-      "property": "position[1]"
-    },
-    {
-      "id": "restitution",
-      "label": "Bounciness",
-      "type": "slider",
-      "min": 0,
-      "max": 1,
-      "step": 0.1,
-      "value": 0.4,
-      "propertyPath": "contactMaterial.restitution"
     }
   ]
 }

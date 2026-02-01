@@ -114,24 +114,11 @@ All responses must be valid JSON objects. Do not wrap in markdown code blocks or
   "gravity": [x,y,z],
   "hasGround": boolean, // true = use custom ground objects if defined, otherwise default ground; false = no ground
   "contactMaterial": {"friction": 0-1, "restitution": 0-1},
-  "jsLoop": {
-    "enabled": boolean, // if omitted, presence of jsLoop implies enabled
-    "tickHz": number,   // recommended 5-20; keep light
-    "timeoutMs": number, // recommended 50-300
-    "code": "JavaScript string defining function jsLoop(ctx, state) and returning { state, addObjects, patches, removeObjectIds }"
-  } | "JavaScript string",
-  "infiniteWorld": {"enabled": boolean, "chunkSize": number, "viewDistanceChunks": number, "seedBase": number},
-  "controls": {"moveSpeed": number, "verticalSpeed": number},
   "gravitationalPhysics": {"enabled": boolean, "gravitationalConstant": number, "minDistance": number, "softening": number},
   "simulationScale": "terrestrial"|"solar_system"|"galactic",
   "controllers": [...],
   "visualAnnotations": [...]
 }
-
-**REAL-TIME JS LOOP NOTES:**
-- Only include `jsLoop` when the user explicitly requests real-time generation/simulation logic (e.g., "infinite world", "procedural streaming").
-- `jsLoop(ctx, state)` runs repeatedly during animation (throttled by tickHz). It must be fast and return JSON-serializable data.
-- Use `addObjects` to stream new objects, `removeObjectIds` to unload, and/or `patches` for edits.
 
 **OBJECT SCHEMA:**
 {

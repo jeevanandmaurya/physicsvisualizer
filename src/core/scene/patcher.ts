@@ -36,6 +36,31 @@ class ScenePatcher {
         typeof value.enabled === 'boolean',
       joints: (value) => Array.isArray(value),
 
+      // Real-time agent loop (optional)
+      jsLoop: (value) => {
+        if (typeof value === 'string') return value.length > 0;
+        if (typeof value !== 'object' || value === null) return false;
+        if (value.enabled !== undefined && typeof value.enabled !== 'boolean') return false;
+        if (value.tickHz !== undefined && typeof value.tickHz !== 'number') return false;
+        if (value.timeoutMs !== undefined && typeof value.timeoutMs !== 'number') return false;
+        if (value.code !== undefined && typeof value.code !== 'string') return false;
+        return true;
+      },
+      infiniteWorld: (value) => {
+        if (typeof value !== 'object' || value === null) return false;
+        if (value.enabled !== undefined && typeof value.enabled !== 'boolean') return false;
+        if (value.chunkSize !== undefined && typeof value.chunkSize !== 'number') return false;
+        if (value.viewDistanceChunks !== undefined && typeof value.viewDistanceChunks !== 'number') return false;
+        if (value.seedBase !== undefined && typeof value.seedBase !== 'number') return false;
+        return true;
+      },
+      controls: (value) => {
+        if (typeof value !== 'object' || value === null) return false;
+        if (value.moveSpeed !== undefined && typeof value.moveSpeed !== 'number') return false;
+        if (value.verticalSpeed !== undefined && typeof value.verticalSpeed !== 'number') return false;
+        return true;
+      },
+
       // Object property validations
       position: (value) => Array.isArray(value) && value.length === 3 && value.every(v => typeof v === 'number'),
       velocity: (value) => Array.isArray(value) && value.length === 3 && value.every(v => typeof v === 'number'),

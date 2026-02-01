@@ -1,0 +1,22 @@
+Theory:
+Variable acceleration occurs when the rate of change of velocity is not constant over time. In contrast to uniformly accelerated motion (where a = constant), variable acceleration requires calculus to determine the object's state at any given moment.
+
+Explanation:
+When acceleration a(t) is a function of time:
+1. Velocity v(t) is the integral of acceleration: v(t) = v₀ + ∫ a(t) dt
+2. Position x(t) is the integral of velocity: x(t) = x₀ + ∫ v(t) dt
+
+In this simulation, you can observe:
+- A rocket: As it burns fuel, its mass decreases and its thrust may change, leading to variable acceleration (demonstrated here by manually adjusting thrust).
+- An elevator: Starting from rest, an elevator must accelerate smoothly (variable acceleration) until it reaches a constant speed, then decelerate (variable acceleration) to stop.
+
+Facts:
+- The slope of a velocity-time graph represents the instantaneous acceleration.
+- The area under an acceleration-time graph represents the change in velocity.
+- Real-world motion is almost always variable acceleration due to changing forces like friction, air resistance, and engine output.
+
+Key Equations:
+- a = dv/dt (instantaneous acceleration)
+- v = dx/dt (instantaneous velocity)
+- Δv = ∫ a(t) dt
+- Δx = ∫ v(t) dt

@@ -1,0 +1,24 @@
+Theory:
+Circular motion is a movement of an object along the circumference of a circle or rotation along a circular path. It can be uniform (constant angular rate) or non-uniform (changing angular rate).
+
+Explanation:
+Even when an object moves at a constant speed in a circle, it is accelerating because its direction is constantly changing. This acceleration is always directed toward the center of the circle.
+
+Key Concepts:
+1. Angular Velocity (ω): The rate of change of angular displacement (measured in radians/second).
+2. Tangential Velocity (v): The linear speed of the object, v = rω. It is always tangent to the circle.
+3. Centripetal Acceleration (a_c): The center-directed acceleration, a_c = v²/r = rω².
+
+In this simulation:
+- Two masses are placed on a rotating disk at different radii. 
+- Although they have the same angular velocity (they complete one revolution in the same time), the outer mass has a much higher tangential velocity because it travels a larger circumference.
+
+Facts:
+- Centripetal force is not a "new" force but a requirement; it can be provided by tension, friction, gravity, etc.
+- "Centrifugal force" is a fictitious force perceived only in a rotating (non-inertial) frame of reference.
+
+Key Equations:
+- v = 2πr / T
+- ω = Δθ / Δt
+- a_c = v² / r = ω²r
+- F_c = ma_c = mv² / r

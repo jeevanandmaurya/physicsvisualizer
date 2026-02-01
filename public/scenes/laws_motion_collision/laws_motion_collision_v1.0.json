@@ -9,8 +9,16 @@
       "type": "Sphere",
       "mass": 1,
       "radius": 0.5,
-      "position": [-8, 0.5, 0],
-      "velocity": [6, 0, 0],
+      "position": [
+        -8,
+        0.5,
+        0
+      ],
+      "velocity": [
+        6,
+        0,
+        0
+      ],
       "color": "#E74C3C",
       "friction": 0,
       "restitution": 1
@@ -20,9 +28,36 @@
       "type": "Sphere",
       "mass": 3,
       "radius": 0.7,
-      "position": [3, 0.7, 0],
-      "velocity": [0, 0, 0],
+      "position": [
+        3,
+        0.7,
+        0
+      ],
+      "velocity": [
+        0,
+        0,
+        0
+      ],
       "color": "#9B59B6",
+      "friction": 0,
+      "restitution": 1
+    },
+    {
+      "id": "ball_c",
+      "type": "Sphere",
+      "mass": 2,
+      "radius": 0.6,
+      "position": [
+        9,
+        0.6,
+        0
+      ],
+      "velocity": [
+        0,
+        0,
+        0
+      ],
+      "color": "#F1C40F",
       "friction": 0,
       "restitution": 1
     },
@@ -30,8 +65,16 @@
       "id": "track_surface",
       "type": "Box",
       "mass": 0,
-      "dimensions": [28, 0.4, 4],
-      "position": [0, -0.2, 0],
+      "dimensions": [
+        40,
+        0.4,
+        4
+      ],
+      "position": [
+        0,
+        -0.2,
+        0
+      ],
       "isStatic": true,
       "color": "#1ABC9C",
       "friction": 0,
@@ -41,8 +84,16 @@
       "id": "boundary_left",
       "type": "Box",
       "mass": 0,
-      "dimensions": [0.4, 2.5, 5],
-      "position": [-14, 1.05, 0],
+      "dimensions": [
+        0.4,
+        2.5,
+        5
+      ],
+      "position": [
+        -20,
+        1.05,
+        0
+      ],
       "isStatic": true,
       "color": "#34495E",
       "friction": 0,
@@ -52,8 +103,16 @@
       "id": "boundary_right",
       "type": "Box",
       "mass": 0,
-      "dimensions": [0.4, 2.5, 5],
-      "position": [14, 1.05, 0],
+      "dimensions": [
+        0.4,
+        2.5,
+        5
+      ],
+      "position": [
+        20,
+        1.05,
+        0
+      ],
       "isStatic": true,
       "color": "#34495E",
       "friction": 0,
@@ -63,14 +122,26 @@
       "id": "center_marker",
       "type": "Box",
       "mass": 0,
-      "dimensions": [0.08, 0.15, 3],
-      "position": [0, 0.05, 0],
+      "dimensions": [
+        0.08,
+        0.15,
+        3
+      ],
+      "position": [
+        0,
+        0.05,
+        0
+      ],
       "color": "#F39C12",
       "isStatic": true,
       "nonPhysics": true
     }
   ],
-  "gravity": [0, -9.81, 0],
+  "gravity": [
+    0,
+    -9.81,
+    0
+  ],
   "hasGround": true,
   "contactMaterial": {
     "friction": 0,
@@ -89,7 +160,11 @@
       "prefix": "v = ",
       "suffix": " m/s",
       "precision": 2,
-      "offset": [0, 3, 0],
+      "offset": [
+        0,
+        3,
+        0
+      ],
       "anchor": "top",
       "fontSize": 40,
       "color": "#ffffff",
@@ -106,7 +181,11 @@
       "prefix": "p = ",
       "suffix": " kg·m/s",
       "precision": 2,
-      "offset": [0, -2.5, 0],
+      "offset": [
+        0,
+        -2.5,
+        0
+      ],
       "anchor": "bottom",
       "fontSize": 36,
       "color": "#FFD700",
@@ -122,7 +201,11 @@
       "prefix": "KE: ",
       "suffix": " J",
       "precision": 2,
-      "offset": [-3.5, 0, 0],
+      "offset": [
+        -3.5,
+        0,
+        0
+      ],
       "anchor": "left",
       "fontSize": 34,
       "color": "#FF69B4",
@@ -138,7 +221,11 @@
       "scale": 0.25,
       "color": "#FF6B6B",
       "showMagnitude": false,
-      "offset": [0, 0, 0],
+      "offset": [
+        0,
+        0,
+        0
+      ],
       "anchor": "center",
       "visible": true,
       "shaftRadius": 0.04,
@@ -153,7 +240,11 @@
       "prefix": "v = ",
       "suffix": " m/s",
       "precision": 2,
-      "offset": [0, 3.5, 0],
+      "offset": [
+        0,
+        3.5,
+        0
+      ],
       "anchor": "top",
       "fontSize": 40,
       "color": "#ffffff",
@@ -170,7 +261,11 @@
       "prefix": "p = ",
       "suffix": " kg·m/s",
       "precision": 2,
-      "offset": [0, -2.8, 0],
+      "offset": [
+        0,
+        -2.8,
+        0
+      ],
       "anchor": "bottom",
       "fontSize": 36,
       "color": "#FFD700",
@@ -186,7 +281,11 @@
       "prefix": "KE: ",
       "suffix": " J",
       "precision": 2,
-      "offset": [4, 0, 0],
+      "offset": [
+        4,
+        0,
+        0
+      ],
       "anchor": "right",
       "fontSize": 34,
       "color": "#FF69B4",
@@ -202,7 +301,11 @@
       "scale": 0.25,
       "color": "#BB8FCE",
       "showMagnitude": false,
-      "offset": [0, 0, 0],
+      "offset": [
+        0,
+        0,
+        0
+      ],
       "anchor": "center",
       "visible": true,
       "shaftRadius": 0.04,
@@ -217,7 +320,11 @@
       "prefix": "m = ",
       "suffix": " kg",
       "precision": 1,
-      "offset": [0, 0, 2.5],
+      "offset": [
+        0,
+        0,
+        2.5
+      ],
       "anchor": "center",
       "fontSize": 32,
       "color": "#FFFFFF",
@@ -233,13 +340,90 @@
       "prefix": "m = ",
       "suffix": " kg",
       "precision": 1,
-      "offset": [0, 0, 3],
+      "offset": [
+        0,
+        0,
+        3
+      ],
       "anchor": "center",
       "fontSize": 32,
       "color": "#FFFFFF",
       "backgroundColor": "rgba(0, 0, 0, 0.5)",
       "padding": 8,
       "visible": true
+    },
+    {
+      "id": "ballC-velocity",
+      "type": "text",
+      "attachedToObjectId": "ball_c",
+      "contentType": "velocity",
+      "prefix": "v = ",
+      "suffix": " m/s",
+      "precision": 2,
+      "offset": [
+        0,
+        3,
+        0
+      ],
+      "anchor": "top",
+      "fontSize": 40,
+      "color": "#ffffff",
+      "backgroundColor": "rgba(241, 196, 15, 0.9)",
+      "padding": 10,
+      "borderRadius": 4,
+      "visible": true
+    },
+    {
+      "id": "ballC-vector",
+      "type": "vector",
+      "attachedToObjectId": "ball_c",
+      "vectorType": "velocity",
+      "scale": 0.25,
+      "color": "#F4D03F",
+      "showMagnitude": false,
+      "offset": [
+        0,
+        0,
+        0
+      ],
+      "anchor": "center",
+      "visible": true,
+      "shaftRadius": 0.04,
+      "headLength": 0.2,
+      "headRadius": 0.08
+    },
+    {
+      "id": "ballA-force",
+      "type": "vector",
+      "attachedToObjectId": "ball_a",
+      "vectorType": "force",
+      "scale": 0.1,
+      "color": "#FFFFFF",
+      "showMagnitude": true,
+      "visible": true,
+      "prefix": "F: "
+    },
+    {
+      "id": "ballB-force",
+      "type": "vector",
+      "attachedToObjectId": "ball_b",
+      "vectorType": "force",
+      "scale": 0.1,
+      "color": "#FFFFFF",
+      "showMagnitude": true,
+      "visible": true,
+      "prefix": "F: "
+    },
+    {
+      "id": "ballC-force",
+      "type": "vector",
+      "attachedToObjectId": "ball_c",
+      "vectorType": "force",
+      "scale": 0.1,
+      "color": "#FFFFFF",
+      "showMagnitude": true,
+      "visible": true,
+      "prefix": "F: "
     }
   ],
   "controllers": [
@@ -296,6 +480,28 @@
       "step": 0.05,
       "value": 1,
       "propertyPath": "contactMaterial.restitution"
+    },
+    {
+      "id": "ballC_velocity",
+      "label": "Ball C Initial Velocity",
+      "type": "slider",
+      "min": -12,
+      "max": 12,
+      "step": 0.5,
+      "value": 0,
+      "objectId": "ball_c",
+      "property": "velocity[0]"
+    },
+    {
+      "id": "ballC_mass",
+      "label": "Ball C Mass (kg)",
+      "type": "slider",
+      "min": 0.5,
+      "max": 5,
+      "step": 0.1,
+      "value": 2,
+      "objectId": "ball_c",
+      "property": "mass"
     },
     {
       "id": "ballB_position",

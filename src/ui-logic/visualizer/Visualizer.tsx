@@ -20,9 +20,17 @@ import { faCube } from '@fortawesome/free-solid-svg-icons';
 import { useWorkspace } from '../../contexts/WorkspaceContext';
 import { useSimulation } from '../../contexts/SimulationContext';
 import SceneDetailsUI from '../../views/components/scene-management/SceneDetailsUI';
-import { functionCallSystem } from '../../core/tools/FunctionCallSystem.js';
+import { functionCallSystem } from '../../core/sandbox';
 import { physicsDataStore } from '../../core/physics/PhysicsDataStore';
 import { PhysicsOverlay } from '../../views/components/PhysicsOverlay';
+import ScenePatcher from '../../core/scene/patcher';
+import { AgentLoopRunner } from '../../core/agent/AgentLoopRunner';
+
+type SceneLike = any;
+type SceneUpdateFn = (updatedScene: SceneLike) => void;
+
+type InputStateRef = React.MutableRefObject<{ keysDown: Record<string, boolean> }>;
+type PlayerPositionRef = React.MutableRefObject<[number, number, number]>;
 
 // --- Visualizer-specific helper components ---
 function TimeUpdater({ isPlaying, updateSimulationTime }) {
@@ -137,6 +145,294 @@ function FpsCounter({ updateFps }) {
     } 
   }); 
   return null; 
+}
+
+type WasdControllerProps = {
+  enabled?: boolean;
+  moveSpeed?: number;
+  verticalSpeed?: number;
+  inputStateRef: InputStateRef;
+  playerPositionRef: PlayerPositionRef;
+  controlsRef?: React.MutableRefObject<any>;
+};
+
+function WasdController({
+  enabled = true,
+  moveSpeed = 12,
+  verticalSpeed = 10,
+  inputStateRef,
+  playerPositionRef,
+  controlsRef,
+}: WasdControllerProps) {
+  const { camera, gl } = useThree();
+  const keysDownRef = useRef<Record<string, boolean>>({});
+  const [isCanvasFocused, setIsCanvasFocused] = useState(false);
+
+  useEffect(() => {
+    const canvas = gl.domElement;
+
+    const handleFocus = () => setIsCanvasFocused(true);
+    const handleBlur = () => setIsCanvasFocused(false);
+    const handleMouseEnter = () => setIsCanvasFocused(true);
+    const handleMouseLeave = () => setIsCanvasFocused(false);
+
+    canvas.addEventListener('focus', handleFocus);
+    canvas.addEventListener('blur', handleBlur);
+    canvas.addEventListener('mouseenter', handleMouseEnter);
+    canvas.addEventListener('mouseleave', handleMouseLeave);
+
+    return () => {
+      canvas.removeEventListener('focus', handleFocus);
+      canvas.removeEventListener('blur', handleBlur);
+      canvas.removeEventListener('mouseenter', handleMouseEnter);
+      canvas.removeEventListener('mouseleave', handleMouseLeave);
+    };
+  }, [gl]);
+
+  useEffect(() => {
+    const shouldIgnore = (event: KeyboardEvent) => {
+      const target = event.target as HTMLElement | null;
+      if (!target) return false;
+      return target.tagName === 'INPUT' || target.tagName === 'TEXTAREA' || target.isContentEditable;
+    };
+
+    const handleKeyDown = (event: KeyboardEvent) => {
+      if (shouldIgnore(event)) return;
+      if (!isCanvasFocused && document.activeElement !== gl.domElement) return;
+
+      const key = event.key.toLowerCase();
+      keysDownRef.current[key] = true;
+      inputStateRef.current.keysDown = { ...keysDownRef.current };
+    };
+
+    const handleKeyUp = (event: KeyboardEvent) => {
+      if (shouldIgnore(event)) return;
+      if (!isCanvasFocused && document.activeElement !== gl.domElement) return;
+
+      const key = event.key.toLowerCase();
+      keysDownRef.current[key] = false;
+      inputStateRef.current.keysDown = { ...keysDownRef.current };
+    };
+
+    window.addEventListener('keydown', handleKeyDown);
+    window.addEventListener('keyup', handleKeyUp);
+
+    return () => {
+      window.removeEventListener('keydown', handleKeyDown);
+      window.removeEventListener('keyup', handleKeyUp);
+    };
+  }, [gl, isCanvasFocused, inputStateRef]);
+
+  const up = useMemo(() => new THREE.Vector3(0, 1, 0), []);
+  const forward = useMemo(() => new THREE.Vector3(), []);
+  const right = useMemo(() => new THREE.Vector3(), []);
+  const move = useMemo(() => new THREE.Vector3(), []);
+
+  useFrame((_state, delta) => {
+    if (!enabled) return;
+
+    const keys = keysDownRef.current;
+    const wantsMove =
+      keys['w'] || keys['a'] || keys['s'] || keys['d'] || keys[' '] || keys['space'] || keys['shift'];
+    if (!wantsMove) {
+      playerPositionRef.current = [camera.position.x, camera.position.y, camera.position.z];
+      return;
+    }
+
+    camera.getWorldDirection(forward);
+    forward.y = 0;
+    if (forward.lengthSq() < 1e-8) return;
+    forward.normalize();
+    right.crossVectors(forward, up).normalize();
+
+    move.set(0, 0, 0);
+
+    if (keys['w']) move.add(forward);
+    if (keys['s']) move.sub(forward);
+    if (keys['d']) move.add(right);
+    if (keys['a']) move.sub(right);
+    if (keys[' '] || keys['space']) move.y += 1;
+    if (keys['shift']) move.y -= 1;
+
+    if (move.lengthSq() < 1e-8) return;
+    move.normalize();
+
+    const speed = move.y !== 0 ? verticalSpeed : moveSpeed;
+    move.multiplyScalar(speed * delta);
+
+    camera.position.add(move);
+
+    // Keep OrbitControls target moving with the camera (Minecraft-like free move)
+    if (controlsRef?.current?.target) {
+      controlsRef.current.target.add(move);
+      controlsRef.current.update?.();
+    }
+
+    playerPositionRef.current = [camera.position.x, camera.position.y, camera.position.z];
+  });
+
+  return null;
+}
+
+type AgentLoopBridgeProps = {
+  enabled: boolean;
+  isPlaying: boolean;
+  config?: any;
+  scene: SceneLike;
+  onSceneUpdate?: SceneUpdateFn;
+  inputStateRef: InputStateRef;
+  playerPositionRef: PlayerPositionRef;
+};
+
+function AgentLoopBridge({
+  enabled,
+  isPlaying,
+  config,
+  scene,
+  onSceneUpdate,
+  inputStateRef,
+  playerPositionRef,
+}: AgentLoopBridgeProps) {
+  const sceneRef = useRef(scene);
+  const onSceneUpdateRef = useRef(onSceneUpdate);
+  const runnerRef = useRef<AgentLoopRunner | null>(null);
+  const patcherRef = useRef<ScenePatcher | null>(null);
+  const lastSceneIdRef = useRef<string | undefined>(scene?.id);
+  const debugOnceRef = useRef<{ logged: Record<string, boolean>; lastAtMs: number }>({ logged: {}, lastAtMs: 0 });
+
+  if (!runnerRef.current) runnerRef.current = new AgentLoopRunner();
+  if (!patcherRef.current) patcherRef.current = new ScenePatcher();
+
+  useEffect(() => {
+    sceneRef.current = scene;
+  }, [scene]);
+
+  useEffect(() => {
+    onSceneUpdateRef.current = onSceneUpdate;
+  }, [onSceneUpdate]);
+
+  useEffect(() => {
+    const currentId = scene?.id;
+    if (currentId !== lastSceneIdRef.current) {
+      runnerRef.current?.reset();
+      lastSceneIdRef.current = currentId;
+    }
+  }, [scene?.id]);
+
+  useFrame((state, delta) => {
+    const debugEnabled = !!config?.debug;
+
+    if (!enabled) {
+      if (debugEnabled && !debugOnceRef.current.logged['disabled']) {
+        console.log('[jsLoop] AgentLoopBridge disabled (enabled=false)');
+        debugOnceRef.current.logged['disabled'] = true;
+      }
+      return;
+    }
+
+    if (!isPlaying) {
+      // Paused - don't run jsLoop
+      return;
+    }
+
+    if (!config?.code) {
+      if (debugEnabled && !debugOnceRef.current.logged['no_code']) {
+        console.warn('[jsLoop] enabled but config.code is missing/empty');
+        debugOnceRef.current.logged['no_code'] = true;
+      }
+      return;
+    }
+
+    if (!onSceneUpdateRef.current) {
+      if (debugEnabled && !debugOnceRef.current.logged['no_onSceneUpdate']) {
+        console.warn('[jsLoop] enabled but onSceneUpdate is missing (cannot apply changes)');
+        debugOnceRef.current.logged['no_onSceneUpdate'] = true;
+      }
+      return;
+    }
+
+    if (!sceneRef.current) {
+      if (debugEnabled && !debugOnceRef.current.logged['no_scene']) {
+        console.warn('[jsLoop] enabled but scene is missing');
+        debugOnceRef.current.logged['no_scene'] = true;
+      }
+      return;
+    }
+
+    const now = state.clock.getElapsedTime();
+    const keysDown = inputStateRef?.current?.keysDown || {};
+    const pos = playerPositionRef?.current || [0, 0, 0];
+
+    // Fire-and-forget async tick; AgentLoopRunner self-throttles and avoids overlap.
+    void (async () => {
+      const tickResult = await runnerRef.current!.tick({
+        config,
+        scene: sceneRef.current,
+        ctx: {
+          time: now,
+          dt: delta,
+          input: { keysDown },
+          player: { position: pos },
+        },
+      });
+
+      if (debugEnabled) {
+        const nowMs = Date.now();
+        if (nowMs - debugOnceRef.current.lastAtMs > 1500) {
+          console.log('[jsLoop] tickResult', tickResult);
+          debugOnceRef.current.lastAtMs = nowMs;
+        }
+      }
+
+      if (!tickResult) return;
+
+      let updatedScene: any = sceneRef.current;
+
+      // Apply patches first
+      if (Array.isArray(tickResult.patches) && tickResult.patches.length > 0) {
+        const res = patcherRef.current!.applyPatches(updatedScene, tickResult.patches);
+        if (res?.success && res.scene) {
+          updatedScene = res.scene;
+        }
+      }
+
+      // Remove objects
+      if (Array.isArray(tickResult.removeObjectIds) && tickResult.removeObjectIds.length > 0) {
+        const remove = new Set(tickResult.removeObjectIds);
+        const objs = Array.isArray(updatedScene.objects) ? updatedScene.objects : [];
+        updatedScene = {
+          ...updatedScene,
+          objects: objs.filter((o: any) => !remove.has(o?.id)),
+        };
+      }
+
+      const toAdd =
+        (Array.isArray(tickResult.addObjects) ? tickResult.addObjects : []).concat(
+          Array.isArray(tickResult.objects) ? tickResult.objects : []
+        );
+
+      if (toAdd.length > 0) {
+        const objs = Array.isArray(updatedScene.objects) ? updatedScene.objects : [];
+        updatedScene = {
+          ...updatedScene,
+          objects: [...objs, ...toAdd],
+        };
+      }
+
+      // If nothing changed structurally, skip update.
+      if (updatedScene === sceneRef.current) return;
+
+      updatedScene = {
+        ...updatedScene,
+        _agentLoopUpdate: true,
+        _version: (sceneRef.current._version || 0) + 1,
+      };
+
+      onSceneUpdateRef.current?.(updatedScene);
+    })();
+  });
+
+  return null;
 }
 function SimpleGrid({ show }) { 
   if (!show) return null; 
@@ -316,6 +612,10 @@ function Visualizer({ scene, showSceneDetails, onToggleSceneDetails, onSceneUpda
     // Debug: Log scene changes
     useEffect(() => {
         console.log('Visualizer: Scene updated:', scene?.id, scene?.gravity, scene?.objects?.map(o => ({ id: o.id, mass: o.mass })));
+        // Extra debug for jsLoop scenes
+        if (scene) {
+            console.log('[jsLoop debug] scene.jsLoop exists?', !!(scene as any)?.jsLoop, 'objects count:', scene?.objects?.length);
+        }
     }, [scene]);
 
     const historyRef = useRef({});
@@ -329,14 +629,43 @@ function Visualizer({ scene, showSceneDetails, onToggleSceneDetails, onSceneUpda
     const physicsUpdateCountRef = useRef(0); // Batch updates
     const shotTimersRef = useRef({}); // Track removal timers for shot objects
 
-    // Process scene function calls when scene changes - MEMOIZED to prevent re-processing
+    // Player/input refs for WASD + agent loop
+    const orbitControlsRef = useRef<any>(null);
+    const playerPositionRef = useRef<[number, number, number]>([10, 5, 25]);
+    const inputStateRef = useRef<{ keysDown: Record<string, boolean> }>({ keysDown: {} });
+
+    // Scene-driven loops/config
+    const jsLoopConfig = useMemo(() => {
+      const raw = (scene as any)?.jsLoop;
+      if (!raw) return null;
+      if (typeof raw === 'string') {
+        return { enabled: true, code: raw };
+      }
+      if (typeof raw === 'object') {
+        return raw;
+      }
+      return null;
+    }, [scene]);
+
+    // Process scene function calls when scene changes
     // Use scene._version to force re-processing when scene is updated via patches
-    const processedSceneMemo = useMemo(() => {
-        if (scene) {
+    useEffect(() => {
+        if (!scene) {
+            console.log('🎬 No scene to process');
+            setProcessedScene(null);
+            return;
+        }
+        
+        let cancelled = false;
+        
+        (async () => {
             console.log('🎬 Visualizer: Processing scene functions for:', scene.id, 'version:', scene._version || 0);
             console.log('🎬 Scene before processing:', { objects: scene.objects?.length || 0, functionCalls: scene.functionCalls?.length || 0 });
-            const processed = functionCallSystem.processSceneFunctions(scene);
-
+            
+            const processed = await functionCallSystem.processSceneFunctions(scene);
+            
+            if (cancelled) return; // Component unmounted or scene changed
+            
             // Log any errors that occurred during processing
             if (processed.errors && processed.errors.length > 0) {
                 console.error('❌ Scene processing errors:', processed.errors);
@@ -347,15 +676,12 @@ function Visualizer({ scene, showSceneDetails, onToggleSceneDetails, onSceneUpda
 
             console.log(`✅ Scene processed: ${scene.objects?.length || 0} → ${processed.objects?.length || 0} objects`);
             console.log('✅ Processed scene details:', { objects: processed.objects?.length || 0, joints: processed.joints?.length || 0, errors: processed.errors?.length || 0 });
-            return processed;
-        }
-        console.log('🎬 No scene to process');
-        return null;
+            
+            setProcessedScene(processed);
+        })();
+        
+        return () => { cancelled = true; };
     }, [scene, scene?._version]);
-
-    useEffect(() => {
-        setProcessedScene(processedSceneMemo);
-    }, [processedSceneMemo]);
 
     const activeScene = processedScene || scene;
     const { gravity = [0, -9.81, 0], contactMaterial = {}, hasGround = true } = activeScene || {};
@@ -593,8 +919,8 @@ function Visualizer({ scene, showSceneDetails, onToggleSceneDetails, onSceneUpda
 
     useEffect(() => {
         // Clear PhysicsDataStore on scene change
-        // Don't pause simulation if this is a shooting update
-        if (!scene?._isShootingUpdate) {
+        // Don't pause simulation if this is a shooting update or agent loop update
+        if (!scene?._isShootingUpdate && !scene?._agentLoopUpdate) {
             physicsDataStore.clear();
             physicsDataStore.setUpdateRates(100, 500, dataTimeStep);
             historyRef.current = {};
@@ -603,7 +929,7 @@ function Visualizer({ scene, showSceneDetails, onToggleSceneDetails, onSceneUpda
             setPhysicsData({ velocities: {}, positions: {} });
             setIsPlaying(false);
         } else {
-            // For shooting updates, just update the data rates
+            // For shooting/agent loop updates, just update the data rates
             physicsDataStore.setUpdateRates(100, 500, dataTimeStep);
         }
     }, [scene, setIsPlaying, dataTimeStep]);
@@ -740,6 +1066,23 @@ function Visualizer({ scene, showSceneDetails, onToggleSceneDetails, onSceneUpda
                     >
                         <TimeUpdater isPlaying={isPlaying} updateSimulationTime={updateSimulationTime} />
                         <ShootingHandler onShoot={handleShoot} />
+                        <WasdController
+                          enabled={true}
+                          moveSpeed={scene?.controls?.moveSpeed || 12}
+                          verticalSpeed={scene?.controls?.verticalSpeed || 10}
+                          inputStateRef={inputStateRef}
+                          playerPositionRef={playerPositionRef}
+                          controlsRef={orbitControlsRef}
+                        />
+                        <AgentLoopBridge
+                          enabled={!!jsLoopConfig && jsLoopConfig.enabled !== false}
+                          isPlaying={isPlaying}
+                          config={jsLoopConfig}
+                          scene={scene}
+                          onSceneUpdate={onSceneUpdate}
+                          inputStateRef={inputStateRef}
+                          playerPositionRef={playerPositionRef}
+                        />
                         <ambientLight intensity={1.0} />
                         <directionalLight position={[5, 10, 5]} intensity={1.2} castShadow shadow-mapSize-width={1024} shadow-mapSize-height={1024} />
                         <PhysicsWorld
@@ -761,7 +1104,7 @@ function Visualizer({ scene, showSceneDetails, onToggleSceneDetails, onSceneUpda
                                 enabled={true}
                             />
                         )}
-                        <OrbitControls />
+                        <OrbitControls ref={orbitControlsRef} />
                         <LabeledAxesHelper size={5} visible={showAxes} />
                         <SimpleGrid show={showGrid} />
                         <GroundPlane show={hasGround} />

@@ -40,6 +40,25 @@ export interface LoadedScene {
   forces?: any[];
   settings?: any;
   camera?: any;
+  // Real-time scene scripting (runs only when present)
+  jsLoop?: {
+    enabled?: boolean;
+    tickHz?: number;
+    timeoutMs?: number;
+    code?: string;
+  } | string;
+  // Built-in infinite world spawner (optional)
+  infiniteWorld?: {
+    enabled?: boolean;
+    chunkSize?: number;
+    viewDistanceChunks?: number;
+    seedBase?: number;
+  };
+  // Movement controls (optional)
+  controls?: {
+    moveSpeed?: number;
+    verticalSpeed?: number;
+  };
   context?: SceneContext;
   folderName?: string;
 }
@@ -91,14 +110,21 @@ class SceneLoaderClass {
    * Get a specific scene by ID
    */
   async getSceneById(sceneId: string): Promise<LoadedScene | null> {
-    // Check cache first
-    if (this.sceneMap.has(sceneId)) {
-      return this.sceneMap.get(sceneId)!;
+    // In production, prefer caching for performance.
+    // In development, refetch so JSON edits show up immediately.
+    const isDev = !!import.meta.env.DEV;
+
+    if (!isDev) {
+      if (this.sceneMap.has(sceneId)) {
+        return this.sceneMap.get(sceneId)!;
+      }
+      await this.getAllScenes();
+      return this.sceneMap.get(sceneId) || null;
     }
 
-    // Load all scenes if not cached
+    this.cachedScenes = null;
+    this.sceneMap.clear();
     await this.getAllScenes();
-    
     return this.sceneMap.get(sceneId) || null;
   }
 
@@ -167,7 +193,9 @@ class SceneLoaderClass {
   private async loadSceneJSON(folderName: string): Promise<any | null> {
     try {
       // Try to load the JSON file using fetch from public folder
-      const response = await fetch(`/scenes/${folderName}/${folderName}_v1.0.json`);
+      // Add cache-buster to avoid stale cached versions during development
+      const cacheBuster = import.meta.env.DEV ? `?_cb=${Date.now()}` : '';
+      const response = await fetch(`/scenes/${folderName}/${folderName}_v1.0.json${cacheBuster}`);
       if (!response.ok) {
         console.warn(`Could not load JSON for ${folderName}: ${response.statusText}`);
         return null;

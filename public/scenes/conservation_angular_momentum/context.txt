@@ -1,0 +1,18 @@
+# Conservation of Angular Momentum
+
+When no external torque acts on a system, its total angular momentum remains constant. This is a fundamental law of physics.
+
+## The Equation
+$$L = I\omega = \text{constant}$$
+
+*   **L**: Angular Momentum
+*   **I**: Moment of Inertia (rotational mass, depends on how mass is distributed)
+*   **ω (omega)**: Angular Velocity (spin speed)
+
+## The Figure Skater Effect
+The most common example is a spinning figure skater.
+1.  **Arms Out**: Large radius $\rightarrow$ Large Moment of Inertia ($I$). To keep $L$ constant, spin speed ($\omega$) is slow.
+2.  **Arms In**: Radius decreases $\rightarrow$ Moment of Inertia ($I$) decreases dramatically.
+3.  **Result**: Spin speed ($\omega$) **must increase** to compensate and keep $L$ the same.
+
+In this simulation, the orange masses can move inwards along the rotating arm. Watch what happens to the rotation speed ($\omega$) as you pull the masses closer to the center!

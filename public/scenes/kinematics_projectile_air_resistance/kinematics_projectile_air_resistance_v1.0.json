@@ -1,0 +1,169 @@
+{
+    "id": "kinematics-projectile-air-resistance",
+    "name": "Kinematics: Projectile & Air Resistance",
+    "description": "Compares ideal projectile motion (vacuum) with motion affected by air resistance (drag). Features two projectiles launched with identical initial conditions. Observe how drag forces reduce range, maximum height, and time of flight.",
+    "version": "1.0",
+    "objects": [
+        {
+            "id": "ideal_ball",
+            "type": "Sphere",
+            "mass": 1,
+            "radius": 0.4,
+            "position": [
+                -20,
+                1,
+                1
+            ],
+            "velocity": [
+                15,
+                15,
+                0
+            ],
+            "color": "#3498DB",
+            "friction": 0.2,
+            "restitution": 0.5,
+            "drag": 0
+        },
+        {
+            "id": "drag_ball",
+            "type": "Sphere",
+            "mass": 1,
+            "radius": 0.4,
+            "position": [
+                -20,
+                1,
+                -1
+            ],
+            "velocity": [
+                15,
+                15,
+                0
+            ],
+            "color": "#E74C3C",
+            "friction": 0.2,
+            "restitution": 0.5,
+            "drag": 0.5
+        },
+        {
+            "id": "ground",
+            "type": "Box",
+            "mass": 0,
+            "dimensions": [
+                80,
+                0.2,
+                40
+            ],
+            "position": [
+                0,
+                0,
+                0
+            ],
+            "color": "#2C3E50",
+            "isStatic": true,
+            "friction": 0.6,
+            "restitution": 0.3
+        },
+        {
+            "id": "ref_ideal",
+            "type": "text",
+            "position": [
+                -20,
+                5,
+                1
+            ],
+            "text": "Ideal (No Drag)",
+            "color": "#3498DB",
+            "fontSize": 24,
+            "isStatic": true,
+            "nonPhysics": true
+        },
+        {
+            "id": "ref_drag",
+            "type": "text",
+            "position": [
+                -20,
+                5,
+                -1
+            ],
+            "text": "With Air Resistance",
+            "color": "#E74C3C",
+            "fontSize": 24,
+            "isStatic": true,
+            "nonPhysics": true
+        }
+    ],
+    "gravity": [
+        0,
+        -9.81,
+        0
+    ],
+    "hasGround": true,
+    "visualAnnotations": [
+        {
+            "id": "ideal-velocity",
+            "type": "vector",
+            "attachedToObjectId": "ideal_ball",
+            "vectorType": "velocity",
+            "scale": 0.3,
+            "color": "#3498DB",
+            "showMagnitude": false,
+            "visible": true
+        },
+        {
+            "id": "drag-velocity",
+            "type": "vector",
+            "attachedToObjectId": "drag_ball",
+            "vectorType": "velocity",
+            "scale": 0.3,
+            "color": "#E74C3C",
+            "showMagnitude": false,
+            "visible": true
+        },
+        {
+            "id": "drag-force",
+            "type": "vector",
+            "attachedToObjectId": "drag_ball",
+            "vectorType": "force",
+            "scale": 0.1,
+            "color": "#F1C40F",
+            "showMagnitude": true,
+            "visible": true,
+            "prefix": "Drag: "
+        }
+    ],
+    "controllers": [
+        {
+            "id": "launch_angle",
+            "label": "Launch Velocity (m/s)",
+            "type": "slider",
+            "min": 5,
+            "max": 30,
+            "step": 1,
+            "value": 15,
+            "objectId": "ideal_ball",
+            "property": "velocity[0]"
+        },
+        {
+            "id": "drag_coeff",
+            "label": "Drag Coefficient",
+            "type": "slider",
+            "min": 0,
+            "max": 2,
+            "step": 0.1,
+            "value": 0.5,
+            "objectId": "drag_ball",
+            "property": "drag"
+        },
+        {
+            "id": "projectile_mass",
+            "label": "Mass (kg)",
+            "type": "slider",
+            "min": 0.1,
+            "max": 10,
+            "step": 0.1,
+            "value": 1,
+            "objectId": "drag_ball",
+            "property": "mass"
+        }
+    ]
+}

@@ -1,7 +1,10 @@
 /**
  * FunctionCallSystem - Dynamic function calling and execution system
- * Allows defining JavaScript functions and calling them from scenes and configurations
+ * Uses sandboxed Web Workers for secure code execution
  */
+
+import { sandboxManager } from './SandboxManager';
+import { globalNonPhysicsEngine } from '../../physics/engine';
 
 export class FunctionCallSystem {
   constructor() {
@@ -9,27 +12,32 @@ export class FunctionCallSystem {
     this.context = {};
     this.wasmModules = {};
     this.generators = {}; // Scene object generators
+    this.initialized = false;
+  }
+
+  /**
+   * Initialize sandbox (called automatically)
+   */
+  async ensureInitialized() {
+    if (this.initialized) return;
+    await sandboxManager.initialize();
+    this.initialized = true;
   }
 
   /**
    * Define a JavaScript function
+   * Functions are stored as code strings and executed in sandbox
    * @param {string} name - Function name
    * @param {Function|string} func - Function definition or string
    * @param {Object} options - Function options
    */
   defineFunction(name, func, options = {}) {
-    if (typeof func === 'string') {
-      // Compile string function
-      try {
-        func = new Function('args', 'context', 'scene', 'system', `return (${func})(args, context, scene, system)`);
-      } catch (error) {
-        console.error(`Error compiling function ${name}:`, error);
-        return false;
-      }
-    }
-
+    // Store function as-is (no compilation in main thread)
+    // If string, keep as string for sandbox execution
+    // If native function, we keep reference for built-in safe functions
     this.functions[name] = {
       func,
+      isNative: typeof func === 'function',
       options,
       registeredAt: Date.now()
     };
@@ -39,6 +47,7 @@ export class FunctionCallSystem {
 
   /**
    * Call a defined function
+   * Native functions run directly, string functions go to sandbox
    * @param {string} name - Function name
    * @param {Array} args - Arguments to pass
    * @param {Object} scene - Current scene context
@@ -52,7 +61,14 @@ export class FunctionCallSystem {
     }
 
     try {
-      return funcDef.func(args, this.context, scene, this);
+      // Native functions (built-in safe functions) run directly
+      if (funcDef.isNative && typeof funcDef.func === 'function') {
+        return funcDef.func(args, this.context, scene, this);
+      }
+      
+      // String functions should use async executeInlineCodeAsync
+      console.warn(`Function ${name} requires async execution, use callFunctionAsync instead`);
+      return null;
     } catch (error) {
       console.error(`Error calling function ${name}:`, error);
       return null;
@@ -60,19 +76,56 @@ export class FunctionCallSystem {
   }
 
   /**
-   * Evaluate an expression with function calls
-   * @param {string} expression - Expression to evaluate (e.g., "distance({1,2,3}, {4,5,6}) + sin(time)")
-   * @param {Object} scene - Current scene context
-   * @returns {*} Expression result
+   * Call a defined function asynchronously (for sandboxed execution)
    */
-  evaluateExpression(expression, scene = null) {
-    // Replace function calls with function executing code
-    const processedExpression = expression.replace(/(\w+)\s*\(/g, 'system.callFunction("$1", [').replace(/\)/g, '], scene)');
+  async callFunctionAsync(name, args = [], scene = null) {
+    const funcDef = this.functions[name];
+    if (!funcDef) {
+      console.warn(`Function ${name} not found`);
+      return null;
+    }
 
     try {
-      return new Function('system', 'scene', 'context', 'time', `return ${processedExpression}`)(
-        this, scene, this.context, scene?.simulationTime || 0
-      );
+      // Native functions run directly
+      if (funcDef.isNative && typeof funcDef.func === 'function') {
+        return funcDef.func(args, this.context, scene, this);
+      }
+      
+      // String functions go to sandbox
+      if (typeof funcDef.func === 'string') {
+        await this.ensureInitialized();
+        const code = `return (${funcDef.func})(params.args, params.context, params.scene)`;
+        const result = await sandboxManager.execute(code, {
+          context: { params: { args, context: this.context, scene } },
+          timeout: 5000,
+        });
+        return result.success ? result.data?.result : null;
+      }
+      
+      return null;
+    } catch (error) {
+      console.error(`Error calling function ${name}:`, error);
+      return null;
+    }
+  }
+
+  /**
+   * Evaluate an expression - NOW ASYNC for sandbox execution
+   * @param {string} expression - Expression to evaluate
+   * @param {Object} scene - Current scene context
+   * @returns {Promise<*>} Expression result
+   */
+  async evaluateExpression(expression, scene = null) {
+    await this.ensureInitialized();
+    
+    try {
+      // Execute expression in sandbox
+      const result = await sandboxManager.execute(`return ${expression}`, {
+        context: { scene, time: scene?.simulationTime || 0 },
+        timeout: 2000,
+      });
+      
+      return result.success ? result.data?.result : null;
     } catch (error) {
       console.error(`Error evaluating expression "${expression}":`, error);
       return null;
@@ -118,138 +171,78 @@ export class FunctionCallSystem {
   }
 
   /**
-   * Execute inline JavaScript code to generate objects
+   * Execute inline JavaScript code to generate objects (ASYNC - SANDBOXED)
    * This is the KEY feature - AI can write ANY JavaScript function
+   * Code executes in isolated Web Worker for security
    * @param {string} code - JavaScript code that returns objects array
    * @param {Object} parameters - Parameters to pass to the function
    * @param {Object} scene - Current scene context
-   * @returns {Array|Object} Generated objects
+   * @returns {Promise<Array|Object>} Generated objects
    */
-  executeInlineCode(code, parameters = {}, scene = null) {
-    
+  async executeInlineCode(code, parameters = {}, scene = null) {
     try {
-      console.log('🔧 Executing inline code:', code.substring(0, 200) + (code.length > 200 ? '...' : ''));
+      console.log('🔧 Executing inline code in sandbox:', code.substring(0, 200) + (code.length > 200 ? '...' : ''));
       
-      // Create a safe execution environment with utilities
-      const helpers = {
-        // Math utilities
-        Math: Math,
-        
-        // Vector3 utility class
-        Vector3: class {
-          constructor(x = 0, y = 0, z = 0) {
-            this.x = x;
-            this.y = y;
-            this.z = z;
-          }
-          
-          toArray() {
-            return [this.x, this.y, this.z];
-          }
-          
-          static fromArray(arr) {
-            return new this(arr[0] || 0, arr[1] || 0, arr[2] || 0);
-          }
-          
-          add(v) {
-            return new Vector3(this.x + v.x, this.y + v.y, this.z + v.z);
-          }
-          
-          magnitude() {
-            return Math.sqrt(this.x * this.x + this.y * this.y + this.z * this.z);
-          }
-          
-          normalize() {
-            const mag = this.magnitude();
-            return mag > 0 ? new Vector3(this.x / mag, this.y / mag, this.z / mag) : new Vector3();
-          }
-        },
-        
-        // Physics utilities
-        Physics: {
-          gravityForce: (m1, m2, d, G = 6.674e-11) => d > 0 ? (G * m1 * m2) / (d * d) : 0,
-          springForce: (k, x) => -k * x,
-          kineticEnergy: (m, v) => 0.5 * m * v * v,
-          potentialEnergy: (m, h, g = 9.81) => m * g * h,
-          momentum: (m, v) => m * v
-        },
-        
-        // Utility functions
-        lerp: (a, b, t) => a + (b - a) * t,
-        clamp: (val, min, max) => Math.max(min, Math.min(max, val)),
-        random: (min = 0, max = 1) => Math.random() * (max - min) + min,
-        
-        // Access to parameters and scene
-        params: parameters,
-        scene: scene,
-        
-        // NonPhysics engine for animations
-        globalNonPhysicsEngine: globalNonPhysicsEngine,
-        
-        // Function call system for nested calls
-        animateNonPhysicsObject: (objectId, codeOrType, config) => {
-          return this.callFunction('animateNonPhysicsObject', [objectId, codeOrType, config], scene);
-        },
-        moveNonPhysicsObject: (objectId, position) => {
-          return this.callFunction('moveNonPhysicsObject', [objectId, position], scene);
-        },
-        rotateNonPhysicsObject: (objectId, rotation) => {
-          return this.callFunction('rotateNonPhysicsObject', [objectId, rotation], scene);
-        },
-        scaleNonPhysicsObject: (objectId, scale) => {
-          return this.callFunction('scaleNonPhysicsObject', [objectId, scale], scene);
-        },
-        setNonPhysicsColor: (objectId, color) => {
-          return this.callFunction('setNonPhysicsColor', [objectId, color], scene);
-        },
-        setNonPhysicsOpacity: (objectId, opacity) => {
-          return this.callFunction('setNonPhysicsOpacity', [objectId, opacity], scene);
-        },
-        
-        // Console for debugging
-        console: console
-      };
+      await this.ensureInitialized();
       
-      // Create the function with access to helpers
-      // The code should return an array of objects or a single object
-      const func = new Function(
-        'helpers',
-        `
-        with (helpers) {
-          ${code}
-        }
-        `
-      );
+      // Execute in sandbox with access to helpers
+      const result = await sandboxManager.execute(code, {
+        timeout: 10000, // 10s for complex generation
+        returnType: 'objects',
+        context: {
+          params: parameters,
+          scene: scene ? JSON.parse(JSON.stringify(scene)) : null,
+        },
+      });
       
-      // Execute the code
-      const result = func(helpers);
+      console.log('🔧 Sandbox result:', JSON.stringify(result).substring(0, 500));
       
-      console.log('🔧 Function executed, result type:', typeof result, 'isArray:', Array.isArray(result));
-      if (result && typeof result === 'object') {
-        console.log('🔧 Result keys:', Object.keys(result));
-        if (result.objects) console.log('🔧 Objects count:', result.objects.length);
-        if (result.joints) console.log('🔧 Joints count:', result.joints.length);
+      if (!result.success) {
+        console.error('❌ Sandbox execution failed:', result.error);
+        throw new Error(result.error || 'Sandbox execution failed');
       }
       
-      // Validate and return
-      if (Array.isArray(result)) {
-        console.log('✅ Returned array of objects, count:', result.length);
-        return result.map(obj => this.validateGeneratedObject(obj, { code }));
-      } else if (result && typeof result === 'object' && result.objects && Array.isArray(result.objects)) {
-        console.log('✅ Returned object with objects array, count:', result.objects.length, 'joints:', result.joints?.length || 0);
-        // Merge joints into scene if present
-        if (result.joints && Array.isArray(result.joints)) {
-          if (!scene.joints) scene.joints = [];
-          scene.joints.push(...result.joints);
+      const execResult = result.data?.result;
+      const animations = result.data?.animations;
+      
+      console.log('🔧 execResult:', typeof execResult, Array.isArray(execResult) ? 'array[' + execResult.length + ']' : execResult);
+      console.log('🔧 animations:', animations?.length || 0);
+      
+      // Apply any animations that were captured in the sandbox
+      if (animations && Array.isArray(animations) && animations.length > 0) {
+        console.log('🎬 Applying', animations.length, 'animations from sandbox');
+        for (const anim of animations) {
+          if (anim.type === 'transform') {
+            globalNonPhysicsEngine.updateTransform(anim.objectId, anim);
+          } else if (anim.type === 'material') {
+            globalNonPhysicsEngine.updateMaterial(anim.objectId, anim);
+          } else if (anim.objectId && anim.options) {
+            globalNonPhysicsEngine.animateObject(anim.objectId, anim.options);
+          }
         }
-        return result.objects.map(obj => this.validateGeneratedObject(obj, { code }));
-      } else if (result && typeof result === 'object' && result.id) {
+      }
+      
+      console.log('🔧 Sandbox executed, result type:', typeof execResult, 'isArray:', Array.isArray(execResult));
+      
+      // Validate and return
+      if (Array.isArray(execResult)) {
+        console.log('✅ Returned array of objects, count:', execResult.length);
+        return execResult.map(obj => this.validateGeneratedObject(obj, { code }));
+      } else if (execResult && typeof execResult === 'object' && execResult.objects && Array.isArray(execResult.objects)) {
+        console.log('✅ Returned object with objects array, count:', execResult.objects.length, 'joints:', execResult.joints?.length || 0);
+        // Merge joints into scene if present
+        if (execResult.joints && Array.isArray(execResult.joints) && scene) {
+          if (!scene.joints) scene.joints = [];
+          scene.joints.push(...execResult.joints);
+        }
+        return execResult.objects.map(obj => this.validateGeneratedObject(obj, { code }));
+      } else if (execResult && typeof execResult === 'object' && execResult.id) {
         console.log('✅ Returned single object');
-        return this.validateGeneratedObject(result, { code });
+        return this.validateGeneratedObject(execResult, { code });
       }
       
       // If code returns nothing/undefined (e.g., just setting up animations), that's OK
-      console.log('ℹ️ Inline code completed without returning objects (animation setup)');
+      console.log('ℹ️ Inline code completed without returning objects');
       return [];
       
     } catch (error) {
@@ -261,13 +254,31 @@ export class FunctionCallSystem {
   }
 
   /**
-   * Process scene function calls and generate objects
+   * Synchronous wrapper for backward compatibility (queues async execution)
+   * @deprecated Use executeInlineCode (async) directly
+   */
+  executeInlineCodeSync(code, parameters = {}, scene = null) {
+    console.warn('⚠️ executeInlineCodeSync is deprecated, use async executeInlineCode');
+    // Return empty array - caller should use async version
+    this.executeInlineCode(code, parameters, scene).catch(console.error);
+    return [];
+  }
+
+  /**
+   * Process scene function calls and generate objects (ASYNC)
    * AI can pass raw JavaScript code that gets executed to generate objects
    * @param {Object} scene - Scene object with functionCalls array
-   * @returns {Object} Modified scene with generated objects
+   * @returns {Promise<Object>} Modified scene with generated objects
    */
-  processSceneFunctions(scene) {
+  async processSceneFunctions(scene) {
     if (!scene) return scene;
+
+    // Fast path: if no functionCalls, return immediately without cloning
+    if (!scene.functionCalls || !Array.isArray(scene.functionCalls) || scene.functionCalls.length === 0) {
+      console.log('🔧 Processing scene functions for scene:', scene.id || 'unknown');
+      console.log('🔧 No function calls found in scene');
+      return scene; // Return original - no modifications needed
+    }
 
     console.log('🔧 Processing scene functions for scene:', scene.id || 'unknown');
 
@@ -277,51 +288,47 @@ export class FunctionCallSystem {
     processedScene.errors = processedScene.errors || [];
 
     // Process functionCalls array
-    if (processedScene.functionCalls && Array.isArray(processedScene.functionCalls)) {
-      console.log(`🔧 Found ${processedScene.functionCalls.length} function calls to process`);
+    console.log(`🔧 Found ${processedScene.functionCalls.length} function calls to process`);
 
-      for (const functionCall of processedScene.functionCalls) {
-        try {
-          console.log('🔧 Executing function call:', functionCall);
-          const objects = this.executeObjectGenerator(functionCall, processedScene);
+    for (const functionCall of processedScene.functionCalls) {
+      try {
+        console.log('🔧 Executing function call:', functionCall);
+        const objects = await this.executeObjectGenerator(functionCall, processedScene);
 
-          if (Array.isArray(objects)) {
-            console.log(`✅ Generated ${objects.length} objects`);
-            processedScene.objects.push(...objects);
-          } else if (objects) {
-            console.log(`✅ Generated 1 object`);
-            processedScene.objects.push(objects);
-          } else {
-            console.warn(`⚠️ Function returned no objects`);
-          }
-        } catch (error) {
-          const errorMsg = `Failed to execute function: ${error.message}`;
-          console.error(`❌ ${errorMsg}`);
-          console.error(`❌ Function call that failed:`, functionCall);
-          processedScene.errors.push(errorMsg);
+        if (Array.isArray(objects)) {
+          console.log(`✅ Generated ${objects.length} objects`);
+          processedScene.objects.push(...objects);
+        } else if (objects) {
+          console.log(`✅ Generated 1 object`);
+          processedScene.objects.push(objects);
+        } else {
+          console.warn(`⚠️ Function returned no objects`);
         }
+      } catch (error) {
+        const errorMsg = `Failed to execute function: ${error.message}`;
+        console.error(`❌ ${errorMsg}`);
+        console.error(`❌ Function call that failed:`, functionCall);
+        processedScene.errors.push(errorMsg);
       }
-
-      // Remove the processed functionCalls from the final scene
-      delete processedScene.functionCalls;
-    } else {
-      console.log('🔧 No function calls found in scene');
     }
+
+    // Remove the processed functionCalls from the final scene
+    delete processedScene.functionCalls;
 
     console.log(`🔧 Scene processing complete. Total objects: ${processedScene.objects.length}, Errors: ${processedScene.errors.length}`);
     return processedScene;
   }
 
   /**
-   * Execute an object generator function (supports both pre-defined and inline code)
+   * Execute an object generator function (ASYNC - supports both pre-defined and inline code)
    * @param {Object} functionCall - Function call specification
    * @param {Object} scene - Current scene context
-   * @returns {Array|Object|null} Generated objects
+   * @returns {Promise<Array|Object|null>} Generated objects
    */
-  executeObjectGenerator(functionCall, scene) {
-    // NEW: Support inline code directly in JSON
+  async executeObjectGenerator(functionCall, scene) {
+    // NEW: Support inline code directly in JSON (sandboxed)
     if (functionCall.code && typeof functionCall.code === 'string') {
-      return this.executeInlineCode(functionCall.code, functionCall.parameters || {}, scene);
+      return await this.executeInlineCode(functionCall.code, functionCall.parameters || {}, scene);
     }
 
     // LEGACY: Support pre-defined function names
@@ -374,25 +381,12 @@ export class FunctionCallSystem {
    * @param {Object} options - Generator options
    */
   defineObjectGenerator(name, func, options = {}) {
-    if (typeof func === 'string') {
-      // Compile string function with special wrapper for object generation
-      try {
-        func = new Function('parameters', 'context', 'scene', 'system', `
-          try {
-            return (${func})(parameters, context, scene, system);
-          } catch (error) {
-            console.error('Error in generator function "${name}":', error);
-            return [];
-          }
-        `);
-      } catch (error) {
-        console.error(`Error compiling generator ${name}:`, error);
-        return false;
-      }
-    }
-
+    // Store as-is - string functions will be executed in sandbox
+    // Native functions run directly
     this.generators[name] = {
       func,
+      isNative: typeof func === 'function',
+      isString: typeof func === 'string',
       options,
       registeredAt: Date.now()
     };
@@ -455,7 +449,7 @@ export class FunctionCallSystem {
 export const functionCallSystem = new FunctionCallSystem();
 
 // Import NonPhysicsEngine for non-physics object manipulation
-import { globalNonPhysicsEngine } from '../physics/engine.js';
+import { globalNonPhysicsEngine } from '../../physics/engine';
 
 // Non-physics object manipulation tools
 functionCallSystem.defineFunction('moveNonPhysicsObject', (args) => {

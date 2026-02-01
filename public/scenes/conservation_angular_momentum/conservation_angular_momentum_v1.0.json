@@ -1,0 +1,237 @@
+{
+    "id": "conservation-angular-momentum",
+    "name": "Conservation of Angular Momentum",
+    "description": "Why do figure skaters spin faster when they pull their arms in? This principle is known as Conservation of Angular Momentum (L = Iω). As masses move closer to the center, the Moment of Inertia (I) decreases, causing Angular Velocity (ω) to increase to keep L constant.",
+    "version": "1.0",
+    "objects": [
+        {
+            "id": "center_pivot",
+            "type": "Cylinder",
+            "mass": 0,
+            "radius": 0.2,
+            "height": 4,
+            "position": [
+                0,
+                2,
+                0
+            ],
+            "color": "#BDC3C7",
+            "isStatic": true
+        },
+        {
+            "id": "rotating_arm",
+            "type": "Box",
+            "mass": 1,
+            "dimensions": [
+                10,
+                0.4,
+                0.4
+            ],
+            "position": [
+                0,
+                3,
+                0
+            ],
+            "velocity": [
+                0,
+                0,
+                0
+            ],
+            "angularVelocity": [
+                0,
+                2,
+                0
+            ],
+            "color": "#34495E",
+            "friction": 0,
+            "restitution": 0
+        },
+        {
+            "id": "mass_left",
+            "type": "Sphere",
+            "mass": 2,
+            "radius": 0.8,
+            "position": [
+                -4,
+                3,
+                0
+            ],
+            "velocity": [
+                0,
+                0,
+                -8
+            ],
+            "color": "#F39C12",
+            "friction": 0.5,
+            "restitution": 0
+        },
+        {
+            "id": "mass_right",
+            "type": "Sphere",
+            "mass": 2,
+            "radius": 0.8,
+            "position": [
+                4,
+                3,
+                0
+            ],
+            "velocity": [
+                0,
+                0,
+                8
+            ],
+            "color": "#F39C12",
+            "friction": 0.5,
+            "restitution": 0
+        },
+        {
+            "id": "floor",
+            "type": "Box",
+            "mass": 0,
+            "dimensions": [
+                20,
+                0.5,
+                20
+            ],
+            "position": [
+                0,
+                0,
+                0
+            ],
+            "isStatic": true,
+            "color": "#2C3E50"
+        }
+    ],
+    "joints": [
+        {
+            "bodyA": "center_pivot",
+            "bodyB": "rotating_arm",
+            "type": "revolute",
+            "anchorA": [
+                0,
+                1,
+                0
+            ],
+            "anchorB": [
+                0,
+                0,
+                0
+            ],
+            "axis": [
+                0,
+                1,
+                0
+            ]
+        },
+        {
+            "bodyA": "rotating_arm",
+            "bodyB": "mass_left",
+            "type": "prismatic",
+            "anchorA": [
+                -4,
+                0,
+                0
+            ],
+            "anchorB": [
+                0,
+                0,
+                0
+            ],
+            "axis": [
+                1,
+                0,
+                0
+            ],
+            "limits": [
+                -4.5,
+                0
+            ]
+        },
+        {
+            "bodyA": "rotating_arm",
+            "bodyB": "mass_right",
+            "type": "prismatic",
+            "anchorA": [
+                4,
+                0,
+                0
+            ],
+            "anchorB": [
+                0,
+                0,
+                0
+            ],
+            "axis": [
+                1,
+                0,
+                0
+            ],
+            "limits": [
+                0,
+                4.5
+            ]
+        }
+    ],
+    "gravity": [
+        0,
+        -9.81,
+        0
+    ],
+    "hasGround": true,
+    "visualAnnotations": [
+        {
+            "id": "ang-vel-text",
+            "type": "text",
+            "attachedToObjectId": "rotating_arm",
+            "contentType": "angularVelocity",
+            "prefix": "ω: ",
+            "precision": 2,
+            "offset": [
+                0,
+                2,
+                0
+            ],
+            "color": "#FFFFFF",
+            "visible": true
+        },
+        {
+            "id": "left-mass-pos",
+            "type": "text",
+            "attachedToObjectId": "mass_left",
+            "contentType": "position",
+            "prefix": "r: ",
+            "precision": 1,
+            "offset": [
+                0,
+                1.5,
+                0
+            ],
+            "color": "#F39C12",
+            "visible": true
+        }
+    ],
+    "controllers": [
+        {
+            "id": "initial_spin",
+            "label": "Initial Spin Speed",
+            "type": "slider",
+            "min": 0,
+            "max": 10,
+            "step": 0.5,
+            "value": 2,
+            "objectId": "rotating_arm",
+            "property": "angularVelocity[1]"
+        },
+        {
+            "id": "arm_retraction",
+            "label": "Pull Masses In (Radius)",
+            "type": "slider",
+            "min": 0.5,
+            "max": 4.5,
+            "step": 0.1,
+            "value": 4,
+            "objectId": "mass_left",
+            "property": "position[0]"
+        }
+    ]
+}

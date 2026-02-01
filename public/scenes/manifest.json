@@ -115,8 +115,38 @@
       "category": "demos"
     },
     {
+      "id": "kinematics-variable-acceleration",
+      "folderName": "kinematics_variable_acceleration",
+      "enabled": true,
+      "category": "kinematics"
+    },
+    {
+      "id": "kinematics-relative-motion",
+      "folderName": "kinematics_relative_motion",
+      "enabled": true,
+      "category": "kinematics"
+    },
+    {
+      "id": "kinematics-projectile-air-resistance",
+      "folderName": "kinematics_projectile_air_resistance",
+      "enabled": true,
+      "category": "kinematics"
+    },
+    {
+      "id": "kinematics-circular-motion",
+      "folderName": "kinematics_circular_motion",
+      "enabled": true,
+      "category": "kinematics"
+    },
+    {
       "id": "particle-fountain",
       "folderName": "particle_fountain",
+      "enabled": true,
+      "category": "demos"
+    },
+    {
+      "id": "minecraft-infinite-world",
+      "folderName": "minecraft_infinite_world",
       "enabled": true,
       "category": "demos"
     }

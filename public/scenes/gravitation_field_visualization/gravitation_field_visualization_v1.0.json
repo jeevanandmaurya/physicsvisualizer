@@ -1,0 +1,175 @@
+{
+    "id": "gravitation-field-visualization",
+    "name": "Gravitational Field Visualization",
+    "description": "Visualize the invisible gravitational field. The vectors show the direction and strength of the gravitational force at different points in space. Observe how the field strength decreases with distance (1/r²) and points towards the massive object.",
+    "version": "1.0",
+    "objects": [
+        {
+            "id": "massive_body",
+            "type": "Sphere",
+            "mass": 1000,
+            "radius": 2,
+            "position": [
+                0,
+                0,
+                0
+            ],
+            "velocity": [
+                0,
+                0,
+                0
+            ],
+            "color": "#F1C40F",
+            "friction": 0.5,
+            "restitution": 0.2,
+            "isStatic": true
+        },
+        {
+            "id": "test_particle_1",
+            "type": "Sphere",
+            "mass": 1,
+            "radius": 0.3,
+            "position": [
+                5,
+                5,
+                0
+            ],
+            "velocity": [
+                0,
+                0,
+                0
+            ],
+            "color": "#3498DB",
+            "friction": 0,
+            "restitution": 0.5
+        },
+        {
+            "id": "test_particle_2",
+            "type": "Sphere",
+            "mass": 1,
+            "radius": 0.3,
+            "position": [
+                -5,
+                5,
+                0
+            ],
+            "velocity": [
+                0,
+                0,
+                0
+            ],
+            "color": "#E74C3C",
+            "friction": 0,
+            "restitution": 0.5
+        },
+        {
+            "id": "test_particle_3",
+            "type": "Sphere",
+            "mass": 1,
+            "radius": 0.3,
+            "position": [
+                5,
+                -5,
+                0
+            ],
+            "velocity": [
+                0,
+                0,
+                0
+            ],
+            "color": "#2ECC71",
+            "friction": 0,
+            "restitution": 0.5
+        },
+        {
+            "id": "test_particle_4",
+            "type": "Sphere",
+            "mass": 1,
+            "radius": 0.3,
+            "position": [
+                -5,
+                -5,
+                0
+            ],
+            "velocity": [
+                0,
+                0,
+                0
+            ],
+            "color": "#9B59B6",
+            "friction": 0,
+            "restitution": 0.5
+        }
+    ],
+    "gravity": [
+        0,
+        0,
+        0
+    ],
+    "hasGround": false,
+    "gravitationalPhysics": {
+        "enabled": true,
+        "G": 1,
+        "attractors": [
+            "massive_body"
+        ]
+    },
+    "simulationScale": "astronomical",
+    "visualAnnotations": [
+        {
+            "id": "field-grid",
+            "type": "vectorField",
+            "sourceObjectId": "massive_body",
+            "gridSize": [
+                20,
+                20,
+                0
+            ],
+            "spacing": 1.5,
+            "vectorType": "force",
+            "scale": 5,
+            "color": "#5D6D7E",
+            "opacity": 0.6,
+            "visible": true
+        },
+        {
+            "id": "field_label",
+            "type": "text",
+            "attachedToObjectId": "massive_body",
+            "contentType": "custom",
+            "content": "Gravitational Field (g)",
+            "offset": [
+                0,
+                3,
+                0
+            ],
+            "color": "#F1C40F",
+            "fontSize": 24,
+            "visible": true
+        }
+    ],
+    "controllers": [
+        {
+            "id": "central_mass",
+            "label": "Central Mass (M)",
+            "type": "slider",
+            "min": 100,
+            "max": 5000,
+            "step": 100,
+            "value": 1000,
+            "objectId": "massive_body",
+            "property": "mass"
+        },
+        {
+            "id": "test_particle_distance",
+            "label": "Particle Start Dist",
+            "type": "slider",
+            "min": 3,
+            "max": 10,
+            "step": 0.5,
+            "value": 5,
+            "objectId": "test_particle_1",
+            "property": "position[0]"
+        }
+    ]
+}

@@ -1,0 +1,177 @@
+{
+    "id": "gravitation-satellite-motion",
+    "name": "Satellite Motion: LEO vs GEO",
+    "description": "Compare different types of satellite orbits. Low Earth Orbit (LEO) satellites require high speeds to stay in orbit and circle the Earth quickly. Geostationary (GEO) satellites are much further out and match the Earth's rotation period.",
+    "version": "1.0",
+    "objects": [
+        {
+            "id": "earth",
+            "type": "Sphere",
+            "mass": 5000,
+            "radius": 4,
+            "position": [
+                0,
+                0,
+                0
+            ],
+            "velocity": [
+                0,
+                0,
+                0
+            ],
+            "color": "#2980B9",
+            "texture": "earth",
+            "isStatic": true
+        },
+        {
+            "id": "leo_satellite",
+            "type": "Box",
+            "mass": 1,
+            "dimensions": [
+                0.5,
+                0.2,
+                0.2
+            ],
+            "position": [
+                5.5,
+                0,
+                0
+            ],
+            "velocity": [
+                0,
+                0,
+                30
+            ],
+            "color": "#E74C3C",
+            "friction": 0,
+            "restitution": 0,
+            "trail": {
+                "enabled": true,
+                "length": 100,
+                "color": "#E74C3C"
+            }
+        },
+        {
+            "id": "geo_satellite",
+            "type": "Box",
+            "mass": 1,
+            "dimensions": [
+                0.5,
+                0.2,
+                0.2
+            ],
+            "position": [
+                15,
+                0,
+                0
+            ],
+            "velocity": [
+                0,
+                0,
+                18
+            ],
+            "color": "#F1C40F",
+            "friction": 0,
+            "restitution": 0,
+            "trail": {
+                "enabled": true,
+                "length": 200,
+                "color": "#F1C40F"
+            }
+        }
+    ],
+    "gravity": [
+        0,
+        0,
+        0
+    ],
+    "hasGround": false,
+    "gravitationalPhysics": {
+        "enabled": true,
+        "G": 1,
+        "attractors": [
+            "earth"
+        ]
+    },
+    "simulationScale": "astronomical",
+    "visualAnnotations": [
+        {
+            "id": "leo-label",
+            "type": "text",
+            "attachedToObjectId": "leo_satellite",
+            "contentType": "custom",
+            "content": "LEO",
+            "offset": [
+                0,
+                1,
+                0
+            ],
+            "color": "#E74C3C",
+            "visible": true
+        },
+        {
+            "id": "geo-label",
+            "type": "text",
+            "attachedToObjectId": "geo_satellite",
+            "contentType": "custom",
+            "content": "GEO",
+            "offset": [
+                0,
+                1,
+                0
+            ],
+            "color": "#F1C40F",
+            "visible": true
+        },
+        {
+            "id": "leo-speed",
+            "type": "text",
+            "attachedToObjectId": "leo_satellite",
+            "contentType": "speed",
+            "prefix": "v: ",
+            "precision": 1,
+            "offset": [
+                0,
+                -1,
+                0
+            ],
+            "color": "#FFFFFF",
+            "visible": true
+        }
+    ],
+    "controllers": [
+        {
+            "id": "leo_speed",
+            "label": "LEO Speed",
+            "type": "slider",
+            "min": 20,
+            "max": 40,
+            "step": 1,
+            "value": 30,
+            "objectId": "leo_satellite",
+            "property": "velocity[2]"
+        },
+        {
+            "id": "geo_speed",
+            "label": "GEO Speed",
+            "type": "slider",
+            "min": 10,
+            "max": 25,
+            "step": 1,
+            "value": 18,
+            "objectId": "geo_satellite",
+            "property": "velocity[2]"
+        },
+        {
+            "id": "geo_distance",
+            "label": "GEO Distance",
+            "type": "slider",
+            "min": 10,
+            "max": 25,
+            "step": 1,
+            "value": 15,
+            "objectId": "geo_satellite",
+            "property": "position[0]"
+        }
+    ]
+}

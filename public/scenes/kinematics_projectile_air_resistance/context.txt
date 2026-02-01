@@ -1,0 +1,25 @@
+Theory:
+Air resistance (drag) is a force acting opposite to the relative motion of any object moving with respect to a surrounding fluid (like air). Unlike gravity, which is constant, drag depends on the object's speed.
+
+Explanation:
+At moderate to high speeds, the drag force F_d is approximately proportional to the square of the object's velocity:
+F_d = ½ ρ v² C_d A
+Where:
+- ρ is the density of the fluid (air)
+- v is the speed of the object
+- C_d is the drag coefficient (shape dependent)
+- A is the cross-sectional area
+
+In this simulation:
+- Blue Ball: Moves in a vacuum (F_d = 0). It follows a perfect parabola.
+- Red Ball: Experiences air resistance. Notice how its trajectory is no longer symmetric; it falls more steeply than it rose.
+
+Facts:
+- Drag depends on the square of velocity, meaning if you double your speed, the drag quadruples.
+- Terminal velocity is reached when the downward force of gravity equals the upward force of drag (a = 0).
+- For projectiles with drag, the launch angle for maximum range is typically less than 45°.
+
+Key Equations:
+- F_net = mg + F_drag
+- Terminal Velocity: v_t = √((2mg) / (ρAC_d))
+- Range (with drag) < v₀²sin(2θ)/g

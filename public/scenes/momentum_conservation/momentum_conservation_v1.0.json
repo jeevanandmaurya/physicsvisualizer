@@ -1,16 +1,24 @@
 {
   "id": "momentum-conservation",
   "name": "Conservation of Momentum - Elastic Collisions",
-  "description": "Demonstrates the law of conservation of momentum in 1D elastic collisions. Total momentum before = Total momentum after: m₁v₁ + m₂v₂ = m₁v₁' + m₂v₂'. For elastic collisions, kinetic energy is also conserved. Experiment with different masses to see how momentum transfers!",
-  "version": "1.1",
+  "description": "Demonstrates the law of conservation of momentum in 1D elastic collisions. Total momentum before = Total momentum after: m₁v₁ + m₂v₂ + m₃v₃ + m₄v₄ = constant. Experiment with different masses and velocities to see how momentum transfers in a Newton's Cradle-style setup.",
+  "version": "1.2",
   "objects": [
     {
       "id": "ball_moving",
       "type": "Sphere",
       "mass": 2,
       "radius": 0.6,
-      "position": [-8, 0.6, 0],
-      "velocity": [8, 0, 0],
+      "position": [
+        -12,
+        0.6,
+        0
+      ],
+      "velocity": [
+        10,
+        0,
+        0
+      ],
       "color": "#E74C3C",
       "friction": 0,
       "restitution": 1
@@ -20,8 +28,16 @@
       "type": "Sphere",
       "mass": 2,
       "radius": 0.6,
-      "position": [0, 0.6, 0],
-      "velocity": [0, 0, 0],
+      "position": [
+        -3,
+        0.6,
+        0
+      ],
+      "velocity": [
+        0,
+        0,
+        0
+      ],
       "color": "#3498DB",
       "friction": 0,
       "restitution": 1
@@ -31,9 +47,36 @@
       "type": "Sphere",
       "mass": 2,
       "radius": 0.6,
-      "position": [6, 0.6, 0],
-      "velocity": [0, 0, 0],
+      "position": [
+        3,
+        0.6,
+        0
+      ],
+      "velocity": [
+        0,
+        0,
+        0
+      ],
       "color": "#2ECC71",
+      "friction": 0,
+      "restitution": 1
+    },
+    {
+      "id": "ball_fourth",
+      "type": "Sphere",
+      "mass": 2,
+      "radius": 0.6,
+      "position": [
+        9,
+        0.6,
+        0
+      ],
+      "velocity": [
+        0,
+        0,
+        0
+      ],
+      "color": "#F1C40F",
       "friction": 0,
       "restitution": 1
     },
@@ -41,24 +84,32 @@
       "id": "track",
       "type": "Box",
       "mass": 0,
-      "dimensions": [40, 0.3, 4],
-      "position": [0, -0.15, 0],
+      "dimensions": [
+        60,
+        0.3,
+        4
+      ],
+      "position": [
+        0,
+        -0.15,
+        0
+      ],
       "isStatic": true,
       "color": "#34495E",
       "friction": 0,
       "restitution": 1
     }
   ],
-  "gravity": [0, -9.81, 0],
+  "gravity": [
+    0,
+    -9.81,
+    0
+  ],
   "hasGround": true,
   "contactMaterial": {
     "friction": 0,
     "restitution": 1
   },
-  "gravitationalPhysics": {
-    "enabled": false
-  },
-  "simulationScale": "terrestrial",
   "visualAnnotations": [
     {
       "id": "ball1-velocity",
@@ -68,13 +119,16 @@
       "prefix": "v = ",
       "suffix": " m/s",
       "precision": 1,
-      "offset": [0, 3, 0],
+      "offset": [
+        0,
+        3,
+        0
+      ],
       "anchor": "top",
-      "fontSize": 40,
+      "fontSize": 32,
       "color": "#ffffff",
-      "backgroundColor": "rgba(231, 76, 60, 0.9)",
-      "padding": 10,
-      "borderRadius": 4,
+      "backgroundColor": "rgba(231, 76, 60, 0.8)",
+      "padding": 8,
       "visible": true
     },
     {
@@ -83,14 +137,37 @@
       "attachedToObjectId": "ball_moving",
       "contentType": "momentum",
       "prefix": "p = ",
-      "suffix": " kg·m/s",
       "precision": 1,
-      "offset": [0, -2.5, 0],
+      "offset": [
+        0,
+        -2,
+        0
+      ],
       "anchor": "bottom",
-      "fontSize": 36,
+      "fontSize": 28,
       "color": "#FFD700",
-      "backgroundColor": "rgba(0, 0, 0, 0.7)",
-      "padding": 10,
+      "backgroundColor": "rgba(0, 0, 0, 0.6)",
+      "padding": 8,
+      "visible": true
+    },
+    {
+      "id": "ball4-velocity",
+      "type": "text",
+      "attachedToObjectId": "ball_fourth",
+      "contentType": "velocity",
+      "prefix": "v = ",
+      "suffix": " m/s",
+      "precision": 1,
+      "offset": [
+        0,
+        3,
+        0
+      ],
+      "anchor": "top",
+      "fontSize": 32,
+      "color": "#ffffff",
+      "backgroundColor": "rgba(241, 196, 15, 0.8)",
+      "padding": 8,
       "visible": true
     },
     {
@@ -100,161 +177,72 @@
       "vectorType": "velocity",
       "scale": 0.3,
       "color": "#FF6B6B",
-      "showMagnitude": false,
-      "offset": [0, 0, 0],
-      "anchor": "center",
-      "visible": true,
-      "shaftRadius": 0.05,
-      "headLength": 0.2,
-      "headRadius": 0.1
-    },
-    {
-      "id": "ball2-velocity",
-      "type": "text",
-      "attachedToObjectId": "ball_stationary",
-      "contentType": "velocity",
-      "prefix": "v = ",
-      "suffix": " m/s",
-      "precision": 1,
-      "offset": [0, 3, 0],
-      "anchor": "top",
-      "fontSize": 40,
-      "color": "#ffffff",
-      "backgroundColor": "rgba(52, 152, 219, 0.9)",
-      "padding": 10,
-      "borderRadius": 4,
       "visible": true
     },
     {
-      "id": "ball2-momentum",
-      "type": "text",
-      "attachedToObjectId": "ball_stationary",
-      "contentType": "momentum",
-      "prefix": "p = ",
-      "suffix": " kg·m/s",
-      "precision": 1,
-      "offset": [0, -2.5, 0],
-      "anchor": "bottom",
-      "fontSize": 36,
-      "color": "#FFD700",
-      "backgroundColor": "rgba(0, 0, 0, 0.7)",
-      "padding": 10,
-      "visible": true
-    },
-    {
-      "id": "ball2-vector",
+      "id": "ball4-vector",
       "type": "vector",
-      "attachedToObjectId": "ball_stationary",
+      "attachedToObjectId": "ball_fourth",
       "vectorType": "velocity",
       "scale": 0.3,
-      "color": "#5DADE2",
-      "showMagnitude": false,
-      "offset": [0, 0, 0],
-      "anchor": "center",
-      "visible": true,
-      "shaftRadius": 0.05,
-      "headLength": 0.2,
-      "headRadius": 0.1
-    },
-    {
-      "id": "ball3-velocity",
-      "type": "text",
-      "attachedToObjectId": "ball_third",
-      "contentType": "velocity",
-      "prefix": "v = ",
-      "suffix": " m/s",
-      "precision": 1,
-      "offset": [0, 3, 0],
-      "anchor": "top",
-      "fontSize": 40,
-      "color": "#ffffff",
-      "backgroundColor": "rgba(46, 204, 113, 0.9)",
-      "padding": 10,
-      "borderRadius": 4,
+      "color": "#F4D03F",
       "visible": true
     },
     {
-      "id": "ball3-vector",
+      "id": "ball1-force",
       "type": "vector",
-      "attachedToObjectId": "ball_third",
-      "vectorType": "velocity",
-      "scale": 0.3,
-      "color": "#58D68D",
-      "showMagnitude": false,
-      "offset": [0, 0, 0],
-      "anchor": "center",
-      "visible": true,
-      "shaftRadius": 0.05,
-      "headLength": 0.2,
-      "headRadius": 0.1
-    },
-    {
-      "id": "ball1-mass",
-      "type": "text",
       "attachedToObjectId": "ball_moving",
-      "contentType": "mass",
-      "prefix": "m = ",
-      "suffix": " kg",
-      "precision": 1,
-      "offset": [0, 0, 3],
-      "anchor": "center",
-      "fontSize": 32,
-      "color": "#ffffff",
-      "backgroundColor": "rgba(0, 0, 0, 0.5)",
-      "padding": 8,
+      "vectorType": "force",
+      "scale": 0.1,
+      "color": "#FFFFFF",
       "visible": true
     },
     {
-      "id": "ball2-mass",
-      "type": "text",
+      "id": "ball2-force",
+      "type": "vector",
       "attachedToObjectId": "ball_stationary",
-      "contentType": "mass",
-      "prefix": "m = ",
-      "suffix": " kg",
-      "precision": 1,
-      "offset": [0, 0, 3],
-      "anchor": "center",
-      "fontSize": 32,
-      "color": "#ffffff",
-      "backgroundColor": "rgba(0, 0, 0, 0.5)",
-      "padding": 8,
+      "vectorType": "force",
+      "scale": 0.1,
+      "color": "#FFFFFF",
       "visible": true
     },
     {
-      "id": "ball3-mass",
-      "type": "text",
+      "id": "ball3-force",
+      "type": "vector",
       "attachedToObjectId": "ball_third",
-      "contentType": "mass",
-      "prefix": "m = ",
-      "suffix": " kg",
-      "precision": 1,
-      "offset": [0, 0, 3],
-      "anchor": "center",
-      "fontSize": 32,
-      "color": "#ffffff",
-      "backgroundColor": "rgba(0, 0, 0, 0.5)",
-      "padding": 8,
+      "vectorType": "force",
+      "scale": 0.1,
+      "color": "#FFFFFF",
+      "visible": true
+    },
+    {
+      "id": "ball4-force",
+      "type": "vector",
+      "attachedToObjectId": "ball_fourth",
+      "vectorType": "force",
+      "scale": 0.1,
+      "color": "#FFFFFF",
       "visible": true
     }
   ],
   "controllers": [
     {
       "id": "ball1_velocity",
-      "label": "Red Ball Velocity",
+      "label": "v₁ Initial (m/s)",
       "type": "slider",
-      "min": -15,
-      "max": 15,
+      "min": -20,
+      "max": 20,
       "step": 0.5,
-      "value": 8,
+      "value": 10,
       "objectId": "ball_moving",
       "property": "velocity[0]"
     },
     {
       "id": "ball1_mass",
-      "label": "Red Ball Mass",
+      "label": "m₁ (Red) kg",
       "type": "slider",
       "min": 0.5,
-      "max": 5,
+      "max": 10,
       "step": 0.1,
       "value": 2,
       "objectId": "ball_moving",
@@ -262,10 +250,10 @@
     },
     {
       "id": "ball2_mass",
-      "label": "Blue Ball Mass",
+      "label": "m₂ (Blue) kg",
       "type": "slider",
       "min": 0.5,
-      "max": 5,
+      "max": 10,
       "step": 0.1,
       "value": 2,
       "objectId": "ball_stationary",
@@ -273,35 +261,35 @@
     },
     {
       "id": "ball3_mass",
-      "label": "Green Ball Mass",
+      "label": "m₃ (Green) kg",
       "type": "slider",
       "min": 0.5,
-      "max": 5,
+      "max": 10,
       "step": 0.1,
       "value": 2,
       "objectId": "ball_third",
       "property": "mass"
     },
     {
+      "id": "ball4_mass",
+      "label": "m₄ (Yellow) kg",
+      "type": "slider",
+      "min": 0.5,
+      "max": 10,
+      "step": 0.1,
+      "value": 2,
+      "objectId": "ball_fourth",
+      "property": "mass"
+    },
+    {
       "id": "restitution",
-      "label": "Collision Elasticity",
+      "label": "Elasticity (e)",
       "type": "slider",
       "min": 0,
       "max": 1,
       "step": 0.05,
       "value": 1,
       "propertyPath": "contactMaterial.restitution"
-    },
-    {
-      "id": "ball2_position",
-      "label": "Blue Ball Position",
-      "type": "slider",
-      "min": -5,
-      "max": 5,
-      "step": 0.5,
-      "value": 0,
-      "objectId": "ball_stationary",
-      "property": "position[0]"
     }
   ]
 }

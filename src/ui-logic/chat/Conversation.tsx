@@ -406,6 +406,9 @@ export function useConversation({
 
         let sceneUpdateError = null;
         let generatedSceneId = null;
+        // Keep track of the scene we actually created/updated so preview cards
+        // reflect the real result (not a stale currentScene snapshot).
+        let sceneForPreview: any = null;
 
         // OPTION 1: Replace entire scene (updatedScene exists)
         if (aiResponse.updatedScene) {
@@ -429,6 +432,8 @@ export function useConversation({
               updateSceneById(currentScene.id, aiResponse.updatedScene);
               generatedSceneId = currentScene.id;
             }
+
+            sceneForPreview = aiResponse.updatedScene;
 
             // Link scene to chat if available
             if (chatId && generatedSceneId) {
@@ -457,6 +462,8 @@ export function useConversation({
               } else {
                 updateCurrentScene(patchResult.scene);
               }
+
+              sceneForPreview = patchResult.scene;
             } else {
               console.error('❌ Failed to apply scene patches:', patchResult.error);
               sceneUpdateError = `⚠️ I tried to modify the scene, but encountered an error: ${patchResult.error}`;
@@ -474,8 +481,8 @@ export function useConversation({
       // Extract scene metadata for preview card - ONLY if this message actually generated/modified a scene
       let sceneMetadata = undefined;
       if (hasSceneGeneration) {
-        // Use the scene from the AI response, not the current scene (which might be old)
-        const scene = aiResponse.updatedScene || (aiResponse.sceneModifications?.length > 0 ? currentScene : null);
+        // Use the scene we actually created/updated (avoids missing previews when currentScene is stale)
+        const scene = sceneForPreview;
         
         // Only create metadata if we have a valid scene
         if (scene) {
@@ -506,9 +513,10 @@ export function useConversation({
           objectTypes.push('Generated Objects');
         }
         
-        // Only create metadata if scene has actual objects
-        // Don't show preview card for empty scenes (greetings, questions, etc.)
-        if (estimatedObjectCount > 0) {
+        // Show preview for created scenes even if object estimation returns 0
+        // (common when content comes from functionCalls that we don't statically estimate well).
+        const shouldShowPreview = sceneAction === 'create' || estimatedObjectCount > 0;
+        if (shouldShowPreview) {
           sceneMetadata = {
             hasSceneGeneration: true,
             sceneId: generatedSceneId || scene.id || currentScene?.id || 'unknown',

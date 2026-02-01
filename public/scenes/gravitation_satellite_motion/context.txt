@@ -1,0 +1,21 @@
+# Satellite Orbits: LEO vs GEO
+
+Satellites orbit Earth at various altitudes depending on their purpose. The physics of circular orbits dictates that closer satellites must travel faster to maintain orbit.
+
+## Low Earth Orbit (LEO)
+*   **Altitude**: 160 km to 2,000 km.
+*   **Speed**: Very high (~7.8 km/s).
+*   **Period**: ~90 minutes.
+*   **Use Cases**: ISS, Hubble Telescope, earth observation, Starlink.
+*   **Physics**: The gravitational force is very strong here, requiring high centripetal acceleration ($v^2/r$) to counteract it.
+
+## Geostationary Orbit (GEO)
+*   **Altitude**: 35,786 km.
+*   **Speed**: Slower (~3.07 km/s).
+*   **Period**: Exactly 24 hours (matches Earth's rotation).
+*   **Use Cases**: Weather satellites, communications satellites (TV).
+*   **Physics**: Further away, gravity is weaker. The precise altitude is chosen so the orbital period matches the Earth's day, making the satellite appear "fixed" in the sky relative to an observer on the ground.
+
+## Orbital Velocity Formula
+$$v = \sqrt{\frac{GM}{r}}$$
+As radius $r$ increases, velocity $v$ decreases.

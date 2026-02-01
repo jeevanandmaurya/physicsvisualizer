@@ -1,0 +1,22 @@
+Theory:
+Relative motion is the calculation of the motion of an object with regard to some other moving or stationary object. All motion is relative to a chosen frame of reference.
+
+Explanation:
+If an object A has velocity v_A and an object B has velocity v_B (both relative to the ground), then the velocity of A relative to B is:
+v_AB = v_A - v_B
+
+In this simulation:
+- The conveyor belt represents a moving frame of reference.
+- The projectile is launched from the belt.
+- To an observer on the belt, the projectile's horizontal speed is just its launch speed.
+- To an observer on the static ground, the projectile's horizontal speed is (Belt Speed + Launch Speed).
+
+Facts:
+- There is no "absolute" rest in the universe; everything is moving relative to something else.
+- An inertial frame of reference is one where Newton's First Law holds true (it is not accelerating).
+- Light is a unique exception: its speed is constant in all inertial frames of reference (Einstein's Special Relativity).
+
+Key Equations:
+- v_relative = v_object - v_observer
+- v_ground = v_object_relative + v_frame
+- x' = x - vt (Galilean Transformation)

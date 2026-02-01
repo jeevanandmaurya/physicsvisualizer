@@ -1,0 +1,13 @@
+Theory:
+This scene demonstrates a scene-driven "agent loop" using `jsLoop(ctx, state)`.
+Instead of hardcoding infinite-world logic into the renderer, the scene itself streams content in/out based on the player/camera position.
+
+Explanation:
+- Move around with WASD (camera fly controls). Space moves up, Shift moves down.
+- Every tick (tickHz=10), the scene's jsLoop computes which chunks should be present around the player.
+- Missing chunks are generated (static boxes for ground + a few pillars), and far-away chunks are unloaded.
+
+Facts:
+- Streaming is opt-in per scene: jsLoop only runs when `scene.jsLoop` exists and is enabled.
+- `state` persists across ticks and must be JSON-serializable.
+- The loop returns `{ addObjects, removeObjectIds }` to mutate the scene incrementally.

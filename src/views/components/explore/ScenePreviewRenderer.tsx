@@ -5,7 +5,7 @@
 
 import React, { useRef, useEffect, useState, useCallback } from 'react';
 import * as THREE from 'three';
-import { functionCallSystem } from '../../../core/tools/FunctionCallSystem';
+import { functionCallSystem } from '../../../core/sandbox';
 import './ScenePreviewRenderer.css';
 
 interface ScenePreviewRendererProps {
@@ -95,6 +95,7 @@ export const ScenePreviewRenderer: React.FC<ScenePreviewRendererProps> = ({
   const sceneDataRef = useRef<any>(null);
   const sceneCenterRef = useRef<THREE.Vector3>(new THREE.Vector3(0, 0, 0));
   const isInitializedRef = useRef(false);
+  const loadTokenRef = useRef(0);
   
   const [error, setError] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(!snapshots); // Not loading if we have snapshots
@@ -169,24 +170,80 @@ export const ScenePreviewRenderer: React.FC<ScenePreviewRendererProps> = ({
     let minZ = Infinity, maxZ = -Infinity;
 
     objects.forEach((obj: any) => {
-      const pos = Array.isArray(obj.position) 
-        ? obj.position 
+      const pos = Array.isArray(obj.position)
+        ? obj.position
         : [obj.position?.x || 0, obj.position?.y || 0, obj.position?.z || 0];
-      
-      const size = Math.max(
-        obj.radius || 0,
-        obj.width || obj.halfExtents?.[0] * 2 || 0,
-        obj.height || obj.halfExtents?.[1] * 2 || 0,
-        obj.depth || obj.halfExtents?.[2] * 2 || 0,
-        1
-      );
 
-      minX = Math.min(minX, pos[0] - size);
-      maxX = Math.max(maxX, pos[0] + size);
-      minY = Math.min(minY, pos[1] - size);
-      maxY = Math.max(maxY, pos[1] + size);
-      minZ = Math.min(minZ, pos[2] - size);
-      maxZ = Math.max(maxZ, pos[2] + size);
+      const scale = Array.isArray(obj.scale) ? obj.scale : [1, 1, 1];
+      const type = String(obj.type || 'sphere').toLowerCase();
+      const dims = Array.isArray(obj.dimensions) ? obj.dimensions : null;
+
+      // Approximate local half-extents for bounds/framing
+      let hx = 0.5;
+      let hy = 0.5;
+      let hz = 0.5;
+
+      if (type === 'sphere') {
+        const r = obj.radius ?? 1;
+        hx = r;
+        hy = r;
+        hz = r;
+      } else if (type === 'box' || type === 'cuboid') {
+        const w = obj.width ?? dims?.[0] ?? (obj.halfExtents?.[0] != null ? obj.halfExtents[0] * 2 : undefined) ?? 1;
+        const h = obj.height ?? dims?.[1] ?? (obj.halfExtents?.[1] != null ? obj.halfExtents[1] * 2 : undefined) ?? 1;
+        const d = obj.depth ?? dims?.[2] ?? (obj.halfExtents?.[2] != null ? obj.halfExtents[2] * 2 : undefined) ?? 1;
+        hx = w / 2;
+        hy = h / 2;
+        hz = d / 2;
+      } else if (type === 'plane') {
+        const w = obj.width ?? dims?.[0] ?? 10;
+        const h = obj.height ?? dims?.[1] ?? 10;
+        hx = w / 2;
+        hy = h / 2;
+        hz = 0.01;
+      } else if (type === 'cylinder') {
+        const rTop = obj.radiusTop ?? obj.radius ?? 1;
+        const rBottom = obj.radiusBottom ?? obj.radius ?? 1;
+        const r = Math.max(rTop, rBottom);
+        const h = obj.height ?? 2;
+        hx = r;
+        hy = h / 2;
+        hz = r;
+      } else if (type === 'cone') {
+        const r = obj.radius ?? 1;
+        const h = obj.height ?? 2;
+        hx = r;
+        hy = h / 2;
+        hz = r;
+      } else if (type === 'capsule') {
+        const r = obj.radius ?? 0.5;
+        const h = obj.height ?? 2;
+        hx = r;
+        hy = h / 2 + r;
+        hz = r;
+      } else if (type === 'torus') {
+        const R = obj.radius ?? 1;
+        const tube = obj.tube ?? 0.4;
+        hx = R + tube;
+        hy = tube;
+        hz = R + tube;
+      }
+
+      hx *= scale[0] ?? 1;
+      hy *= scale[1] ?? 1;
+      hz *= scale[2] ?? 1;
+
+      // Avoid degenerate bounds
+      hx = Math.max(0.01, Math.abs(hx));
+      hy = Math.max(0.01, Math.abs(hy));
+      hz = Math.max(0.01, Math.abs(hz));
+
+      minX = Math.min(minX, pos[0] - hx);
+      maxX = Math.max(maxX, pos[0] + hx);
+      minY = Math.min(minY, pos[1] - hy);
+      maxY = Math.max(maxY, pos[1] + hy);
+      minZ = Math.min(minZ, pos[2] - hz);
+      maxZ = Math.max(maxZ, pos[2] + hz);
     });
 
     const center = new THREE.Vector3(
@@ -195,13 +252,14 @@ export const ScenePreviewRenderer: React.FC<ScenePreviewRendererProps> = ({
       (minZ + maxZ) / 2
     );
 
-    const radius = Math.max(
-      maxX - minX,
-      maxY - minY,
-      maxZ - minZ
-    ) * 0.8;
+    const dx = maxX - minX;
+    const dy = maxY - minY;
+    const dz = maxZ - minZ;
 
-    return { center, radius: Math.max(radius, 5) };
+    // Bounding sphere radius from AABB diagonal
+    const radius = 0.5 * Math.sqrt(dx * dx + dy * dy + dz * dz);
+
+    return { center, radius: Math.max(radius, 0.25) };
   }, []);
 
   // Create 3D mesh from object config
@@ -219,6 +277,7 @@ export const ScenePreviewRenderer: React.FC<ScenePreviewRendererProps> = ({
 
     let mesh: THREE.Mesh | null = null;
     const type = (obj.type || 'sphere').toLowerCase();
+    const dims = Array.isArray(obj.dimensions) ? obj.dimensions : null;
 
     switch (type) {
       case 'sphere':
@@ -231,9 +290,9 @@ export const ScenePreviewRenderer: React.FC<ScenePreviewRendererProps> = ({
       case 'cuboid':
         mesh = new THREE.Mesh(
           new THREE.BoxGeometry(
-            obj.width || obj.halfExtents?.[0] * 2 || 1,
-            obj.height || obj.halfExtents?.[1] * 2 || 1,
-            obj.depth || obj.halfExtents?.[2] * 2 || 1
+            obj.width || dims?.[0] || obj.halfExtents?.[0] * 2 || 1,
+            obj.height || dims?.[1] || obj.halfExtents?.[1] * 2 || 1,
+            obj.depth || dims?.[2] || obj.halfExtents?.[2] * 2 || 1
           ),
           material
         );
@@ -269,7 +328,7 @@ export const ScenePreviewRenderer: React.FC<ScenePreviewRendererProps> = ({
         break;
       case 'plane':
         mesh = new THREE.Mesh(
-          new THREE.PlaneGeometry(obj.width || 10, obj.height || 10),
+          new THREE.PlaneGeometry(obj.width || dims?.[0] || 10, obj.height || dims?.[1] || 10),
           material
         );
         break;
@@ -307,6 +366,9 @@ export const ScenePreviewRenderer: React.FC<ScenePreviewRendererProps> = ({
   const loadAndRenderScene = useCallback(async () => {
     if (!sceneRef.current) return;
 
+    // Token prevents stale async loads from overwriting newer renders
+    const token = ++loadTokenRef.current;
+
     try {
       let sceneData = initialSceneData;
 
@@ -322,8 +384,10 @@ export const ScenePreviewRenderer: React.FC<ScenePreviewRendererProps> = ({
         // Try to consult a scenes manifest for an authoritative folder mapping
         try {
           const manifestResp = await fetch('/scenes/manifest.json');
+          if (token !== loadTokenRef.current) return;
           if (manifestResp.ok) {
             const manifest = await manifestResp.json();
+            if (token !== loadTokenRef.current) return;
             const match = (manifest.scenes || []).find((s: any) => (
               s.id === sceneId || s.folderName === baseFolder || (s.id && s.id.replace(/-/g, '_') === baseFolder)
             ));
@@ -355,15 +419,18 @@ export const ScenePreviewRenderer: React.FC<ScenePreviewRendererProps> = ({
           for (const path of possiblePaths) {
             try {
               const response = await fetch(path);
+              if (token !== loadTokenRef.current) return;
               if (response.ok) {
                 const contentType = response.headers.get('content-type');
                 // Make sure we got JSON, not HTML
                 if (contentType && contentType.includes('application/json')) {
                   loadedData = await response.json();
+                  if (token !== loadTokenRef.current) return;
                   break;
                 }
                 // Try to parse anyway if content-type is missing
                 const text = await response.text();
+                if (token !== loadTokenRef.current) return;
                 if (text.trim().startsWith('{')) {
                   loadedData = JSON.parse(text);
                   break;
@@ -390,8 +457,9 @@ export const ScenePreviewRenderer: React.FC<ScenePreviewRendererProps> = ({
       // Process procedural functions if any (e.g. "functionCalls" property)
       if (sceneData) {
         try {
-            // Process named functions and inline code to generate objects
-            sceneData = functionCallSystem.processSceneFunctions(sceneData);
+            // Process named functions and inline code to generate objects (ASYNC)
+            sceneData = await functionCallSystem.processSceneFunctions(sceneData);
+            if (token !== loadTokenRef.current) return;
         } catch (e) {
             console.warn(`Failed to process scene functions for ${sceneId}`, e);
         }
@@ -402,6 +470,10 @@ export const ScenePreviewRenderer: React.FC<ScenePreviewRendererProps> = ({
       // If the component was unmounted or the scene disposed while we were
       // awaiting fetches, bail out to avoid dereferencing null refs.
       if (!sceneRef.current) {
+        return;
+      }
+
+      if (token !== loadTokenRef.current) {
         return;
       }
 
@@ -445,7 +517,9 @@ export const ScenePreviewRenderer: React.FC<ScenePreviewRendererProps> = ({
       // Initial camera position
       if (cameraRef.current) {
         const pos = CAMERA_POSITIONS[0];
-        const cameraRadius = radius * 1.5;
+        const fovRad = THREE.MathUtils.degToRad(cameraRef.current.fov);
+        const fitDistance = radius / Math.max(0.001, Math.sin(fovRad / 2));
+        const cameraRadius = Math.max(fitDistance * 1.15, radius * 1.15);
         cameraRef.current.position.set(
           center.x + Math.cos(pos.angle) * cameraRadius,
           center.y + pos.height * radius,
@@ -462,10 +536,13 @@ export const ScenePreviewRenderer: React.FC<ScenePreviewRendererProps> = ({
                 const frames: string[] = [];
                 const objects = sceneData.objects || [];
                 const { center, radius } = calculateSceneBounds(objects);
-                const cameraRadius = radius * 1.5;
+                const fovRad = THREE.MathUtils.degToRad(cameraRef.current.fov);
+                const fitDistance = radius / Math.max(0.001, Math.sin(fovRad / 2));
+                const cameraRadius = Math.max(fitDistance * 1.15, radius * 1.15);
 
                 // Capture all defined camera positions
                 for (const pos of CAMERA_POSITIONS) {
+              if (token !== loadTokenRef.current) return;
                     cameraRef.current.position.set(
                         center.x + Math.cos(pos.angle) * cameraRadius,
                         center.y + pos.height * radius,
@@ -489,12 +566,16 @@ export const ScenePreviewRenderer: React.FC<ScenePreviewRendererProps> = ({
         }
       }
 
-      setIsLoading(false);
-      setError(null);
+      if (token === loadTokenRef.current) {
+        setIsLoading(false);
+        setError(null);
+      }
     } catch (err) {
       console.error('Error loading scene preview:', err);
-      setError('Preview unavailable');
-      setIsLoading(false);
+      if (token === loadTokenRef.current) {
+        setError('Preview unavailable');
+        setIsLoading(false);
+      }
     }
   }, [sceneId, initialSceneData, createObjectMesh, calculateSceneBounds]);
 
@@ -560,6 +641,9 @@ export const ScenePreviewRenderer: React.FC<ScenePreviewRendererProps> = ({
 
     // Cleanup
     return () => {
+      // Invalidate any in-flight loadAndRenderScene async work
+      loadTokenRef.current++;
+
       // Clear interval
       if (animationIntervalRef.current) {
         clearInterval(animationIntervalRef.current);

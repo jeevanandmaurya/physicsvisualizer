@@ -1,0 +1,199 @@
+{
+    "id": "kinematics-circular-motion",
+    "name": "Kinematics: Circular Motion",
+    "description": "Demonstrates objects moving in circular paths. Observe the relationship between radius, angular velocity, and centripetal acceleration. Features a rotating platform with multiple masses showing how velocity increases with distance from the center.",
+    "version": "1.0",
+    "objects": [
+        {
+            "id": "pivot",
+            "type": "Cylinder",
+            "mass": 0,
+            "radius": 0.2,
+            "height": 5,
+            "position": [
+                0,
+                2.5,
+                0
+            ],
+            "color": "#95A5A6",
+            "isStatic": true
+        },
+        {
+            "id": "disk",
+            "type": "Cylinder",
+            "mass": 5,
+            "radius": 10,
+            "height": 0.2,
+            "position": [
+                0,
+                0.1,
+                0
+            ],
+            "color": "#34495E",
+            "isStatic": false,
+            "friction": 0.8,
+            "restitution": 0.1
+        },
+        {
+            "id": "mass_inner",
+            "type": "Sphere",
+            "mass": 1,
+            "radius": 0.4,
+            "position": [
+                4,
+                0.7,
+                0
+            ],
+            "color": "#E74C3C",
+            "friction": 0.8,
+            "restitution": 0.1
+        },
+        {
+            "id": "mass_outer",
+            "type": "Sphere",
+            "mass": 1,
+            "radius": 0.4,
+            "position": [
+                8,
+                0.7,
+                0
+            ],
+            "color": "#F1C40F",
+            "friction": 0.8,
+            "restitution": 0.1
+        },
+        {
+            "id": "ground",
+            "type": "Box",
+            "mass": 0,
+            "dimensions": [
+                40,
+                0.1,
+                40
+            ],
+            "position": [
+                0,
+                0,
+                0
+            ],
+            "color": "#2C3E50",
+            "isStatic": true
+        }
+    ],
+    "joints": [
+        {
+            "bodyA": "pivot",
+            "bodyB": "disk",
+            "type": "revolute",
+            "anchorA": [
+                0,
+                -2.4,
+                0
+            ],
+            "anchorB": [
+                0,
+                0,
+                0
+            ],
+            "axis": [
+                0,
+                1,
+                0
+            ]
+        },
+        {
+            "bodyA": "disk",
+            "bodyB": "mass_inner",
+            "type": "fixed",
+            "anchorA": [
+                4,
+                0.6,
+                0
+            ],
+            "anchorB": [
+                0,
+                0,
+                0
+            ]
+        },
+        {
+            "bodyA": "disk",
+            "bodyB": "mass_outer",
+            "type": "fixed",
+            "anchorA": [
+                8,
+                0.6,
+                0
+            ],
+            "anchorB": [
+                0,
+                0,
+                0
+            ]
+        }
+    ],
+    "gravity": [
+        0,
+        -9.81,
+        0
+    ],
+    "hasGround": true,
+    "visualAnnotations": [
+        {
+            "id": "inner-vel",
+            "type": "vector",
+            "attachedToObjectId": "mass_inner",
+            "vectorType": "velocity",
+            "scale": 0.5,
+            "color": "#3498DB",
+            "showMagnitude": true,
+            "visible": true,
+            "prefix": "v_tan: "
+        },
+        {
+            "id": "outer-vel",
+            "type": "vector",
+            "attachedToObjectId": "mass_outer",
+            "vectorType": "velocity",
+            "scale": 0.5,
+            "color": "#3498DB",
+            "showMagnitude": true,
+            "visible": true
+        },
+        {
+            "id": "inner-accel",
+            "type": "vector",
+            "attachedToObjectId": "mass_inner",
+            "vectorType": "force",
+            "scale": 0.1,
+            "color": "#E67E22",
+            "showMagnitude": true,
+            "visible": true,
+            "prefix": "F_c: "
+        }
+    ],
+    "controllers": [
+        {
+            "id": "angular_velocity",
+            "label": "Rotation Speed (rev/s)",
+            "type": "slider",
+            "min": 0,
+            "max": 5,
+            "step": 0.1,
+            "value": 1,
+            "objectId": "disk",
+            "property": "angularVelocity[1]"
+        },
+        {
+            "id": "inner_radius",
+            "label": "Inner Mass Radius",
+            "type": "slider",
+            "min": 2,
+            "max": 5,
+            "step": 0.5,
+            "value": 4,
+            "objectId": "mass_inner",
+            "property": "position[0]"
+        }
+    ]
+}

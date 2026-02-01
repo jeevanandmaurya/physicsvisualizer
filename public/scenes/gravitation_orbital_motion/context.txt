@@ -1,0 +1,22 @@
+# Orbital Motion & Kepler's Laws
+
+Planetary motion is governed by the gravitational force between the planet and the star. Johannes Kepler described this motion with three fundamental laws:
+
+## Kepler's Laws
+
+1.  **The Law of Ellipses**: All planets move in elliptical orbits, with the sun at one focus. This means the distance between the planet and the sun changes constantly.
+
+2.  **The Law of Equal Areas**: A line that connects a planet to the sun sweeps out equal areas in equal times.
+    *   **Consequence**: Planets move faster when they are closer to the sun (perihelion) and slower when they are further away (aphelion).
+
+3.  **The Law of Harmonies**: The square of the orbital period of a planet is directly proportional to the cube of the semi-major axis of its orbit ($T^2 \propto a^3$).
+
+## Orbital Dynamics
+
+The centripetal force required to keep a planet in orbit is provided by gravity:
+$$\frac{mv^2}{r} = \frac{GmM}{r^2}$$
+
+This gives the orbital velocity for a circular orbit:
+$$v = \sqrt{\frac{GM}{r}}$$
+
+Observe in the simulation how the green velocity vector grows longer as the planet approaches the star, illustrating the concepts of potential and kinetic energy exchange in a gravity well.

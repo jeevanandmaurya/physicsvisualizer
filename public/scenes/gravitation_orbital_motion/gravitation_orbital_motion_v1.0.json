@@ -1,0 +1,141 @@
+{
+    "id": "gravitation-orbital-motion",
+    "name": "Orbital Motion - Kepler's Laws",
+    "description": "Observe planetary motion governed by gravity. This simulation demonstrates elliptical orbits and how orbital speed changes with distance from the central body (Kepler's 2nd Law). Planets move faster when closer to the star.",
+    "version": "1.0",
+    "objects": [
+        {
+            "id": "star",
+            "type": "Sphere",
+            "mass": 10000,
+            "radius": 3,
+            "position": [
+                0,
+                0,
+                0
+            ],
+            "velocity": [
+                0,
+                0,
+                0
+            ],
+            "color": "#F39C12",
+            "emissive": "#F1C40F",
+            "emissiveIntensity": 0.5,
+            "isStatic": true
+        },
+        {
+            "id": "planet",
+            "type": "Sphere",
+            "mass": 10,
+            "radius": 1,
+            "position": [
+                15,
+                0,
+                0
+            ],
+            "velocity": [
+                0,
+                0,
+                20
+            ],
+            "color": "#3498DB",
+            "friction": 0,
+            "restitution": 0.5,
+            "trail": {
+                "enabled": true,
+                "length": 200,
+                "color": "#5DADE2",
+                "fade": false
+            }
+        }
+    ],
+    "gravity": [
+        0,
+        0,
+        0
+    ],
+    "hasGround": false,
+    "gravitationalPhysics": {
+        "enabled": true,
+        "G": 0.1,
+        "attractors": [
+            "star"
+        ]
+    },
+    "simulationScale": "astronomical",
+    "visualAnnotations": [
+        {
+            "id": "planet-velocity",
+            "type": "vector",
+            "attachedToObjectId": "planet",
+            "vectorType": "velocity",
+            "scale": 0.5,
+            "color": "#00FF00",
+            "showMagnitude": true,
+            "visible": true,
+            "prefix": "v: "
+        },
+        {
+            "id": "planet-force",
+            "type": "vector",
+            "attachedToObjectId": "planet",
+            "vectorType": "force",
+            "scale": 2.0,
+            "color": "#FF0000",
+            "showMagnitude": false,
+            "visible": true,
+            "prefix": "Fg"
+        },
+        {
+            "id": "distance-text",
+            "type": "text",
+            "attachedToObjectId": "planet",
+            "contentType": "position",
+            "prefix": "r: ",
+            "precision": 1,
+            "offset": [
+                0,
+                2,
+                0
+            ],
+            "color": "#FFFFFF",
+            "visible": true
+        }
+    ],
+    "controllers": [
+        {
+            "id": "star_mass",
+            "label": "Star Mass",
+            "type": "slider",
+            "min": 5000,
+            "max": 20000,
+            "step": 500,
+            "value": 10000,
+            "objectId": "star",
+            "property": "mass"
+        },
+        {
+            "id": "planet_velocity",
+            "label": "Orbital Speed",
+            "type": "slider",
+            "min": 10,
+            "max": 30,
+            "step": 1,
+            "value": 20,
+            "objectId": "planet",
+            "property": "velocity[2]"
+        },
+        {
+            "id": "planet_distance",
+            "label": "Initial Distance",
+            "type": "slider",
+            "min": 10,
+            "max": 30,
+            "step": 1,
+            "value": 15,
+            "objectId": "planet",
+            "property": "position[0]"
+        }
+    ]
+}
