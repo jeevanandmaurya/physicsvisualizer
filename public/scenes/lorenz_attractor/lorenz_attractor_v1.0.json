@@ -1,0 +1,31 @@
+{
+    "id": "lorenz-attractor",
+    "name": "Lorenz Chaotic Swarm",
+    "version": "1.0",
+    "description": "A swarm of spheres follows the Lorenz attractor: dx/dt = σ(y - x), dy/dt = x(ρ - z) - y, dz/dt = xy - βz. Chaos in motion.",
+    "gravity": [
+        0,
+        0,
+        0
+    ],
+    "hasGround": false,
+    "camera": {
+        "position": [
+            30,
+            30,
+            30
+        ],
+        "target": [
+            0,
+            25,
+            0
+        ],
+        "fov": 50
+    },
+    "objects": [],
+    "jsLoop": {
+        "enabled": true,
+        "tickHz": 60,
+        "code": "function jsLoop(ctx, state) { state = state || { initialized: false, count: 20, bodies: [] }; var sigma = 10; var rho = 28; var beta = 8/3; var dt = 0.01; var patches = []; if (!state.initialized) { var objects = []; for (var i = 0; i < state.count; i++) { var pos = [Math.random()*10, Math.random()*10, Math.random()*10]; objects.push({ id: 'lzn_' + i, type: 'Sphere', radius: 0.5, position: pos, mass: 1, isStatic: true, color: 'hsl(' + (i * 18) + ', 80%, 50%)' }); state.bodies.push({ id: 'lzn_' + i, x: pos[0], y: pos[1], z: pos[2] }); } state.initialized = true; return { state: state, addObjects: objects }; } for (var i = 0; i < state.bodies.length; i++) { var b = state.bodies[i]; var dx = sigma * (b.y - b.x); var dy = b.x * (rho - b.z) - b.y; var dz = b.x * b.y - beta * b.z; b.x += dx * dt; b.y += dy * dt; b.z += dz * dt; patches.push({ op: 'replace', path: '/objects/' + i + '/position', value: [b.x, b.z, b.y] }); } return { state: state, patches: patches }; }"
+    }
+}

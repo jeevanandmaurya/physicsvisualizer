@@ -1,0 +1,31 @@
+{
+    "id": "swarm-flocking",
+    "name": "3D Swarm Flocking",
+    "version": "1.0",
+    "description": "A 3D flocking simulation (Boids-lite) where particles follow cohesion, separation, and alignment rules via jsLoop.",
+    "gravity": [
+        0,
+        0,
+        0
+    ],
+    "hasGround": false,
+    "camera": {
+        "position": [
+            0,
+            15,
+            25
+        ],
+        "target": [
+            0,
+            7,
+            0
+        ],
+        "fov": 50
+    },
+    "objects": [],
+    "jsLoop": {
+        "enabled": true,
+        "tickHz": 15,
+        "code": "function jsLoop(ctx, state) { state = state || { initialized: false, count: 30 }; var patches = []; if (!state.initialized) { var objects = []; for (var i = 0; i < state.count; i++) { objects.push({ id: 'b_' + i, type: 'Sphere', radius: 0.3, position: [(Math.random()-0.5)*10, 5+(Math.random()-0.5)*10, (Math.random()-0.5)*10], velocity: [(Math.random()-0.5)*2, (Math.random()-0.5)*2, (Math.random()-0.5)*2], mass: 1, color: '#1abc9c' }); } state.initialized = true; return { state: state, addObjects: objects }; } var currentObjs = ctx.scene.objects || []; for (var i = 0; i < currentObjs.length; i++) { var boid = currentObjs[i]; if (!boid.id.startsWith('b_')) continue; var coh = [0,0,0], sep = [0,0,0], ali = [0,0,0], count = 0; for (var j = 0; j < currentObjs.length; j++) { if (i === j) continue; var other = currentObjs[j]; var dx = other.position[0] - boid.position[0]; var dy = other.position[1] - boid.position[1]; var dz = other.position[2] - boid.position[2]; var dist = Math.sqrt(dx*dx + dy*dy + dz*dz); if (dist < 5) { coh[0] += other.position[0]; coh[1] += other.position[1]; coh[2] += other.position[2]; ali[0] += (other.velocity||[0,0,0])[0]; ali[1] += (other.velocity||[0,0,0])[1]; ali[2] += (other.velocity||[0,0,0])[2]; if (dist < 1.5) { sep[0] -= dx; sep[1] -= dy; sep[2] -= dz; } count++; } } var v = boid.velocity || [0,0,0]; if (count > 0) { coh = [ (coh[0]/count - boid.position[0])*0.02, (coh[1]/count - boid.position[1])*0.02, (coh[2]/count - boid.position[2])*0.02 ]; ali = [ (ali[0]/count - v[0])*0.1, (ali[1]/count - v[1])*0.1, (ali[2]/count - v[2])*0.1 ]; } var bound = [0,0,0]; if (boid.position[0] < -10) bound[0] = 1; else if (boid.position[0] > 10) bound[0] = -1; if (boid.position[1] < 0) bound[1] = 1; else if (boid.position[1] > 15) bound[1] = -1; if (boid.position[2] < -10) bound[2] = 1; else if (boid.position[2] > 10) bound[2] = -1; patches.push({ op: 'replace', path: '/objects/' + i + '/velocity', value: [v[0] + coh[0] + sep[0]*0.5 + ali[0] + bound[0], v[1] + coh[1] + sep[1]*0.5 + ali[1] + bound[1], v[2] + coh[2] + sep[2]*0.5 + ali[2] + bound[2]] }); } return { state: state, patches: patches }; }"
+    }
+}

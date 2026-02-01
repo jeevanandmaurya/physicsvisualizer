@@ -1,0 +1,31 @@
+{
+    "id": "wave-interference",
+    "name": "Wave Interference Lab",
+    "version": "1.0",
+    "description": "Two oscillating sources create an interference pattern on a 15x15 grid. Demonstrates constructive and destructive interference math.",
+    "gravity": [
+        0,
+        -9.81,
+        0
+    ],
+    "hasGround": true,
+    "camera": {
+        "position": [
+            12,
+            12,
+            12
+        ],
+        "target": [
+            0,
+            0,
+            0
+        ],
+        "fov": 50
+    },
+    "objects": [],
+    "jsLoop": {
+        "enabled": true,
+        "tickHz": 30,
+        "code": "function jsLoop(ctx, state) { state = state || { t: 0, initialized: false }; var size = 15; var patches = []; if (!state.initialized) { var objects = []; for (var x = 0; x < size; x++) { for (var z = 0; z < size; z++) { objects.push({ id: 'w_' + x + '_' + z, type: 'Box', position: [x - size/2, 1, z - size/2], dimensions: [0.7, 0.7, 0.7], mass: 1, isStatic: true, color: '#ecf0f1' }); } } state.initialized = true; return { state: state, addObjects: objects }; } var source1 = { x: -3, z: -3 }; var source2 = { x: 3, z: 3 }; var freq = 1.5; var waveLength = 2.0; for (var x = 0; x < size; x++) { for (var z = 0; z < size; z++) { var px = x - size/2; var pz = z - size/2; var d1 = Math.sqrt(Math.pow(px - source1.x, 2) + Math.pow(pz - source1.z, 2)); var d2 = Math.sqrt(Math.pow(px - source2.x, 2) + Math.pow(pz - source2.z, 2)); var h1 = Math.sin(d1 * waveLength - state.t * freq); var h2 = Math.sin(d2 * waveLength - state.t * freq); var totalH = (h1 + h2); var objId = 'w_' + x + '_' + z; var objIndex = ctx.scene.objects.findIndex(function(o){ return o.id === objId; }); if (objIndex !== -1) { patches.push({ op: 'replace', path: '/objects/' + objIndex + '/position', value: [px, 2 + totalH, pz] }); var mix = (totalH + 2) / 4; patches.push({ op: 'replace', path: '/objects/' + objIndex + '/color', value: totalH > 0 ? '#3498db' : '#e74c3c' }); } } } state.t += 0.2; return { state: state, patches: patches }; }"
+    }
+}

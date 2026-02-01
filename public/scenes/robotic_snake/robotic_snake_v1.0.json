@@ -1,0 +1,96 @@
+{
+    "id": "robotic-snake",
+    "name": "Grid-Locked Snake Game",
+    "version": "1.5",
+    "description": "Discrete grid-based Snake game with Greedy AI. The snake finds food automatically unless you steer with WASD!",
+    "gravity": [
+        0,
+        -9.81,
+        0
+    ],
+    "hasGround": true,
+    "camera": {
+        "position": [
+            0,
+            45,
+            55
+        ],
+        "target": [
+            0,
+            0,
+            0
+        ],
+        "fov": 45
+    },
+    "objects": [
+        {
+            "id": "boundary_n",
+            "type": "Box",
+            "dimensions": [
+                44,
+                2,
+                1
+            ],
+            "position": [
+                0,
+                1,
+                -22
+            ],
+            "isFixed": true,
+            "color": "#2c3e50"
+        },
+        {
+            "id": "boundary_s",
+            "type": "Box",
+            "dimensions": [
+                44,
+                2,
+                1
+            ],
+            "position": [
+                0,
+                1,
+                22
+            ],
+            "isFixed": true,
+            "color": "#2c3e50"
+        },
+        {
+            "id": "boundary_e",
+            "type": "Box",
+            "dimensions": [
+                1,
+                2,
+                44
+            ],
+            "position": [
+                22,
+                1,
+                0
+            ],
+            "isFixed": true,
+            "color": "#2c3e50"
+        },
+        {
+            "id": "boundary_w",
+            "type": "Box",
+            "dimensions": [
+                1,
+                2,
+                44
+            ],
+            "position": [
+                -22,
+                1,
+                0
+            ],
+            "isFixed": true,
+            "color": "#2c3e50"
+        }
+    ],
+    "jsLoop": {
+        "enabled": true,
+        "tickHz": 60,
+        "code": "function jsLoop(ctx, state) { state = state || { init: false, head: [0, 1, 0], body: [], dir: [0, 0, -1], nextDir: [0, 0, -1], score: 0, length: 5, grid: 2.0, moveTimer: 0, moveInterval: 0.15, gameOver: false }; var patches = []; var addObjs = []; if (!state.init) { for (var i = 0; i < state.length; i++) { var p = [0, 1, (i + 1) * state.grid]; state.body.push(p); addObjs.push({ id: 'snake_' + i, type: i === 0 ? 'Box' : 'Sphere', radius: 0.8, dimensions: [1.6, 1.6, 1.6], position: (i === 0 ? state.head : p), color: i === 0 ? '#e74c3c' : '#2ecc71', isSensor: true }); } addObjs.push({ id: 'food', type: 'Sphere', radius: 0.8, position: [4, 1, -4], color: '#f1c40f', isSensor: true, emissive: '#f1c40f' }); state.init = true; return { state: state, addObjects: addObjs }; } if (state.gameOver) return { state: state }; var input = ctx.input.keysDown; var userActive = false; if (input['w'] && state.dir[2] === 0) { state.nextDir = [0, 0, -1]; userActive = true; } else if (input['s'] && state.dir[2] === 0) { state.nextDir = [0, 0, 1]; userActive = true; } else if (input['a'] && state.dir[0] === 0) { state.nextDir = [-1, 0, 0]; userActive = true; } else if (input['d'] && state.dir[0] === 0) { state.nextDir = [1, 0, 0]; userActive = true; } var foodIdx = ctx.scene.objects.findIndex(function(o){ return o.id === 'food'; }); var food = ctx.scene.objects[foodIdx]; if (!userActive && food) { var dx = food.position[0] - state.head[0]; var dz = food.position[2] - state.head[2]; if (Math.abs(dx) > Math.abs(dz)) { var td = [dx > 0 ? 1 : -1, 0, 0]; if (td[0] !== -state.dir[0]) state.nextDir = td; else if (dz !== 0) state.nextDir = [0, 0, dz > 0 ? 1 : -1]; } else { var td = [0, 0, dz > 0 ? 1 : -1]; if (td[2] !== -state.dir[2]) state.nextDir = td; else if (dx !== 0) state.nextDir = [dx > 0 ? 1 : -1, 0, 0]; } } state.moveTimer += ctx.dt; if (state.moveTimer >= state.moveInterval) { state.moveTimer = 0; state.dir = state.nextDir; var pr = [state.head[0], state.head[1], state.head[2]]; state.head[0] += state.dir[0] * state.grid; state.head[2] += state.dir[2] * state.grid; for (var i = 0; i < state.body.length; i++) { var tmp = [state.body[i][0], state.body[i][1], state.body[i][2]]; state.body[i] = [pr[0], pr[1], pr[2]]; pr = tmp; } for (var i = 0; i < state.body.length; i++) { var objIdx = ctx.scene.objects.findIndex(function(o){ return o.id === 'snake_' + i; }); if (objIdx !== -1) { var pos = (i === 0 ? state.head : state.body[i-1]); patches.push({ op: 'replace', path: '/objects/' + objIdx + '/position', value: [pos[0], pos[1], pos[2]] }); } } if (food) { var dist = Math.sqrt(Math.pow(state.head[0] - food.position[0], 2) + Math.pow(state.head[2] - food.position[2], 2)); if (dist < 1.0) { state.score++; state.length++; var tail = state.body[state.body.length - 1]; var nS = [tail[0], tail[1], tail[2]]; state.body.push(nS); addObjs.push({ id: 'snake_' + (state.body.length-1), type: 'Sphere', radius: 0.8, position: nS, color: '#2ecc71', isSensor: true }); var fx = Math.round((Math.random() - 0.5) * 18) * state.grid; var fz = Math.round((Math.random() - 0.5) * 18) * state.grid; patches.push({ op: 'replace', path: '/objects/' + foodIdx + '/position', value: [fx, 1, fz] }); } } if (Math.abs(state.head[0]) > 20.5 || Math.abs(state.head[2]) > 20.5) { state.gameOver = true; } } return { state: state, patches: patches, addObjects: addObjs }; }"
+    }
+}

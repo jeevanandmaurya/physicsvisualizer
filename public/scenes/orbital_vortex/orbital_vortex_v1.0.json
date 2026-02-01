@@ -1,0 +1,18 @@
+{
+    "id": "orbital-vortex",
+    "name": "Orbital Vortex Force Field",
+    "version": "1.0",
+    "description": "Demonstrates radial and tangential forces applied via jsLoop. Objects are pulled towards the center while rotating.",
+    "gravity": [
+        0,
+        0,
+        0
+    ],
+    "hasGround": false,
+    "objects": [],
+    "jsLoop": {
+        "enabled": true,
+        "tickHz": 20,
+        "code": "function jsLoop(ctx, state) { state = state || { initialized: false, count: 40 }; var center = [0, 5, 0]; var patches = []; if (!state.initialized) { var objects = []; for (var i = 0; i < state.count; i++) { var r = 5 + Math.random() * 10; var angle = Math.random() * Math.PI * 2; objects.push({ id: 'v_' + i, type: 'Sphere', radius: 0.3, position: [center[0] + Math.cos(angle) * r, center[1] + (Math.random() - 0.5) * 5, center[2] + Math.sin(angle) * r], velocity: [0, 0, 0], mass: 1, color: '#f1c40f' }); } state.initialized = true; return { state: state, addObjects: objects }; } var currentObjs = ctx.scene.objects || []; for (var i = 0; i < currentObjs.length; i++) { var obj = currentObjs[i]; if (!obj.id.startsWith('v_')) continue; var dx = center[0] - obj.position[0]; var dy = center[1] - obj.position[1]; var dz = center[2] - obj.position[2]; var dist = Math.sqrt(dx*dx + dy*dy + dz*dz); if (dist < 0.1) continue; var nx = dx / dist; var ny = dy / dist; var nz = dz / dist; var pullStrength = 5 / (dist + 1); var pullX = nx * pullStrength; var pullY = ny * pullStrength; var pullZ = nz * pullStrength; var tanX = -nz * 2; var tanZ = nx * 2; var currentVel = obj.velocity || [0,0,0]; patches.push({ op: 'replace', path: '/objects/' + i + '/velocity', value: [currentVel[0] * 0.98 + pullX + tanX, currentVel[1] * 0.98 + pullY, currentVel[2] * 0.98 + pullZ + tanZ] }); } return { state: state, patches: patches }; }"
+    }
+}

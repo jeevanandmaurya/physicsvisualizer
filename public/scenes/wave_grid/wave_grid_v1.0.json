@@ -1,0 +1,31 @@
+{
+    "id": "wave-grid-3d",
+    "name": "3D Sine Wave Grid",
+    "version": "1.0",
+    "description": "A 10x10 grid of boxes animated with a 3D sine wave using jsLoop patches.",
+    "gravity": [
+        0,
+        -9.81,
+        0
+    ],
+    "hasGround": true,
+    "camera": {
+        "position": [
+            8,
+            8,
+            8
+        ],
+        "target": [
+            0,
+            2,
+            0
+        ],
+        "fov": 50
+    },
+    "objects": [],
+    "jsLoop": {
+        "enabled": true,
+        "tickHz": 20,
+        "code": "function jsLoop(ctx, state) { state = state || { t: 0, initialized: false }; var size = 10; var patches = []; if (!state.initialized) { var objects = []; for (var x = 0; x < size; x++) { for (var z = 0; z < size; z++) { objects.push({ id: 'cube_' + x + '_' + z, type: 'Box', position: [x - size/2, 1, z - size/2], dimensions: [0.8, 0.8, 0.8], mass: 1, isStatic: true, color: '#3498db' }); } } state.initialized = true; return { state: state, addObjects: objects }; } for (var x = 0; x < size; x++) { for (var z = 0; z < size; z++) { var height = 1 + Math.sin(state.t + x*0.5 + z*0.5) * 1.5; var objId = 'cube_' + x + '_' + z; var objIndex = ctx.scene.objects.findIndex(function(o){ return o.id === objId; }); if (objIndex !== -1) { patches.push({ op: 'replace', path: '/objects/' + objIndex + '/position', value: [x - size/2, height, z - size/2] }); } } } state.t += 0.1; return { state: state, patches: patches }; }"
+    }
+}

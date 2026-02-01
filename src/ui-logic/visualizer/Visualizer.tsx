@@ -282,6 +282,7 @@ type AgentLoopBridgeProps = {
   onSceneUpdate?: SceneUpdateFn;
   inputStateRef: InputStateRef;
   playerPositionRef: PlayerPositionRef;
+  onApplyPhysics?: (data: { forces?: any; impulses?: any }) => void;
 };
 
 function AgentLoopBridge({
@@ -292,9 +293,11 @@ function AgentLoopBridge({
   onSceneUpdate,
   inputStateRef,
   playerPositionRef,
+  onApplyPhysics,
 }: AgentLoopBridgeProps) {
   const sceneRef = useRef(scene);
   const onSceneUpdateRef = useRef(onSceneUpdate);
+  const onApplyPhysicsRef = useRef(onApplyPhysics);
   const runnerRef = useRef<AgentLoopRunner | null>(null);
   const patcherRef = useRef<ScenePatcher | null>(null);
   const lastSceneIdRef = useRef<string | undefined>(scene?.id);
@@ -386,6 +389,10 @@ function AgentLoopBridge({
 
       if (!tickResult) return;
 
+      if (tickResult.forces || tickResult.impulses) {
+        onApplyPhysicsRef.current?.({ forces: tickResult.forces, impulses: tickResult.impulses });
+      }
+
       let updatedScene: any = sceneRef.current;
 
       // Apply patches first
@@ -413,10 +420,16 @@ function AgentLoopBridge({
 
       if (toAdd.length > 0) {
         const objs = Array.isArray(updatedScene.objects) ? updatedScene.objects : [];
-        updatedScene = {
-          ...updatedScene,
-          objects: [...objs, ...toAdd],
-        };
+        // Create a Set of existing IDs for fast lookup and deduplication
+        const existingIds = new Set(objs.map((o: any) => o?.id).filter(Boolean));
+        // Only add objects that don't already exist in the scene
+        const uniqueNewObjects = toAdd.filter((o: any) => o?.id && !existingIds.has(o.id));
+        if (uniqueNewObjects.length > 0) {
+          updatedScene = {
+            ...updatedScene,
+            objects: [...objs, ...uniqueNewObjects],
+          };
+        }
       }
 
       // If nothing changed structurally, skip update.
@@ -434,7 +447,7 @@ function AgentLoopBridge({
 
   return null;
 }
-function SimpleGrid({ show }) { 
+function SimpleGrid({ show }: { show: boolean }) { 
   if (!show) return null; 
   return (
     <gridHelper args={[30, 30, 0x333333, 0x1a1a1a]} position={[0, -0.01, 0]} />
@@ -442,7 +455,7 @@ function SimpleGrid({ show }) {
 }
 function LabeledAxesHelper({ size = 5, visible = true }) { 
   if (!visible) return null;
-  const textProps = { fontSize: 0.5, anchorX: 'center', anchorY: 'middle' }; 
+  const textProps = { fontSize: 0.5, anchorX: 'center' as const, anchorY: 'middle' as const }; 
   return (<group renderOrder={10}><axesHelper args={[size]} /><Text color="red" position={[size * 1.1, 0, 0]} {...textProps}>X</Text><Text color="green" position={[0, size * 1.1, 0]} {...textProps}>Y</Text><Text color="blue" position={[0, 0, size * 1.1]} {...textProps}>Z</Text></group>); 
 }
 
@@ -609,6 +622,26 @@ function Visualizer({ scene, showSceneDetails, onToggleSceneDetails, onSceneUpda
     // Skybox state - cycles through: normal, space, black, white
     const [skyboxType, setSkyboxType] = useState('normal');
 
+    const [externalForces, setExternalForces] = useState({});
+    const [externalImpulses, setExternalImpulses] = useState({});
+
+    // Reset external physics every frame after applying? No, better to let them be applied once and cleared.
+    // However, jsLoop runs at a specific tick Hz. We should apply until the next tick?
+    // Actually, Applying every frame is fine if jsLoop returns them every tick.
+    const handleApplyPhysics = useCallback((data: { forces?: any; impulses?: any }) => {
+        if (data.forces) setExternalForces(data.forces);
+        if (data.impulses) setExternalImpulses(data.impulses);
+    }, []);
+
+    // PhysicsForceManager component to handle clearing forces in the R3F loop
+    const PhysicsForceManager = () => {
+        useFrame(() => {
+            if (Object.keys(externalForces).length > 0) setExternalForces({});
+            if (Object.keys(externalImpulses).length > 0) setExternalImpulses({});
+        });
+        return null;
+    };
+
     // Debug: Log scene changes
     useEffect(() => {
         console.log('Visualizer: Scene updated:', scene?.id, scene?.gravity, scene?.objects?.map(o => ({ id: o.id, mass: o.mass })));
@@ -627,7 +660,7 @@ function Visualizer({ scene, showSceneDetails, onToggleSceneDetails, onSceneUpda
     const r3fCanvasRef = useRef(null);
     const [processedScene, setProcessedScene] = useState(null);
     const physicsUpdateCountRef = useRef(0); // Batch updates
-    const shotTimersRef = useRef({}); // Track removal timers for shot objects
+    const shotTimersRef = useRef<Record<string, any>>({}); // Track removal timers for shot objects
 
     // Player/input refs for WASD + agent loop
     const orbitControlsRef = useRef<any>(null);
@@ -694,10 +727,10 @@ function Visualizer({ scene, showSceneDetails, onToggleSceneDetails, onSceneUpda
 
     const MAX_HISTORY_POINTS = 2000;
 
-  const handlePhysicsDataCalculated = useCallback((data) => {
+  const handlePhysicsDataCalculated = useCallback((data: Record<string, any>) => {
     // NEW: Use PhysicsDataStore - bypasses React entirely!
     // This is now the fastest possible path - direct memory write
-    Object.entries(data).forEach(([id, info]) => {
+    Object.entries(data).forEach(([id, info]: [string, any]) => {
       if (info && info.velocity && info.position && info.time !== undefined) {
         // Store handles all throttling, history management, and notifications
         physicsDataStore.updatePhysicsData(
@@ -724,8 +757,8 @@ function Visualizer({ scene, showSceneDetails, onToggleSceneDetails, onSceneUpda
             const sceneWithoutObject = {
               ...currentScene,
               objects: (currentScene.objects || [])
-                .filter(obj => obj.id !== id)
-                .map(obj => ({ ...obj })), // Deep copy remaining objects
+                .filter((obj: any) => obj.id !== id)
+                .map((obj: any) => ({ ...obj })), // Deep copy remaining objects
               _isShootingUpdate: true,
               _version: (currentScene._version || 0) + 1
             };
@@ -1050,7 +1083,12 @@ function Visualizer({ scene, showSceneDetails, onToggleSceneDetails, onSceneUpda
                             stencil: false,
                             depth: true
                         }}
-                        camera={{ position: [10, 5, 25], fov: 50, near: 0.1, far: 200000 }}
+                        camera={{ 
+                            position: activeScene?.camera?.position || [10, 5, 25], 
+                            fov: activeScene?.camera?.fov || 50, 
+                            near: 0.1, 
+                            far: 200000 
+                        }}
                         onError={() => setCanvasError(true)}
                         onCreated={({ gl }) => {
                             window._webglContext = gl;
@@ -1065,6 +1103,7 @@ function Visualizer({ scene, showSceneDetails, onToggleSceneDetails, onSceneUpda
                         }}
                     >
                         <TimeUpdater isPlaying={isPlaying} updateSimulationTime={updateSimulationTime} />
+                        <PhysicsForceManager />
                         <ShootingHandler onShoot={handleShoot} />
                         <WasdController
                           enabled={true}
@@ -1082,6 +1121,7 @@ function Visualizer({ scene, showSceneDetails, onToggleSceneDetails, onSceneUpda
                           onSceneUpdate={onSceneUpdate}
                           inputStateRef={inputStateRef}
                           playerPositionRef={playerPositionRef}
+                          onApplyPhysics={handleApplyPhysics}
                         />
                         <ambientLight intensity={1.0} />
                         <directionalLight position={[5, 10, 5]} intensity={1.2} castShadow shadow-mapSize-width={1024} shadow-mapSize-height={1024} />
@@ -1093,6 +1133,8 @@ function Visualizer({ scene, showSceneDetails, onToggleSceneDetails, onSceneUpda
                             defaultContactMaterial={defaultContactMaterial}
                             simulationTime={simulationTime}
                             simulationSpeed={simulationSpeed}
+                            externalForces={externalForces}
+                            externalImpulses={externalImpulses}
                         />
                         {/* Visual Annotation System - Gets data directly from PhysicsDataStore */}
                         {activeScene?.visualAnnotations && activeScene.visualAnnotations.length > 0 && (
@@ -1104,7 +1146,10 @@ function Visualizer({ scene, showSceneDetails, onToggleSceneDetails, onSceneUpda
                                 enabled={true}
                             />
                         )}
-                        <OrbitControls ref={orbitControlsRef} />
+                        <OrbitControls 
+                            ref={orbitControlsRef} 
+                            target={activeScene?.camera?.target || [0, 0, 0]} 
+                        />
                         <LabeledAxesHelper size={5} visible={showAxes} />
                         <SimpleGrid show={showGrid} />
                         <GroundPlane show={hasGround} />

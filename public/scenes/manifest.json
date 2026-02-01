@@ -149,6 +149,66 @@
       "folderName": "minecraft_infinite_world",
       "enabled": true,
       "category": "demos"
+    },
+    {
+      "id": "wave-grid-3d",
+      "folderName": "wave_grid",
+      "enabled": true,
+      "category": "demos"
+    },
+    {
+      "id": "conway-3d",
+      "folderName": "conway_3d",
+      "enabled": true,
+      "category": "demos"
+    },
+    {
+      "id": "orbital-vortex",
+      "folderName": "orbital_vortex",
+      "enabled": true,
+      "category": "demos"
+    },
+    {
+      "id": "double-pendulum-chaos",
+      "folderName": "double_pendulum",
+      "enabled": true,
+      "category": "demos"
+    },
+    {
+      "id": "swarm-flocking",
+      "folderName": "swarm_flocking",
+      "enabled": true,
+      "category": "demos"
+    },
+    {
+      "id": "phyllotaxis-growth",
+      "folderName": "phyllotaxis",
+      "enabled": true,
+      "category": "demos"
+    },
+    {
+      "id": "lissajous-ribbon",
+      "folderName": "lissajous_ribbon",
+      "enabled": true,
+      "category": "demos"
+    },
+    {
+      "id": "wave-interference",
+      "folderName": "wave_interference",
+      "enabled": true,
+      "category": "demos"
+    },
+    {
+      "id": "lorenz-attractor",
+      "folderName": "lorenz_attractor",
+      "enabled": true,
+      "category": "demos"
+    },
+    {
+      "id": "robotic-snake",
+      "folderName": "robotic_snake",
+      "enabled": true,
+      "category": "demos"
     }
   ]
 }

@@ -1,0 +1,31 @@
+{
+    "id": "phyllotaxis-growth",
+    "name": "Phyllotaxis Golden Growth",
+    "version": "1.0",
+    "description": "Procedural generation based on the golden angle (137.5°). Spheres grow in a spiral pattern, with pulsing colors and radius based on Fibonacci math.",
+    "gravity": [
+        0,
+        0,
+        0
+    ],
+    "hasGround": false,
+    "camera": {
+        "position": [
+            0,
+            15,
+            0
+        ],
+        "target": [
+            0,
+            0,
+            0
+        ],
+        "fov": 60
+    },
+    "objects": [],
+    "jsLoop": {
+        "enabled": true,
+        "tickHz": 30,
+        "code": "function jsLoop(ctx, state) { state = state || { n: 0, max: 200, t: 0 }; var patches = []; var add = []; var goldenAngle = 137.507 * (Math.PI / 180); if (state.n < state.max) { for (var i = 0; i < 2; i++) { var r = 0.5 * Math.sqrt(state.n); var phi = state.n * goldenAngle; var x = r * Math.cos(phi); var z = r * Math.sin(phi); var hue = (state.n % 360); add.push({ id: 'f_' + state.n, type: 'Sphere', radius: 0.2, position: [x, 0, z], mass: 1, isStatic: true, color: 'hsl(' + hue + ', 70%, 50%)' }); state.n++; } } var currentObjs = ctx.scene.objects || []; for (var i = 0; i < currentObjs.length; i++) { var obj = currentObjs[i]; if (!obj.id.startsWith('f_')) continue; var idNum = parseInt(obj.id.split('_')[1]); var pulse = 1 + Math.sin(state.t * 0.1 + idNum * 0.05) * 0.5; var r = 0.5 * Math.sqrt(idNum); var phi = idNum * goldenAngle + (state.t * 0.01); var x = r * Math.cos(phi); var z = r * Math.sin(phi); patches.push({ op: 'replace', path: '/objects/' + i + '/position', value: [x, Math.sin(state.t * 0.05 + r) * 2, z] }); patches.push({ op: 'replace', path: '/objects/' + i + '/radius', value: 0.15 * pulse }); } state.t++; return { state: state, addObjects: add, patches: patches }; }"
+    }
+}

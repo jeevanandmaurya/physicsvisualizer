@@ -1,0 +1,259 @@
+{
+    "id": "double-pendulum-chaos",
+    "name": "Chaotic Double Pendulums",
+    "version": "1.0",
+    "description": "Three double pendulums with nearly identical starting conditions, demonstrating sensitivity to initial conditions (Chaos Theory).",
+    "gravity": [
+        0,
+        -9.81,
+        0
+    ],
+    "hasGround": true,
+    "objects": [
+        {
+            "id": "p1_anchor",
+            "type": "Box",
+            "position": [
+                -3,
+                8,
+                0
+            ],
+            "dimensions": [
+                0.2,
+                0.2,
+                0.2
+            ],
+            "mass": 1,
+            "isStatic": true,
+            "color": "#7f8c8d"
+        },
+        {
+            "id": "p1_b1",
+            "type": "Sphere",
+            "radius": 0.4,
+            "position": [
+                -1,
+                8,
+                0
+            ],
+            "mass": 1,
+            "color": "#e74c3c"
+        },
+        {
+            "id": "p1_b2",
+            "type": "Sphere",
+            "radius": 0.4,
+            "position": [
+                1,
+                8,
+                0
+            ],
+            "mass": 1,
+            "color": "#c0392b"
+        },
+        {
+            "id": "p2_anchor",
+            "type": "Box",
+            "position": [
+                0,
+                8,
+                0
+            ],
+            "dimensions": [
+                0.2,
+                0.2,
+                0.2
+            ],
+            "mass": 1,
+            "isStatic": true,
+            "color": "#7f8c8d"
+        },
+        {
+            "id": "p2_b1",
+            "type": "Sphere",
+            "radius": 0.4,
+            "position": [
+                2,
+                8,
+                0
+            ],
+            "mass": 1,
+            "color": "#3498db"
+        },
+        {
+            "id": "p2_b2",
+            "type": "Sphere",
+            "radius": 0.4,
+            "position": [
+                4,
+                8,
+                0
+            ],
+            "mass": 1,
+            "color": "#2980b9"
+        },
+        {
+            "id": "p3_anchor",
+            "type": "Box",
+            "position": [
+                3,
+                8,
+                0
+            ],
+            "dimensions": [
+                0.2,
+                0.2,
+                0.2
+            ],
+            "mass": 1,
+            "isStatic": true,
+            "color": "#7f8c8d"
+        },
+        {
+            "id": "p3_b1",
+            "type": "Sphere",
+            "radius": 0.4,
+            "position": [
+                5.001,
+                8,
+                0
+            ],
+            "mass": 1,
+            "color": "#2ecc71"
+        },
+        {
+            "id": "p3_b2",
+            "type": "Sphere",
+            "radius": 0.4,
+            "position": [
+                7.001,
+                8,
+                0
+            ],
+            "mass": 1,
+            "color": "#27ae60"
+        }
+    ],
+    "joints": [
+        {
+            "type": "revolute",
+            "bodyA": "p1_anchor",
+            "bodyB": "p1_b1",
+            "anchorA": [
+                0,
+                0,
+                0
+            ],
+            "anchorB": [
+                -2,
+                0,
+                0
+            ],
+            "axis": [
+                0,
+                0,
+                1
+            ]
+        },
+        {
+            "type": "revolute",
+            "bodyA": "p1_b1",
+            "bodyB": "p1_b2",
+            "anchorA": [
+                0,
+                0,
+                0
+            ],
+            "anchorB": [
+                -2,
+                0,
+                0
+            ],
+            "axis": [
+                0,
+                0,
+                1
+            ]
+        },
+        {
+            "type": "revolute",
+            "bodyA": "p2_anchor",
+            "bodyB": "p2_b1",
+            "anchorA": [
+                0,
+                0,
+                0
+            ],
+            "anchorB": [
+                -2,
+                0,
+                0
+            ],
+            "axis": [
+                0,
+                0,
+                1
+            ]
+        },
+        {
+            "type": "revolute",
+            "bodyA": "p2_b1",
+            "bodyB": "p2_b2",
+            "anchorA": [
+                0,
+                0,
+                0
+            ],
+            "anchorB": [
+                -2,
+                0,
+                0
+            ],
+            "axis": [
+                0,
+                0,
+                1
+            ]
+        },
+        {
+            "type": "revolute",
+            "bodyA": "p3_anchor",
+            "bodyB": "p3_b1",
+            "anchorA": [
+                0,
+                0,
+                0
+            ],
+            "anchorB": [
+                -2,
+                0,
+                0
+            ],
+            "axis": [
+                0,
+                0,
+                1
+            ]
+        },
+        {
+            "type": "revolute",
+            "bodyA": "p3_b1",
+            "bodyB": "p3_b2",
+            "anchorA": [
+                0,
+                0,
+                0
+            ],
+            "anchorB": [
+                -2,
+                0,
+                0
+            ],
+            "axis": [
+                0,
+                0,
+                1
+            ]
+        }
+    ]
+}

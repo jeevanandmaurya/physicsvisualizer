@@ -1,0 +1,31 @@
+{
+    "id": "lissajous-ribbon",
+    "name": "3D Lissajous Kinetic Ribbon",
+    "version": "1.0",
+    "description": "A stream of spheres following a 3D Lissajous curve. Demonstrates parametric equations and FIFO object management.",
+    "gravity": [
+        0,
+        0,
+        0
+    ],
+    "hasGround": false,
+    "camera": {
+        "position": [
+            15,
+            10,
+            15
+        ],
+        "target": [
+            0,
+            5,
+            0
+        ],
+        "fov": 50
+    },
+    "objects": [],
+    "jsLoop": {
+        "enabled": true,
+        "tickHz": 60,
+        "code": "function jsLoop(ctx, state) { state = state || { t: 0, trail: [], maxTrail: 60, count: 0 }; var add = []; var removeIds = []; var A = 8, B = 5, C = 8; var a = 3, b = 2, c = 4; var delta = Math.PI / 2; var x = A * Math.sin(a * state.t + delta); var y = 5 + B * Math.sin(b * state.t); var z = C * Math.sin(c * state.t); var id = 'l_' + state.count++; add.push({ id: id, type: 'Sphere', radius: 0.4, position: [x, y, z], mass: 1, isStatic: true, color: 'hsl(' + (state.t * 50 % 360) + ', 80%, 60%)' }); state.trail.push(id); if (state.trail.length > state.maxTrail) { var oldId = state.trail.shift(); removeIds.push(oldId); } state.t += 0.02; return { state: state, addObjects: add, removeObjectIds: removeIds }; }"
+    }
+}

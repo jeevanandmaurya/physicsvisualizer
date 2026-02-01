@@ -21,6 +21,8 @@ export type AgentLoopTickResult = {
   addObjects?: any[];
   patches?: any[];
   removeObjectIds?: string[];
+  forces?: Record<string, [number, number, number]>;
+  impulses?: Record<string, [number, number, number]>;
 };
 
 export type AgentLoopConfig = {

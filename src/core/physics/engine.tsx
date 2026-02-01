@@ -1,8 +1,7 @@
 // Physics Engine using @react-three/rapier
-import React, { useRef, useEffect } from 'react';
+import React, { useRef } from 'react';
 import { useFrame } from '@react-three/fiber';
 import { Physics, RigidBody, CuboidCollider, BallCollider, CylinderCollider, ConeCollider, CapsuleCollider, useRapier } from '@react-three/rapier';
-import * as THREE from 'three';
 import { GravitationalPhysics } from './gravitation/calculations.js';
 import { ConstraintPhysics } from './constraints/calculations.js';
 import { FluidPhysics } from './fluid/calculations.js';
@@ -12,15 +11,16 @@ import { NonPhysicsEngine } from './NonPhysicsEngine.js';
 
 // Dummy class to maintain API compatibility - Rapier handles physics automatically
 export class PhysicsEngine {
-    constructor(scene) {
+    scene: any;
+    constructor(scene: any) {
         this.scene = scene;
     }
 
-    loadScene(scene) {
+    loadScene(scene: any) {
         this.scene = scene;
     }
 
-    step(deltaTime) {
+    step(deltaTime: any) {
         // Rapier handles this automatically
     }
 
@@ -211,8 +211,39 @@ const Joints = React.memo(function Joints({ scene, bodyRefs, physicsResetKey }) 
 // Global NonPhysicsEngine instance for AI/external access
 export const globalNonPhysicsEngine = new NonPhysicsEngine();
 
+// Component to apply external forces/impulses (e.g., from jsLoop)
+function ExternalPhysics({ forces, impulses, isPlaying }: { forces: any, impulses: any, isPlaying: boolean }) {
+    const { rapier, world } = useRapier();
+
+    useFrame(() => {
+        if (!isPlaying || !world) return;
+
+        // Apply forces
+        if (forces && typeof forces === 'object') {
+            Object.entries(forces).forEach(([id, f]: [string, any]) => {
+                const body = world.bodies.getAll().find(b => b.userData === id);
+                if (body && !body.isFixed()) {
+                    body.addForce(new rapier.Vector3(f[0], f[1], f[2]), true);
+                }
+            });
+        }
+
+        // Apply impulses
+        if (impulses && typeof impulses === 'object') {
+            Object.entries(impulses).forEach(([id, imp]: [string, any]) => {
+                const body = world.bodies.getAll().find(b => b.userData === id);
+                if (body && !body.isFixed()) {
+                    body.applyImpulse(new rapier.Vector3(imp[0], imp[1], imp[2]), true);
+                }
+            });
+        }
+    });
+
+    return null;
+}
+
 // React PhysicsWorld component that uses Physics paused prop for proper state preservation
-export function PhysicsWorld({ scene, isPlaying, onPhysicsDataCalculated, resetTrigger, defaultContactMaterial, simulationTime, simulationSpeed = 1 }) {
+export function PhysicsWorld({ scene, isPlaying, onPhysicsDataCalculated, resetTrigger, defaultContactMaterial, simulationTime, simulationSpeed = 1, externalForces = {}, externalImpulses = {} }: any) {
     const [physicsResetKey, setPhysicsResetKey] = React.useState(0);
     const bodyRefs = useRef({}); // Store body refs for joints
     const nonPhysicsEngineRef = useRef(globalNonPhysicsEngine);
@@ -269,8 +300,17 @@ export function PhysicsWorld({ scene, isPlaying, onPhysicsDataCalculated, resetT
     const renderObjects = () => {
         if (!scene?.objects) return null;
 
+        // Track seen IDs to detect duplicates and ensure unique keys
+        const seenIds = new Set<string>();
+
         return scene.objects.map((obj, index) => {
-            const key = obj.id || `obj-${index}`;
+            let key = obj.id || `obj-${index}`;
+            
+            // If we've seen this ID before, make key unique by appending index
+            if (seenIds.has(key)) {
+                key = `${key}_idx${index}`;
+            }
+            seenIds.add(obj.id || key);
 
             // Check if object should be non-physics (visual only, no physics simulation)
             if (obj.visualOnly || obj.isVisualOnly || obj.nonPhysics) {
@@ -333,6 +373,7 @@ export function PhysicsWorld({ scene, isPlaying, onPhysicsDataCalculated, resetT
             paused={!isPlaying}
             timeStep={1/60 * simulationSpeed}
         >
+            <ExternalPhysics forces={externalForces} impulses={externalImpulses} isPlaying={isPlaying} />
             <NonPhysicsAnimator nonPhysicsEngineRef={nonPhysicsEngineRef} isPlaying={isPlaying} />
             <GravitationalForces scene={scene} isPlaying={isPlaying} />
             <Constraints scene={scene} isPlaying={isPlaying} />
@@ -398,8 +439,13 @@ function NonPhysicsObject({ config, nonPhysicsEngineRef }) {
             // Add object to engine (stores config)
             nonPhysicsEngineRef.current.addObject(config);
             console.log(`🎨 NonPhysicsObject: Added object "${config.id}" to engine`);
+            
+            return () => {
+                nonPhysicsEngineRef.current.removeObject(config.id);
+                console.log(`🗑️ NonPhysicsObject: Removed object "${config.id}" from engine`);
+            };
         }
-    }, [nonPhysicsEngineRef, config.id]);
+    }, [nonPhysicsEngineRef, config.id, config]); // Added config to dependencies to handle deep updates
 
     // Register mesh with NonPhysicsEngine when mesh is ready
     React.useEffect(() => {
@@ -463,6 +509,11 @@ function PhysicsObject({ config, isPlaying, physicsResetKey, bodyRefs, onPhysics
     React.useEffect(() => {
         if (bodyRef.current && config.id) {
             bodyRefs.current[config.id] = bodyRef.current;
+            return () => {
+                if (bodyRefs.current[config.id] === bodyRef.current) {
+                    delete bodyRefs.current[config.id];
+                }
+            };
         }
     }, [bodyRef.current, config.id]);
 
@@ -530,7 +581,11 @@ function PhysicsObject({ config, isPlaying, physicsResetKey, bodyRefs, onPhysics
     };
 
     // Report physics data for visualization and graphing
+    // PERFORMANCE: Skip for static objects - they don't move, nothing to report
     useFrame(() => {
+        // Skip static objects entirely - major performance optimization
+        if (config.isStatic) return;
+        
         if (bodyRef.current && onPhysicsDataCalculated && isPlaying) {
             try {
                 // Get position and velocity from RigidBody

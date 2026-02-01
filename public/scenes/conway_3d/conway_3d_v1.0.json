@@ -1,0 +1,31 @@
+{
+    "id": "conway-3d",
+    "name": "3D Game of Life",
+    "version": "1.0",
+    "description": "A 5x5x5 cellular automata simulation using jsLoop logic.",
+    "gravity": [
+        0,
+        0,
+        0
+    ],
+    "hasGround": false,
+    "camera": {
+        "position": [
+            6,
+            6,
+            6
+        ],
+        "target": [
+            0,
+            2.5,
+            0
+        ],
+        "fov": 60
+    },
+    "objects": [],
+    "jsLoop": {
+        "enabled": true,
+        "tickHz": 1,
+        "code": "function jsLoop(ctx, state) { var size = 5; if (!state) { var initial = {}; for (var i=0; i<30; i++) { var x = Math.floor(Math.random()*size); var y = Math.floor(Math.random()*size); var z = Math.floor(Math.random()*size); initial[x+','+y+','+z] = true; } state = { cells: initial }; } var nextCells = {}; var add = []; var removeIds = []; function getNeighbors(x, y, z) { var n = 0; for (var dx=-1; dx<=1; dx++) { for (var dy=-1; dy<=1; dy++) { for (var dz=-1; dz<=1; dz++) { if (dx===0 && dy===0 && dz===0) continue; if (state.cells[(x+dx)+','+(y+dy)+','+(z+dz)]) n++; } } } return n; } for (var x=0; x<size; x++) { for (var y=0; y<size; y++) { for (var z=0; z<size; z++) { var key = x+','+y+','+z; var n = getNeighbors(x, y, z); if (state.cells[key]) { if (n >= 4 && n <= 7) nextCells[key] = true; } else { if (n === 5) nextCells[key] = true; } } } } for (var k in nextCells) { if (!state.cells[k]) { var p = k.split(',').map(Number); add.push({ id: 'cell_'+k, type: 'Box', position: [p[0]-size/2, p[1], p[2]-size/2], dimensions: [0.9, 0.9, 0.9], mass: 1, isStatic: true, color: '#9b59b6' }); } } for (var k in state.cells) { if (!nextCells[k]) { removeIds.push('cell_'+k); } } state.cells = nextCells; return { state: state, addObjects: add, removeObjectIds: removeIds }; }"
+    }
+}
