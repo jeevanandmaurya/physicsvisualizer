@@ -1,6 +1,6 @@
 import React, { useRef, useEffect, useCallback, useState, useMemo } from 'react';
 import { Canvas, useFrame, useThree } from '@react-three/fiber';
-import { OrbitControls, Grid, Text, useTexture } from '@react-three/drei';
+import { OrbitControls, Text, useTexture } from '@react-three/drei';
 import * as THREE from 'three';
 
 // Import physics calculations and engine components
@@ -17,12 +17,10 @@ import spaceTexture from '../../assets/space.svg';
 
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { faCube } from '@fortawesome/free-solid-svg-icons';
-import { useWorkspace } from '../../contexts/WorkspaceContext';
 import { useSimulation } from '../../contexts/SimulationContext';
 import SceneDetailsUI from '../../views/components/scene-management/SceneDetailsUI';
 import { functionCallSystem } from '../../core/sandbox';
 import { physicsDataStore } from '../../core/physics/PhysicsDataStore';
-import { PhysicsOverlay } from '../../views/components/PhysicsOverlay';
 import ScenePatcher from '../../core/scene/patcher';
 import { AgentLoopRunner } from '../../core/agent/AgentLoopRunner';
 
@@ -475,80 +473,6 @@ function GroundPlane({ show }) {
     </mesh>
   ); 
 }
-function Arrow({ vec, color }) { 
-  const groupRef = useRef(); 
-  const shaftRef = useRef(); 
-  const coneRef = useRef(); 
-  const geometries = useMemo(() => ({ 
-    // Create unit geometries aligned along +Y. We'll scale the mesh transforms
-    // instead of modifying the geometry parameters each frame.
-    shaft: new THREE.CylinderGeometry(1, 1, 1, 8), 
-    cone: new THREE.ConeGeometry(1, 1, 8) 
-  }), []); 
-  useEffect(() => { return () => { geometries.shaft.dispose(); geometries.cone.dispose(); }; }, [geometries]); 
-  const vecRef = useRef(vec);
-
-  // Reusable Three.js objects to avoid re-instantiation in useFrame
-  const dir = useMemo(() => new THREE.Vector3(), []);
-  const up = useMemo(() => new THREE.Vector3(0, 1, 0), []);
-  const quaternion = useMemo(() => new THREE.Quaternion(), []);
-
-  useEffect(() => {
-    vecRef.current = vec;
-  }, [vec]);
-
-  useFrame(() => {
-    const group = groupRef.current;
-    const shaft = shaftRef.current;
-    const cone = coneRef.current;
-    const currentVec = vecRef.current;
-
-    if (!group || !shaft || !cone || !currentVec) return;
-
-    const length = currentVec.length();
-    if (length < 1e-4) {
-      group.visible = false;
-      return;
-    }
-    group.visible = true;
-
-    // Orient the arrow
-    dir.copy(currentVec).normalize(); // Copy currentVec to dir and normalize
-    quaternion.setFromUnitVectors(up, dir);
-    group.quaternion.copy(quaternion);
-
-    // Smaller default multipliers and minimum caps for more compact vectors
-    const headHeight = Math.max(length * 0.18, 0.06);
-    const headRadius = Math.max(length * 0.06, 0.02);
-    const shaftRadius = Math.max(length * 0.012, 0.005);
-    const shaftLength = Math.max(length - headHeight, 0.03);
-
-    // Clamp radii so arrows never become excessively thick
-    // Reduced maximum radii to keep arrows slimmer
-    const maxHeadRadius = Math.max(0.06, length * 0.3);
-    const maxShaftRadius = Math.max(0.03, length * 0.15);
-    const finalHeadRadius = Math.min(headRadius, maxHeadRadius);
-    const finalShaftRadius = Math.min(shaftRadius, maxShaftRadius);
-
-    // Apply scales and positions
-    shaft.scale.set(finalShaftRadius, shaftLength, finalShaftRadius);
-    shaft.position.set(0, shaftLength / 2, 0);
-
-    cone.scale.set(finalHeadRadius, headHeight, finalHeadRadius);
-    cone.position.set(0, shaftLength + headHeight / 2, 0);
-  });
-
-  return (
-    <group ref={groupRef}>
-      <mesh ref={shaftRef} geometry={geometries.shaft}>
-        <meshStandardMaterial color={color} />
-      </mesh>
-      <mesh ref={coneRef} geometry={geometries.cone}>
-        <meshStandardMaterial color={color} />
-      </mesh>
-    </group>
-  );
-}
 // OLD VELOCITY VECTOR SYSTEM - Replaced by Visual Annotation System
 // Use visualAnnotations in scene JSON instead
 // Example: { "type": "vector", "vectorType": "velocity", ... }
@@ -595,10 +519,6 @@ function Visualizer({ scene, showSceneDetails, onToggleSceneDetails, onSceneUpda
     const { 
         isPlaying, 
         simulationTime, 
-        fps, 
-        showVelocityVectors, 
-        vectorScale, 
-        openGraphs, 
         resetTrigger, 
         loopMode, 
         setIsPlaying, 
@@ -608,15 +528,12 @@ function Visualizer({ scene, showSceneDetails, onToggleSceneDetails, onSceneUpda
         showAxes, 
         setShowGrid, 
         setShowAxes, 
-        showStats, 
         zenMode, 
         setZenMode,
         setObjectHistory,
         updateSimulationTime,
         updateFps,
-        resetSimulation,
-        loopReset,
-        removeGraph
+        loopReset
     } = useSimulation();
 
     // Skybox state - cycles through: normal, space, black, white
@@ -652,14 +569,10 @@ function Visualizer({ scene, showSceneDetails, onToggleSceneDetails, onSceneUpda
     }, [scene]);
 
     const historyRef = useRef({});
-    const lastLoopResetRef = useRef(0);
     const lastRecordTimeRef = useRef({}); // Track last recorded time for each object
-    const physicsDataRef = useRef({ velocities: {}, positions: {} }); // Changed to ref to avoid re-renders
-    const [physicsData, setPhysicsData] = useState({ velocities: {}, positions: {} });
     const [canvasError, setCanvasError] = useState(false);
     const r3fCanvasRef = useRef(null);
     const [processedScene, setProcessedScene] = useState(null);
-    const physicsUpdateCountRef = useRef(0); // Batch updates
     const shotTimersRef = useRef<Record<string, any>>({}); // Track removal timers for shot objects
 
     // Player/input refs for WASD + agent loop
@@ -959,7 +872,6 @@ function Visualizer({ scene, showSceneDetails, onToggleSceneDetails, onSceneUpda
             historyRef.current = {};
             lastRecordTimeRef.current = {};
             setObjectHistory({});
-            setPhysicsData({ velocities: {}, positions: {} });
             setIsPlaying(false);
         } else {
             // For shooting/agent loop updates, just update the data rates
@@ -974,7 +886,6 @@ function Visualizer({ scene, showSceneDetails, onToggleSceneDetails, onSceneUpda
             historyRef.current = {};
             lastRecordTimeRef.current = {};
             setObjectHistory({});
-            setPhysicsData({ velocities: {}, positions: {} });
         }
     }, [resetTrigger, setObjectHistory]);
 

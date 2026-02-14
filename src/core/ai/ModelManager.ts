@@ -25,14 +25,27 @@ export class ModelManager {
 
   constructor(config?: Partial<ModelConfig>) {
     // Default configuration - auto-detect based on available keys
+    const hasNvidiaKey = !!import.meta.env.VITE_NVIDIA_API_KEY;
     const hasGeminiKey = !!import.meta.env.VITE_GEMINI_API_KEY;
-    
+
+    let provider: ModelConfig['provider'] = 'ollama';
+    let model = import.meta.env.VITE_OLLAMA_MODEL || 'qwen2.5:3b-instruct';
+    let apiKey = undefined;
+
+    if (hasNvidiaKey) {
+      provider = 'nvidia';
+      model = 'z-ai/glm4.7'; // Updated to faster model
+      apiKey = import.meta.env.VITE_NVIDIA_API_KEY;
+    } else if (hasGeminiKey) {
+      provider = 'gemini';
+      model = 'gemini-3-flash-preview';
+      apiKey = import.meta.env.VITE_GEMINI_API_KEY;
+    }
+
     this.config = {
-      provider: hasGeminiKey ? 'gemini' : 'ollama',
-      model: hasGeminiKey 
-        ? 'gemini-3-flash-preview' 
-        : (import.meta.env.VITE_OLLAMA_MODEL || 'qwen2.5:3b-instruct'),
-      apiKey: import.meta.env.VITE_GEMINI_API_KEY,
+      provider,
+      model,
+      apiKey,
       endpoint: import.meta.env.VITE_OLLAMA_ENDPOINT || 'http://localhost:11434/api/generate',
       maxTokens: 10000,
       temperature: 0.7,
@@ -84,6 +97,8 @@ export class ModelManager {
     switch (this.config.provider) {
       case 'gemini':
         return this.callGemini(fullPrompt);
+      case 'nvidia':
+        return this.callNvidia(fullPrompt);
       case 'ollama':
         return this.callOllama(fullPrompt);
       default:
@@ -173,7 +188,7 @@ export class ModelManager {
 
       } catch (error: any) {
         if (attempt === maxRetries) throw error;
-        
+
         const msg = error?.message || String(error);
         if (!this.isRetryableError(msg)) throw error;
 
@@ -220,21 +235,100 @@ export class ModelManager {
   }
 
   /**
+   * Call Nvidia API
+   */
+  private async callNvidia(prompt: string, maxRetries = 3): Promise<ModelResponse> {
+    if (!this.config.apiKey) {
+      throw this.createError('NO_API_KEY', 'Nvidia API key not configured', 401, false);
+    }
+
+    console.log('🚀 AI Request: Using Nvidia API');
+
+    // Use relative path to avoid CORS (Vite proxy/Vercel handles it)
+    const invokeUrl = "/api/nvidia/v1/chat/completions";
+
+    for (let attempt = 1; attempt <= maxRetries; attempt++) {
+      try {
+        const response = await fetch(invokeUrl, {
+          method: 'POST',
+          headers: {
+            "Authorization": `Bearer ${this.config.apiKey}`,
+            "Content-Type": "application/json",
+            "Accept": "application/json"
+          },
+          body: JSON.stringify({
+            model: "z-ai/glm4.7", // Updated model
+            messages: [{ role: "user", content: prompt }], // User wrapper
+            max_tokens: 16384,
+            temperature: 1.00,
+            top_p: 1.00,
+            stream: false, // Simple JSON mode
+            extra_body: {
+              chat_template_kwargs: {
+                enable_thinking: false,
+                clear_thinking: true
+              }
+            }
+          })
+        });
+
+        if (!response.ok) {
+          const errorText = await this.extractErrorText(response);
+          const status = response.status;
+
+          // Retry on transient errors
+          if ((status >= 500 || status === 429) && attempt < maxRetries) {
+            const delay = Math.pow(2, attempt) * 1000;
+            console.warn(`Nvidia API error ${status}, retrying in ${delay}ms...`);
+            await this.sleep(delay);
+            continue;
+          }
+
+          throw this.createError('API_ERROR', `Nvidia API error: ${status} - ${errorText}`, status, status >= 500 || status === 429);
+        }
+
+        const data = await response.json();
+
+        // Nvidia/OpenAI compatible response structure
+        const text = data.choices?.[0]?.message?.content || '';
+        const usage = data.usage ? {
+          promptTokens: data.usage.prompt_tokens || 0,
+          completionTokens: data.usage.completion_tokens || 0,
+          totalTokens: data.usage.total_tokens || 0
+        } : undefined;
+
+        return { text, usage, model: this.config.model };
+
+      } catch (error: any) {
+        if (attempt === maxRetries) throw error;
+
+        const msg = error?.message || String(error);
+        if (!this.isRetryableError(msg)) throw error;
+
+        const delay = Math.pow(2, attempt) * 1000;
+        console.warn(`Transient error (attempt ${attempt}/${maxRetries}): ${msg}. Retrying...`);
+        await this.sleep(delay);
+      }
+    }
+    throw this.createError('MAX_RETRIES', 'Max retries exceeded', 500, false);
+  }
+
+  /**
    * Read streaming response body
    */
   private async readStreamingResponse(response: Response): Promise<string> {
     if (!response.body) return response.text().catch(() => '');
-    
+
     const reader = response.body.getReader();
     const decoder = new TextDecoder('utf-8');
     let accumulated = '';
-    
+
     while (true) {
       const { value, done } = await reader.read();
       if (done) break;
       accumulated += decoder.decode(value, { stream: true });
     }
-    
+
     return accumulated;
   }
 

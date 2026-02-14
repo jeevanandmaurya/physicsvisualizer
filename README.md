@@ -44,11 +44,15 @@ npm install
 ```
 
 Create `.env` file:
+
 ```env
 VITE_GEMINI_API_KEY=your_gemini_api_key_here
+# Optional: Use Nvidia API (takes priority if set)
+VITE_NVIDIA_API_KEY=your_nvidia_api_key_here
 ```
 
 Run:
+
 ```bash
 npm run dev
 ```
@@ -64,7 +68,7 @@ Open [http://localhost:5173](http://localhost:5173)
 | Framework | React 19 + Vite |
 | 3D Rendering | Three.js via @react-three/fiber |
 | Physics | Rapier3D (WASM) |
-| AI | Google Gemini 2.5 Flash |
+| AI | z-ai/glm4.7 (Nvidia), Google Gemini (Fallback) |
 | Deployment | Vercel |
 
 ---

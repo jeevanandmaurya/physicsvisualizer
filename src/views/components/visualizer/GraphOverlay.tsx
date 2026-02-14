@@ -13,49 +13,19 @@ import './GraphOverlay.css';
 
 ChartJS.register(CategoryScale, LinearScale, PointElement, LineElement, Title, Tooltip, Legend, zoomPlugin);
 
-// Type definitions
-interface PositionData {
-  t: number;
-  x: number;
-  y: number;
-  z: number;
-  vx?: number;
-  vy?: number;
-  vz?: number;
-}
-
-interface GraphConfig {
-  id: string;
-  initialType: string;
-}
-
 interface GraphOverlayProps {
   isOpen: boolean;
-  onToggle: () => void;
 }
 
 interface OverlayGraphProps {
   id: string;
   initialType: string;
-  data: Record<string, PositionData[]>;
   onClose: (id: string) => void;
   initialPosition?: { x: number; y: number };
 }
 
-interface ChartLabels {
-  title: string;
-  xlabel: string;
-  ylabel: string;
-}
-
-interface PlotDataPoint {
-  x: number;
-  y: number;
-}
-
-function GraphOverlay({ isOpen, onToggle }: GraphOverlayProps) {
+function GraphOverlay({ isOpen }: GraphOverlayProps) {
   const { openGraphs, removeGraph } = useSimulation();
-  const chartRef = useRef(null);
 
   if (!isOpen) return null;
 
@@ -66,7 +36,6 @@ function GraphOverlay({ isOpen, onToggle }: GraphOverlayProps) {
           key={graphConfig.id}
           id={graphConfig.id}
           initialType={graphConfig.initialType}
-          data={{}} // Data is now pulled directly from store inside component
           onClose={removeGraph}
           initialPosition={{ x: 60 + index * 30, y: 80 + index * 30 }}
         />
@@ -75,8 +44,8 @@ function GraphOverlay({ isOpen, onToggle }: GraphOverlayProps) {
   );
 }
 
-function OverlayGraph({ id, initialType, data, onClose, initialPosition }) {
-  const { overlayOpacity, theme } = useTheme();
+function OverlayGraph({ id, initialType, onClose, initialPosition }: OverlayGraphProps) {
+  const { overlayOpacity } = useTheme();
   const { 
     registerOverlay, 
     unregisterOverlay, 
@@ -138,8 +107,6 @@ function OverlayGraph({ id, initialType, data, onClose, initialPosition }) {
   });
 
   const [previousPosition, setPreviousPosition] = useState(position);
-  const [previousSize, setPreviousSize] = useState(size);
-
   // Handle window resize to keep overlay in bounds
   useEffect(() => {
     const handleResize = () => {
@@ -160,12 +127,6 @@ function OverlayGraph({ id, initialType, data, onClose, initialPosition }) {
     return () => window.removeEventListener('resize', handleResize);
   }, []);
 
-  // Register overlay
-  useEffect(() => {
-    registerOverlay(overlayId, 'graph', 60);
-    return () => unregisterOverlay(overlayId);
-  }, [overlayId, registerOverlay, unregisterOverlay]);
-
   // Handle minimized position
   useEffect(() => {
     if (isMinimized) {
@@ -178,14 +139,13 @@ function OverlayGraph({ id, initialType, data, onClose, initialPosition }) {
     }
   }, [isMinimized, getMinimizedPosition, overlayId]);
 
-  const handleMinimize = (e: React.MouseEvent) => {
+  const handleMinimize = useCallback((e: React.MouseEvent) => {
     e.stopPropagation();
     if (!isMinimized) {
       setPreviousPosition(position);
-      setPreviousSize(size);
     }
     toggleMinimize(overlayId);
-  };
+  }, [isMinimized, overlayId, position, toggleMinimize]);
 
   // --- DATA PROCESSING ---
   // Use physicsHistory instead of props data
@@ -421,7 +381,7 @@ function OverlayGraph({ id, initialType, data, onClose, initialPosition }) {
 
   // Escape key to close (like Chat)
   useEffect(() => {
-    const handleKeyDown = (e) => {
+    const handleKeyDown = (e: KeyboardEvent) => {
       if (e.key === 'Escape') {
         onClose(id);
       }
@@ -458,13 +418,13 @@ function OverlayGraph({ id, initialType, data, onClose, initialPosition }) {
     focusOverlay(overlayId);
   }, [overlayId, focusOverlay]);
 
-  const handleDragStop = useCallback((e, data) => {
+  const handleDragStop = useCallback((_: unknown, data: { x: number; y: number }) => {
     if (!isMinimized) {
       setPosition({ x: data.x, y: data.y });
     }
   }, [isMinimized]);
 
-  const handleResizeStop = useCallback((e, dir, ref, delta, positionDelta) => {
+  const handleResizeStop = useCallback((_: unknown, __: unknown, ref: HTMLElement, ___: unknown, positionDelta: { x: number; y: number }) => {
     if (!isMinimized) {
       setSize({ width: ref.offsetWidth, height: ref.offsetHeight });
       if (positionDelta) {

@@ -3,24 +3,18 @@ import ActivityBar from "./ActivityBar";
 import EditorArea from "./EditorArea";
 import StatusBar from "./StatusBar";
 import { PhysicsOverlay } from "../views/components/PhysicsOverlay";
-import logo from '../assets/icon-transparent.svg';
 import { UnifiedOverlay } from "../views/components/UnifiedOverlay";
 import GraphOverlay from "../views/components/visualizer/GraphOverlay";
 import ControllerOverlay from "../views/components/visualizer/ControllerOverlay";
-import { useWorkspace, useWorkspaceScene, useWorkspaceChat } from "../contexts/WorkspaceContext";
+import { useWorkspaceScene } from "../contexts/WorkspaceContext";
 import { useSimulation } from "../contexts/SimulationContext";
 import { useNavigation } from "../contexts/NavigationContext";
-import { useDatabase, SceneData } from "../contexts/DatabaseContext";
+import { SceneData } from "../contexts/DatabaseContext";
 
 import "./Workbench.css";
 
 const Workbench = () => {
-  const dataManager = useDatabase();
-  
-  // Data operations
-  const { getChatForScene } = useWorkspace();
   const { scene, updateScene, replaceCurrentScene } = useWorkspaceScene();
-  const { messages, addMessage } = useWorkspaceChat();
   
   // Simulation state
   const { 
@@ -62,51 +56,6 @@ const Workbench = () => {
       }
     }
   }, [currentView, replaceCurrentScene]);
-
-  // VS Code-inspired layout configuration for each view
-  const getLayoutConfig = (view: string) => { // Added type for view
-    const configs = {
-      // Dashboard: Clean welcome/overview (like VS Code's welcome)
-      dashboard: {
-        sidebar: false,
-        panel: false,
-        description: "Welcome and overview",
-      },
-      // Collection: Scene gallery (clean grid view)
-      collection: {
-        sidebar: false,
-        panel: false,
-        description: "Scene gallery and overview",
-      },
-      // Visualizer: Main physics workspace (like VS Code's editor with panels)
-      visualizer: {
-        sidebar: true,
-        panel: true,
-        description: "3D physics simulation with chat and details",
-      },
-      // Chat: Full chat experience
-      chat: {
-        sidebar: false,
-        panel: false,
-        description: "Advanced chat system for physics discussions",
-      },
-      // Settings: Configuration (like VS Code's settings)
-      settings: {
-        sidebar: false,
-        panel: false,
-        description: "Application preferences and settings",
-      },
-      // About: Information about the application
-      about: {
-        sidebar: false,
-        panel: false,
-        description: "Information about the application",
-      },
-    };
-    return configs[view] || configs.dashboard;
-  };
-
-  const layoutConfig = getLayoutConfig(currentView);
 
   // Keyboard shortcuts for view switching (VS Code style: Ctrl+1,2,3...)
   useEffect(() => {
@@ -232,7 +181,6 @@ const Workbench = () => {
       />
       <GraphOverlay
         isOpen={graphOpen}
-        onToggle={() => setGraphOpen(!graphOpen)}
       />
       <PhysicsOverlay
         isOpen={showStats}

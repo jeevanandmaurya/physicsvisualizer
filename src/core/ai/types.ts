@@ -4,7 +4,7 @@
 
 // Model configuration
 export interface ModelConfig {
-  provider: 'gemini' | 'ollama' | 'openai' | 'anthropic';
+  provider: 'gemini' | 'ollama' | 'openai' | 'anthropic' | 'nvidia';
   model: string;
   apiKey?: string;
   endpoint?: string;
@@ -36,7 +36,7 @@ export interface ModelError {
 }
 
 // Supported providers
-export type ModelProvider = 'gemini' | 'ollama' | 'openai' | 'anthropic';
+export type ModelProvider = 'gemini' | 'ollama' | 'openai' | 'anthropic' | 'nvidia';
 
 // Provider-specific configs
 export interface GeminiConfig extends ModelConfig {
@@ -59,4 +59,9 @@ export interface OpenAIConfig extends ModelConfig {
 export interface AnthropicConfig extends ModelConfig {
   provider: 'anthropic';
   model: string; // e.g., 'claude-3-5-sonnet-20241022'
+}
+
+export interface NvidiaConfig extends ModelConfig {
+  provider: 'nvidia';
+  model: string; // e.g., 'z-ai/glm4.7'
 }
